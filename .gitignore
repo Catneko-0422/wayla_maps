@@ -1,0 +1,13 @@
+*.iml
+.gradle/
+.kotlin/
+build/
+/local.properties
+/captures
+.externalNativeBuild/
+.cxx/
+.idea/
+.DS_Store
+
+# Raw downloads used by tools/ (regenerate with the scripts)
+/tools/data/
