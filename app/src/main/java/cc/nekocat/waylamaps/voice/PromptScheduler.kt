@@ -29,7 +29,9 @@ interface PromptOutput {
  * - A higher-priority prompt interrupts the current one, which is dropped as stale.
  * - Equal or lower priority waits; the queue plays highest priority first, then oldest first.
  * - A newer prompt for a phrase already queued replaces it.
- * - Queued prompts older than [maxQueueAgeMs] are dropped instead of played late.
+ * - Queued prompts older than [maxQueueAgeMs] are dropped instead of played late; prompts that
+ *   say a distance already after [maxDistanceAgeMs], since the rider has moved on and the next
+ *   distance will be said soon.
  *
  * Not thread-safe: call from the main thread.
  */
@@ -37,6 +39,7 @@ class PromptScheduler(
     private val output: PromptOutput,
     private val clock: () -> Long,
     private val maxQueueAgeMs: Long = 10_000,
+    private val maxDistanceAgeMs: Long = 3_000,
 ) {
     private data class Queued(val prompt: Prompt, val enqueuedAt: Long, val order: Long)
 
@@ -81,7 +84,10 @@ class PromptScheduler(
 
     private fun playNext() {
         val now = clock()
-        queue.removeAll { now - it.enqueuedAt > maxQueueAgeMs }
+        queue.removeAll {
+            val age = now - it.enqueuedAt
+            age > maxQueueAgeMs || ("distance" in it.prompt.args && age > maxDistanceAgeMs)
+        }
         val next = queue.minWithOrNull(compareByDescending<Queued> { it.prompt.priority }.thenBy { it.order })
         if (next == null) {
             output.onIdle()

@@ -96,6 +96,19 @@ class PromptSchedulerTest {
     }
 
     @Test
+    fun distancePromptsGoStaleSooner() {
+        val turn = prompt("turn", Priority.TURN)
+        scheduler.submit(turn)
+        scheduler.submit(prompt("camera", Priority.SPEED_CAMERA, "distance" to 300))
+        scheduler.submit(prompt("mode", Priority.CHATTER))
+        now = 4_000
+        scheduler.onFinished(turn)
+
+        // "300 m ahead" four seconds late would be wrong; the chatter still plays.
+        assertEquals(listOf("play turn", "play mode"), events)
+    }
+
+    @Test
     fun clearStopsAndEmptiesQueue() {
         scheduler.submit(prompt("turn", Priority.TURN))
         scheduler.submit(prompt("camera", Priority.SPEED_CAMERA))
