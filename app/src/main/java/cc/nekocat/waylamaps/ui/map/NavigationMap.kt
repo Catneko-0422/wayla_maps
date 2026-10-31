@@ -1,5 +1,6 @@
 package cc.nekocat.waylamaps.ui.map
 
+import android.annotation.SuppressLint
 import android.view.View
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -33,6 +34,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import cc.nekocat.waylamaps.R
 import cc.nekocat.waylamaps.service.ThemeMode
+import cc.nekocat.waylamaps.ui.permissions.hasLocationPermission
 import cc.nekocat.waylamaps.ui.theme.WaylaPalette
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -155,9 +157,7 @@ fun NavigationMap(
             map.setPadding(left, 0, right, bottomInset.roundToPx())
         }
         // After the padding, so the followed vehicle is placed within the new padded area.
-        map.followMyLocation(
-            if (topDown) GoogleMap.CameraPerspective.TOP_DOWN_HEADING_UP else GoogleMap.CameraPerspective.TILTED,
-        )
+        if (context.hasLocationPermission()) map.follow(topDown)
     }
 
     LaunchedEffect(themeMode) {
@@ -198,6 +198,12 @@ fun NavigationMap(
             )
         }
     }
+}
+
+/** Follows the vehicle. Callers check location permission first (lint cannot see through it). */
+@SuppressLint("MissingPermission")
+private fun GoogleMap.follow(topDown: Boolean) {
+    followMyLocation(if (topDown) GoogleMap.CameraPerspective.TOP_DOWN_HEADING_UP else GoogleMap.CameraPerspective.TILTED)
 }
 
 /** A north arrow that turns with the map; tapping it turns the map back to north up. */
