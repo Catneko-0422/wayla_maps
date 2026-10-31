@@ -38,7 +38,11 @@ object CameraDescriber {
      */
     fun describe(camera: SpeedCamera, roadKnown: Boolean): AlertDescription {
         val text = camera.address + camera.direction
-        val type = if (RED_LIGHT.containsMatchIn(text)) "type_speed_red_light" else "type_speed_camera"
+        val type = when {
+            AverageSpeedZones.isZone(camera) -> "type_average_speed_start"
+            RED_LIGHT.containsMatchIn(text) -> "type_speed_red_light"
+            else -> "type_speed_camera"
+        }
         return AlertDescription(type, context(camera.address, roadKnown))
     }
 

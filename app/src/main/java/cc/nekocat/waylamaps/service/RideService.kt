@@ -19,6 +19,8 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import cc.nekocat.waylamaps.alerts.Ahead
 import cc.nekocat.waylamaps.alerts.AlertSession
+import cc.nekocat.waylamaps.alerts.AverageSpeedTracker
+import cc.nekocat.waylamaps.alerts.AverageSpeedZones
 import cc.nekocat.waylamaps.alerts.AlertSessionState
 import cc.nekocat.waylamaps.alerts.CameraAhead
 import cc.nekocat.waylamaps.alerts.CameraAheadDetector
@@ -92,6 +94,8 @@ class RideService : LifecycleService() {
     private val userPointDetector = CameraAheadDetector()
     private val userPointRouteMatcher = RouteCameraMatcher()
     private val overLimit = OverLimitWarner()
+    private val averageSpeed = AverageSpeedTracker()
+    private var lastFix: Fix? = null
     private val parkingZones = NearbyOnceNotifier()
     private val announcedCameraIds = mutableSetOf<Long>()
 
@@ -217,6 +221,15 @@ class RideService : LifecycleService() {
         val own = userPoints.pointsNear(fix.lat, fix.lng, SEARCH_RADIUS_M)
         val ownResult = if (onRoute) userPointRouteMatcher.update(fix, own) else userPointDetector.update(fix, own)
 
+        val now = SystemClock.elapsedRealtime()
+        result.passed?.takeIf { AverageSpeedZones.isZone(it) }?.let { start ->
+            averageSpeed.enter(now, start.limitKmh, AverageSpeedZones.lengthMeters(start.address))
+        }
+        val moved = lastFix?.let { Geo.distanceMeters(it.lat, it.lng, fix.lat, fix.lng) } ?: 0.0
+        lastFix = fix
+        // A jump this large is a GPS glitch or a gap, not distance ridden.
+        if (moved < MAX_STEP_M && averageSpeed.onMove(now, moved)) voicePlayer.speak("average_speed_exit")
+
         val speedKmh = fix.speedMps?.let { it * 3.6 }
         sessionState.update {
             it.copy(
@@ -224,6 +237,7 @@ class RideService : LifecycleService() {
                 speedKmh = speedKmh?.roundToInt(),
                 next = result.next,
                 nextEnforcement = enforcement.next,
+                averageZone = averageSpeed.zone,
             )
         }
         val roadKnown = currentRoad != null
@@ -321,6 +335,9 @@ class RideService : LifecycleService() {
         if (announcedCameraSpots.size > MAX_REMEMBERED_SPOTS) announcedCameraSpots.removeFirst()
         val description = CameraDescriber.describe(ahead.camera, roadKnown)
         voicePlayer.speak(AlertPhrases.ahead(description, ahead.distanceM, ahead.camera.limitKmh, limitSlots))
+        if (AverageSpeedZones.isZone(ahead.camera) && "隧道" in ahead.camera.address) {
+            voicePlayer.speak("average_speed_tunnel")
+        }
     }
 
     private fun announceEnforcement(ahead: Ahead<EnforcementPoint>, roadKnown: Boolean) {
@@ -352,6 +369,7 @@ class RideService : LifecycleService() {
         private const val MAX_REMEMBERED_SPOTS = 20
         private const val PARKING_SEARCH_M = 200.0
         private const val STATUS_TICK_MS = 1_000L
+        private const val MAX_STEP_M = 200.0
 
         /** Only from the foreground (a user action), as Android requires for foreground services. */
         fun start(context: Context) {

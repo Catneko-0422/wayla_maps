@@ -61,7 +61,8 @@
       "type_turn",
       "type_noise",
       "type_following_distance",
-      "type_user_point"
+      "type_user_point",
+      "type_average_speed_start"
     ],
     "context": [
       "ctx_freeway_1",
@@ -580,6 +581,14 @@
     "lock_released": {
       "zh-TW": "已解除自動鎖定介面",
       "en": "Screen unlocked"
+    },
+    "type_average_speed_start": {
+      "zh-TW": "區間測速起點",
+      "en": "Start of an average speed zone"
+    },
+    "average_speed_tunnel": {
+      "zh-TW": "隧道內收不到 GPS，請保持穩定車速",
+      "en": "No GPS in the tunnel. Keep a steady speed"
     }
   },
   "phrases": {
@@ -983,6 +992,17 @@
         ],
         "en": [
           "lock_released"
+        ]
+      }
+    },
+    "average_speed_tunnel": {
+      "priority": "SPEED_CAMERA",
+      "fragments": {
+        "zh-TW": [
+          "average_speed_tunnel"
+        ],
+        "en": [
+          "average_speed_tunnel"
         ]
       }
     }

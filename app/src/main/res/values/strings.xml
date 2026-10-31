@@ -70,4 +70,8 @@
     <string name="settings_auto_lock">Lock the screen while moving</string>
     <string name="settings_auto_lock_summary">Locks after 5 seconds above 10 km/h and unlocks after 10 seconds stopped. A passenger can press and hold to unlock.</string>
     <string name="locked_hint">Locked. Press and hold for 2 seconds to unlock</string>
+    <string name="average_zone_active">In an average speed zone</string>
+    <string name="average_zone_speed">Average %1$d km/h</string>
+    <string name="average_zone_progress">%1$.1f of %2$.1f km</string>
+    <string name="average_zone_traveled">%1$.1f km into the zone</string>
 </resources>

@@ -15,6 +15,8 @@ data class AlertSession(
     val next: CameraAhead? = null,
     /** Nearest enforcement intersection ahead; shown but only announced while navigating. */
     val nextEnforcement: Ahead<EnforcementPoint>? = null,
+    /** Set while riding through an average speed zone. */
+    val averageZone: AverageSpeedTracker.Zone? = null,
 )
 
 /** Shares the speed camera service's state with the UI. */

@@ -38,6 +38,7 @@ class CameraDescriberTest {
         assertEquals("type_speed_red_light", CameraDescriber.describe(camera("忠孝路與義教街口", "南向北(超速闖紅燈)"), false).type)
         assertEquals("type_speed_red_light", CameraDescriber.describe(camera("縣道204線與新店路岔路口(兼闖紅燈)"), false).type)
         assertEquals("type_speed_camera", CameraDescriber.describe(camera("中山路"), false).type)
+        assertEquals("type_average_speed_start", CameraDescriber.describe(camera("自強隧道區間測速"), false).type)
     }
 
     @Test

@@ -74,6 +74,23 @@ fun NextCamera(state: MainUiState, modifier: Modifier = Modifier) {
                     }
                 }
             }
+            if (state.inAverageZone) {
+                Text(
+                    text = stringResource(R.string.average_zone_active),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                state.zoneAverageKmh?.let {
+                    Text(stringResource(R.string.average_zone_speed, it), style = MaterialTheme.typography.titleLarge)
+                }
+                state.zoneTraveledKm?.let { traveled ->
+                    val text = state.zoneLengthKm?.let { length ->
+                        stringResource(R.string.average_zone_progress, traveled, length)
+                    } ?: stringResource(R.string.average_zone_traveled, traveled)
+                    Text(text, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
             if (!state.waitingForGps) {
                 state.nextEnforcementMeters?.let {
                     Text(
