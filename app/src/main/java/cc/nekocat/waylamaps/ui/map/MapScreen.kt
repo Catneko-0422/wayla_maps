@@ -175,8 +175,18 @@ fun MapScreen(
                 else -> Column(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f).fillMaxWidth()) {
                         map()
-                        // Portrait has no room for the 3D character; the sentence appears over the map.
-                        speech?.let { SpeechBubble(characterName, it.text, Modifier.align(Alignment.BottomCenter).padding(12.dp)) }
+                        // Portrait has no room for the 3D character; the sentence appears bottom right,
+                        // above the trip summary, clear of the vehicle (center) and Google logo (left).
+                        speech?.let {
+                            SpeechBubble(
+                                characterName,
+                                it.text,
+                                Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .widthIn(max = BUBBLE_MAX_WIDTH)
+                                    .padding(end = 12.dp, bottom = TRIP_SUMMARY_HEIGHT),
+                            )
+                        }
                     }
                     ControlPanel(
                         state,
@@ -451,8 +461,8 @@ private fun formatDistance(meters: Int): String =
 private fun FloatingCharacter(model: CharacterModel, speech: Speech?, modifier: Modifier) {
     Row(modifier, verticalAlignment = Alignment.Bottom) {
         speech?.let {
-            // Above the trip summary, beside the character's face.
-            SpeechBubble(model.name, it.text, Modifier.widthIn(max = 240.dp).padding(bottom = TRIP_SUMMARY_HEIGHT))
+            // Over the empty right half of the trip summary, clear of the vehicle in the map's center.
+            SpeechBubble(model.name, it.text, Modifier.widthIn(max = BUBBLE_MAX_WIDTH).padding(bottom = 8.dp))
         }
         key(model.id) {
             CharacterView(model.bytes, model.spec, speech, Modifier.size(CHARACTER_WIDTH, CHARACTER_HEIGHT))
@@ -465,7 +475,7 @@ private fun SpeechBubble(name: String, text: String, modifier: Modifier = Modifi
     Card(modifier) {
         Column(Modifier.padding(12.dp)) {
             Text(name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            Text(text, style = MaterialTheme.typography.titleMedium, maxLines = 3)
+            Text(text, style = MaterialTheme.typography.bodyLarge, maxLines = 3)
         }
     }
 }
@@ -478,6 +488,7 @@ private fun endTripColors() = ButtonDefaults.buttonColors(
 )
 
 private val PANEL_WIDTH = 290.dp
+private val BUBBLE_MAX_WIDTH = 170.dp
 
 /** Height of the Navigation SDK's trip summary (time, distance, arrival) along the map's bottom. */
 private val TRIP_SUMMARY_HEIGHT = 96.dp
