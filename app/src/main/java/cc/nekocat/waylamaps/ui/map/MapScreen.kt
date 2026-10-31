@@ -41,6 +41,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.movableContentOf
@@ -133,8 +134,26 @@ fun MapScreen(
     val currentTheme by rememberUpdatedState(themeMode)
     // The turn card covers the map's top edge while guiding, so the compass shows only otherwise.
     val currentGuiding by rememberUpdatedState(state.guiding)
-    val map = remember { movableContentOf { NavigationMap(currentTheme, !currentGuiding, Modifier.fillMaxSize()) } }
     val characterModel by viewModel.characterModel.collectAsStateWithLifecycle()
+    // Set by the layout below: landscape guidance draws its own cards over a full-screen map.
+    var immersive by remember { mutableStateOf(false) }
+    val currentImmersive by rememberUpdatedState(immersive)
+    val currentInset by rememberUpdatedState(if (immersive && characterModel != null) IMMERSIVE_CHARACTER_WIDTH else 0.dp)
+    val currentRightInset by rememberUpdatedState(if (immersive) GUIDANCE_CARDS_CLEARANCE else 0.dp)
+    val map = remember {
+        movableContentOf {
+            NavigationMap(
+                currentTheme,
+                showCompass = !currentGuiding,
+                modifier = Modifier.fillMaxSize(),
+                sdkCards = !currentImmersive,
+                leftInset = currentInset,
+                rightInset = currentRightInset,
+            )
+        }
+    }
+    val turn by viewModel.turn.collectAsStateWithLifecycle()
+    val turnIcon by viewModel.turnIcon.collectAsStateWithLifecycle()
     val speech by viewModel.speech.collectAsStateWithLifecycle()
     val characterName by viewModel.selectedCharacterName.collectAsStateWithLifecycle()
 
@@ -146,8 +165,57 @@ fun MapScreen(
         ) {
             val landscape = maxWidth > maxHeight
             val portraitPanelMaxHeight = maxHeight * PORTRAIT_PANEL_FRACTION
+            val guidance = state.guidance
+            val immersiveNow = state.navigatorReady && landscape && guidance is GuidanceState.Guiding
+            LaunchedEffect(immersiveNow) { immersive = immersiveNow }
             when {
                 !state.navigatorReady -> ControlPanel(state, query, locationDenied, actions, Modifier.fillMaxSize(), large = true)
+                immersiveNow -> Box(Modifier.fillMaxSize()) {
+                    map()
+                    // The character stands on the left, the full height of the screen, with what
+                    // she says as a caption over her; the map's camera is offset past her.
+                    characterModel?.let { model ->
+                        Box(Modifier.width(IMMERSIVE_CHARACTER_WIDTH).fillMaxHeight()) {
+                            key(model.id) {
+                                CharacterView(model.bytes, model.spec, speech, Modifier.fillMaxSize())
+                            }
+                            speech?.let {
+                                SpeechBubble(
+                                    model.name,
+                                    it.text,
+                                    Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .padding(12.dp),
+                                )
+                            }
+                        }
+                    }
+                    if (characterModel == null) {
+                        speech?.let {
+                            SpeechBubble(
+                                characterName,
+                                it.text,
+                                Modifier
+                                    .align(Alignment.BottomStart)
+                                    .widthIn(max = BUBBLE_MAX_WIDTH)
+                                    .padding(start = 12.dp, bottom = 72.dp),
+                            )
+                        }
+                    }
+                    Column(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        turn?.let { TurnCard(it, turnIcon) }
+                        SpeedAlertCard(state.alerts)
+                        // Up here rather than along the bottom, which stays free for the vehicle
+                        // and the Google logo (which follows the map padding and must stay visible).
+                        TripPill(turn, actions.onStop)
+                    }
+                }
                 landscape -> Row(Modifier.fillMaxSize()) {
                     ControlPanel(
                         state,
@@ -488,6 +556,12 @@ private fun endTripColors() = ButtonDefaults.buttonColors(
 )
 
 private val PANEL_WIDTH = 290.dp
+
+/** The character's column in landscape guidance, over the map's left side. */
+private val IMMERSIVE_CHARACTER_WIDTH = 330.dp
+
+/** Room kept for the turn, speed and trip cards along the right edge in landscape guidance. */
+private val GUIDANCE_CARDS_CLEARANCE = 200.dp
 private val BUBBLE_MAX_WIDTH = 170.dp
 
 /** Height of the Navigation SDK's trip summary (time, distance, arrival) along the map's bottom. */

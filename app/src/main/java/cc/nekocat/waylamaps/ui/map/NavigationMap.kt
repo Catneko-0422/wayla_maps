@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -45,7 +47,19 @@ import kotlinx.coroutines.delay
  * does not recreate it.
  */
 @Composable
-fun NavigationMap(themeMode: ThemeMode, showCompass: Boolean, modifier: Modifier = Modifier) {
+fun NavigationMap(
+    themeMode: ThemeMode,
+    showCompass: Boolean,
+    modifier: Modifier = Modifier,
+    /** The SDK's own turn card and trip summary; off when the app draws its own. */
+    sdkCards: Boolean = true,
+    /** Keeps the camera's focus (the vehicle) clear of what is drawn over the map's left side. */
+    leftInset: Dp = 0.dp,
+    /** The same for the right edge (the app's turn and speed cards). */
+    rightInset: Dp = 0.dp,
+    /** The same for the bottom edge (the app's trip pill). */
+    bottomInset: Dp = 0.dp,
+) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val configuration = LocalConfiguration.current
@@ -101,6 +115,17 @@ fun NavigationMap(themeMode: ThemeMode, showCompass: Boolean, modifier: Modifier
             if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) view.onPause()
             if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) view.onStop()
             view.onDestroy()
+        }
+    }
+
+    LaunchedEffect(sdkCards) {
+        view.setHeaderEnabled(sdkCards)
+        view.setEtaCardEnabled(sdkCards)
+    }
+    val density = LocalDensity.current
+    LaunchedEffect(googleMap, leftInset, rightInset, bottomInset) {
+        with(density) {
+            googleMap?.setPadding(leftInset.roundToPx(), 0, rightInset.roundToPx(), bottomInset.roundToPx())
         }
     }
 

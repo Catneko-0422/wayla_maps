@@ -95,10 +95,11 @@ def bake_pose(armature):
     bpy.data.objects.remove(armature, do_unlink=True)
 
 
-def make_unlit(glb_path):
+def make_lit(glb_path):
     """The .blend shades with emission (flat toon look), which glTF exports as black base color
-    plus an emissive texture and no transparency. Rewrite every material as unlit with the
-    texture as base color and alpha masking, which Filament renders as intended."""
+    plus an emissive texture and no transparency. Rewrite every material as a matte, non-metal
+    surface with the texture as base color and alpha masking, so the app's soft key light and
+    ambient light give it gentle shading instead of a flat, pasted-on look."""
     data = glb_path.read_bytes()
     json_length = struct.unpack_from("<I", data, 12)[0]
     gltf = json.loads(data[20:20 + json_length])
@@ -109,10 +110,19 @@ def make_unlit(glb_path):
         pbr["baseColorFactor"] = [1, 1, 1, 1]
         if texture:
             pbr["baseColorTexture"] = texture
+        # glTF defaults to fully metallic, which renders skin and cloth dark.
+        pbr["metallicFactor"] = 0.0
+        pbr["roughnessFactor"] = 0.9
         material["alphaMode"] = "MASK"
         material["alphaCutoff"] = 0.5
-        material.setdefault("extensions", {})["KHR_materials_unlit"] = {}
-    gltf["extensionsUsed"] = sorted(set(gltf.get("extensionsUsed", [])) | {"KHR_materials_unlit"})
+        material.get("extensions", {}).pop("KHR_materials_unlit", None)
+        if not material.get("extensions"):
+            material.pop("extensions", None)
+    used = set(gltf.get("extensionsUsed", [])) - {"KHR_materials_unlit"}
+    if used:
+        gltf["extensionsUsed"] = sorted(used)
+    else:
+        gltf.pop("extensionsUsed", None)
 
     chunk = json.dumps(gltf, separators=(",", ":")).encode("utf-8")
     chunk += b" " * (-len(chunk) % 4)
@@ -157,7 +167,7 @@ def main():
         export_normals=True,
     )
 
-    make_unlit(out_dir / "model.glb")
+    make_lit(out_dir / "model.glb")
 
     tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in bpy.data.objects if o.type == "MESH")
     manifest = {

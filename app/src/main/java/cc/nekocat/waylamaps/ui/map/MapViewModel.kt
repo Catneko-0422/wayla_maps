@@ -3,6 +3,7 @@ package cc.nekocat.waylamaps.ui.map
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
@@ -26,6 +27,8 @@ import cc.nekocat.waylamaps.navigation.PlaceSuggestion
 import cc.nekocat.waylamaps.navigation.PlacesSearch
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.navigation.TravelModePreference
+import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
+import cc.nekocat.waylamaps.navigation.TurnUpdate
 import cc.nekocat.waylamaps.service.RideController
 import cc.nekocat.waylamaps.service.RidePreferences
 import cc.nekocat.waylamaps.ui.confirmationPhrase
@@ -95,6 +98,7 @@ class MapViewModel @Inject constructor(
     private val ridePreferences: RidePreferences,
     characters: CharacterRepository,
     speechState: SpeechState,
+    turnByTurn: TurnByTurnFeed,
 ) : ViewModel() {
     /** The selected character's model, loaded off the main thread; null for voice-only characters. */
     val characterModel: StateFlow<CharacterModel?> = characters.selected
@@ -110,6 +114,10 @@ class MapViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), characters.selected.value.manifest.name)
 
     val speech: StateFlow<Speech?> = speechState.current
+
+    /** The current maneuver for the app's own turn card. */
+    val turn: StateFlow<TurnUpdate?> = turnByTurn.updates
+    val turnIcon: StateFlow<Bitmap?> = turnByTurn.icon
 
     private val search = MutableStateFlow(SearchState())
     private val autoLock = AutoLock()

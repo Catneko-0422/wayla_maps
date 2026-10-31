@@ -21,13 +21,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import cc.nekocat.waylamaps.character.ModelSpec
 import cc.nekocat.waylamaps.voice.Speech
 import com.google.android.filament.Engine
-import com.google.android.filament.View
-import com.google.android.filament.android.UiHelper
-import com.google.android.filament.utils.Manipulator
-import com.google.android.filament.utils.ModelViewer
 import com.google.android.filament.utils.Utils
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -48,27 +42,11 @@ fun CharacterView(model: ByteArray, spec: ModelSpec, speech: Speech?, modifier: 
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val currentSpeech by rememberUpdatedState(speech)
-    var viewer by remember { mutableStateOf<ModelViewer?>(null) }
+    var viewer by remember { mutableStateOf<CharacterRenderer?>(null) }
     val textureView = remember { TextureView(context).apply { isOpaque = false } }
 
     DisposableEffect(model) {
-        val engine = Engine.create(Engine.Backend.VULKAN)
-        val uiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK).apply { isOpaque = false }
-        val manipulator = Manipulator.Builder()
-            .targetPosition(0f, spec.focusHeight, 0f)
-            .orbitHomePosition(0f, spec.focusHeight, spec.cameraDistance)
-            .build(Manipulator.Mode.ORBIT)
-        val created = ModelViewer(textureView, engine, uiHelper, manipulator).apply {
-            view.blendMode = View.BlendMode.TRANSLUCENT
-            renderer.clearOptions = renderer.clearOptions.apply { clear = true }
-            scene.skybox = null
-            loadModelGlb(ByteBuffer.allocateDirect(model.size).order(ByteOrder.nativeOrder()).put(model).flip())
-            // The pack's first animation holds the rest pose (arms down instead of the T-pose).
-            animator?.takeIf { it.animationCount > 0 }?.apply {
-                applyAnimation(0, 0f)
-                updateBoneMatrices()
-            }
-        }
+        val created = CharacterRenderer(textureView, model, spec)
         viewer = created
         onDispose {
             viewer = null
@@ -83,6 +61,7 @@ fun CharacterView(model: ByteArray, spec: ModelSpec, speech: Speech?, modifier: 
         var lastFrame = 0L
         val callback = object : Choreographer.FrameCallback {
             override fun doFrame(frameTimeNanos: Long) {
+                if (!current.alive) return
                 Choreographer.getInstance().postFrameCallback(this)
                 if (frameTimeNanos - lastFrame < 1_000_000_000L / FRAME_RATE) return
                 lastFrame = frameTimeNanos
@@ -113,7 +92,7 @@ fun CharacterView(model: ByteArray, spec: ModelSpec, speech: Speech?, modifier: 
 /** Renderable entity and morph target index for each face morph the model has. */
 private class MorphTargets(val entity: Int, val count: Int, val indices: Map<FaceAnimator.Morph, Int>)
 
-private fun ModelViewer.morphTargets(spec: ModelSpec): MorphTargets? {
+private fun CharacterRenderer.morphTargets(spec: ModelSpec): MorphTargets? {
     val asset = asset ?: return null
     val names = mapOf(
         FaceAnimator.Morph.BLINK to spec.morphs.blink,
@@ -132,8 +111,8 @@ private fun ModelViewer.morphTargets(spec: ModelSpec): MorphTargets? {
     return null
 }
 
-private fun ModelViewer.applyFace(targets: MorphTargets?, weights: Map<FaceAnimator.Morph, Float>) {
-    targets ?: return
+private fun CharacterRenderer.applyFace(targets: MorphTargets?, weights: Map<FaceAnimator.Morph, Float>) {
+    if (targets == null || !alive) return
     val values = FloatArray(targets.count)
     for ((morph, index) in targets.indices) values[index] = weights[morph] ?: 0f
     val rm = engine.renderableManager
@@ -141,7 +120,7 @@ private fun ModelViewer.applyFace(targets: MorphTargets?, weights: Map<FaceAnima
 }
 
 /** A slow sway and breathing bob of the whole model. */
-private fun ModelViewer.sway(nowMs: Long) {
+private fun CharacterRenderer.sway(nowMs: Long) {
     val asset = asset ?: return
     val t = nowMs / 1000.0
     val angle = 0.04 * sin(2 * PI * t / 6)

@@ -92,4 +92,9 @@
     <string name="car_alerts_on">Alerts on</string>
     <string name="car_alerts_off">Alerts off</string>
     <string name="car_idle">Search for a destination to start</string>
+    <string name="navigation_stop_short">End</string>
+    <string name="distance_meters">%1$d m</string>
+    <string name="distance_km">%1$.1f km</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
 </resources>

@@ -87,4 +87,9 @@
     <string name="car_alerts_on">提醒：開</string>
     <string name="car_alerts_off">提醒：關</string>
     <string name="car_idle">搜尋目的地開始導航</string>
+    <string name="navigation_stop_short">結束</string>
+    <string name="distance_meters">%1$d 公尺</string>
+    <string name="distance_km">%1$.1f 公里</string>
+    <string name="duration_minutes">%1$d 分鐘</string>
+    <string name="duration_hours_minutes">%1$d 小時 %2$d 分</string>
 </resources>
