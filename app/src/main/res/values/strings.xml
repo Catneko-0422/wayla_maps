@@ -74,4 +74,8 @@
     <string name="average_zone_speed">Average %1$d km/h</string>
     <string name="average_zone_progress">%1$.1f of %2$.1f km</string>
     <string name="average_zone_traveled">%1$.1f km into the zone</string>
+    <string name="settings_theme">Appearance</string>
+    <string name="theme_system">Follow the phone</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
 </resources>

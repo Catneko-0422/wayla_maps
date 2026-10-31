@@ -11,6 +11,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import cc.nekocat.waylamaps.service.ThemeMode
+import com.google.android.libraries.navigation.ForceNightMode
 import com.google.android.libraries.navigation.NavigationView
 
 /**
@@ -19,7 +21,7 @@ import com.google.android.libraries.navigation.NavigationView
  * does not recreate it.
  */
 @Composable
-fun NavigationMap(modifier: Modifier = Modifier) {
+fun NavigationMap(themeMode: ThemeMode, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val configuration = LocalConfiguration.current
@@ -48,6 +50,16 @@ fun NavigationMap(modifier: Modifier = Modifier) {
             if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) view.onStop()
             view.onDestroy()
         }
+    }
+
+    LaunchedEffect(themeMode) {
+        view.setForceNightMode(
+            when (themeMode) {
+                ThemeMode.SYSTEM -> ForceNightMode.AUTO
+                ThemeMode.LIGHT -> ForceNightMode.FORCE_DAY
+                ThemeMode.DARK -> ForceNightMode.FORCE_NIGHT
+            },
+        )
     }
 
     // The activity handles rotation itself, so pass configuration changes on.

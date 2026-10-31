@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 /** Ride settings from the settings screen. The travel mode lives in TravelModePreference. */
 @Singleton
 class RidePreferences @Inject constructor(
@@ -36,7 +38,20 @@ class RidePreferences @Inject constructor(
         prefs.edit { putBoolean(KEY_AUTO_LOCK, enabled) }
     }
 
+    private val _theme = MutableStateFlow(
+        prefs.getString(KEY_THEME, null)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
+    )
+
+    /** Light or dark UI; SYSTEM follows the phone, and the map then switches by time of day. */
+    val theme: StateFlow<ThemeMode> = _theme.asStateFlow()
+
+    fun setTheme(mode: ThemeMode) {
+        _theme.value = mode
+        prefs.edit { putString(KEY_THEME, mode.name) }
+    }
+
     private companion object {
+        const val KEY_THEME = "theme"
         const val KEY_MATCH_ELEVATION = "match_elevation"
         const val KEY_AUTO_LOCK = "auto_lock"
     }

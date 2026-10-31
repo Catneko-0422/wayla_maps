@@ -7,14 +7,15 @@ import cc.nekocat.waylamaps.data.UserPointRepository
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.service.RidePreferences
+import cc.nekocat.waylamaps.service.ThemeMode
 import cc.nekocat.waylamaps.ui.confirmationPhrase
 import cc.nekocat.waylamaps.voice.VoiceFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -26,6 +27,7 @@ class SettingsViewModel @Inject constructor(
     val travelMode = travelModePreference.mode
     val matchElevation = ridePreferences.matchElevation
     val autoLock = ridePreferences.autoLock
+    val theme = ridePreferences.theme
     val userPoints: StateFlow<List<UserPoint>> =
         userPointRepository.all.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -44,6 +46,8 @@ class SettingsViewModel @Inject constructor(
         ridePreferences.setAutoLock(enabled)
         voice.speak(if (enabled) "lock_on" else "lock_off")
     }
+
+    fun setTheme(mode: ThemeMode) = ridePreferences.setTheme(mode)
 
     fun playVoiceDemo() = voice.speak("voice_demo")
 

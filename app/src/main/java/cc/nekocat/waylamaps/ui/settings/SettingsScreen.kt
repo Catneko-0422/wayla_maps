@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cc.nekocat.waylamaps.R
 import cc.nekocat.waylamaps.alerts.UserPoint
 import cc.nekocat.waylamaps.navigation.TravelMode
+import cc.nekocat.waylamaps.service.ThemeMode
 import cc.nekocat.waylamaps.ui.labelRes
 import java.time.Instant
 import java.time.ZoneId
@@ -42,6 +43,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
     val travelMode by viewModel.travelMode.collectAsStateWithLifecycle()
     val matchElevation by viewModel.matchElevation.collectAsStateWithLifecycle()
     val autoLock by viewModel.autoLock.collectAsStateWithLifecycle()
+    val theme by viewModel.theme.collectAsStateWithLifecycle()
     val userPoints by viewModel.userPoints.collectAsStateWithLifecycle()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -58,24 +60,13 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
             }
             TravelMode.entries.forEach { mode ->
                 item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp)
-                            .selectable(
-                                selected = mode == travelMode,
-                                onClick = { viewModel.setTravelMode(mode) },
-                                role = Role.RadioButton,
-                            ),
-                    ) {
-                        RadioButton(selected = mode == travelMode, onClick = null)
-                        Text(
-                            stringResource(mode.labelRes()),
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 16.dp),
-                        )
-                    }
+                    RadioRow(stringResource(mode.labelRes()), mode == travelMode) { viewModel.setTravelMode(mode) }
+                }
+            }
+            item { SectionTitle(stringResource(R.string.settings_theme)) }
+            ThemeMode.entries.forEach { mode ->
+                item {
+                    RadioRow(stringResource(mode.labelRes()), mode == theme) { viewModel.setTheme(mode) }
                 }
             }
             item {
@@ -123,6 +114,26 @@ private val POINT_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 private fun describe(point: UserPoint): String {
     val time = Instant.ofEpochMilli(point.createdAt).atZone(ZoneId.systemDefault()).format(POINT_TIME)
     return String.format(Locale.ROOT, "%s · %.5f, %.5f", time, point.lat, point.lng)
+}
+
+private fun ThemeMode.labelRes() = when (this) {
+    ThemeMode.SYSTEM -> R.string.theme_system
+    ThemeMode.LIGHT -> R.string.theme_light
+    ThemeMode.DARK -> R.string.theme_dark
+}
+
+@Composable
+private fun RadioRow(label: String, selected: Boolean, onSelect: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .selectable(selected = selected, onClick = onSelect, role = Role.RadioButton),
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
+    }
 }
 
 @Composable

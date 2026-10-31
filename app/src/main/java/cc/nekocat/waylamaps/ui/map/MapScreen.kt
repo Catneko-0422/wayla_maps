@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,6 +64,7 @@ import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.PlaceSuggestion
 import cc.nekocat.waylamaps.navigation.RouteFailure
 import cc.nekocat.waylamaps.navigation.TravelMode
+import cc.nekocat.waylamaps.service.ThemeMode
 import cc.nekocat.waylamaps.ui.labelRes
 import cc.nekocat.waylamaps.ui.main.NavigationSetupCard
 import cc.nekocat.waylamaps.ui.main.NextCamera
@@ -93,7 +95,12 @@ private class PanelActions(
  * landscape (handlebar mounts, car dashboards) puts it beside the map.
  */
 @Composable
-fun MapScreen(onOpenSettings: () -> Unit, onOpenLegal: () -> Unit, viewModel: MapViewModel = hiltViewModel()) {
+fun MapScreen(
+    themeMode: ThemeMode,
+    onOpenSettings: () -> Unit,
+    onOpenLegal: () -> Unit,
+    viewModel: MapViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val query = viewModel.query
     val context = LocalContext.current
@@ -118,7 +125,8 @@ fun MapScreen(onOpenSettings: () -> Unit, onOpenLegal: () -> Unit, viewModel: Ma
         onOpenLegal = onOpenLegal,
     )
     // One map instance moved between the two layouts, so rotating keeps the route on screen.
-    val map = remember { movableContentOf { NavigationMap(Modifier.fillMaxSize()) } }
+    val currentTheme by rememberUpdatedState(themeMode)
+    val map = remember { movableContentOf { NavigationMap(currentTheme, Modifier.fillMaxSize()) } }
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         BoxWithConstraints(

@@ -69,4 +69,8 @@
     <string name="average_zone_speed">平均時速 %1$d 公里</string>
     <string name="average_zone_progress">已行駛 %1$.1f／%2$.1f 公里</string>
     <string name="average_zone_traveled">已行駛 %1$.1f 公里</string>
+    <string name="settings_theme">外觀</string>
+    <string name="theme_system">跟隨手機設定</string>
+    <string name="theme_light">淺色</string>
+    <string name="theme_dark">深色</string>
 </resources>
