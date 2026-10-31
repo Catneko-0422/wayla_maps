@@ -18,6 +18,8 @@ data class SpeedCamera(
     val limitKmh: Int?,
     /** Location text from the dataset, e.g. "市民大道高架京站百貨前". */
     val address: String = "",
+    /** 拍攝方向 as published; may carry notes such as "兼闖紅燈". */
+    val direction: String = "",
 ) : AlertPoint
 
 /** One position update, stripped of Android types. */

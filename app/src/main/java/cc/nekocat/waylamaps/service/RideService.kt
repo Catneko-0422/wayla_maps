@@ -17,11 +17,15 @@ import cc.nekocat.waylamaps.alerts.AlertSession
 import cc.nekocat.waylamaps.alerts.AlertSessionState
 import cc.nekocat.waylamaps.alerts.CameraAhead
 import cc.nekocat.waylamaps.alerts.CameraAheadDetector
+import cc.nekocat.waylamaps.alerts.CameraDescriber
 import cc.nekocat.waylamaps.alerts.CameraRoadFilter
+import cc.nekocat.waylamaps.alerts.EnforcementKind
 import cc.nekocat.waylamaps.alerts.EnforcementPoint
 import cc.nekocat.waylamaps.alerts.Fix
 import cc.nekocat.waylamaps.alerts.Geo
 import cc.nekocat.waylamaps.alerts.GeoPoint
+import cc.nekocat.waylamaps.alerts.NearbyOnceNotifier
+import cc.nekocat.waylamaps.alerts.OverLimitWarner
 import cc.nekocat.waylamaps.alerts.RouteCameraMatcher
 import cc.nekocat.waylamaps.alerts.camera
 import cc.nekocat.waylamaps.data.SpeedCameraRepository
@@ -33,6 +37,7 @@ import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
 import cc.nekocat.waylamaps.navigation.TurnPrompt
 import cc.nekocat.waylamaps.navigation.TurnPromptPlanner
+import cc.nekocat.waylamaps.voice.AlertPhrases
 import cc.nekocat.waylamaps.voice.PhraseCatalog
 import cc.nekocat.waylamaps.voice.Priority
 import cc.nekocat.waylamaps.voice.VoicePlayer
@@ -73,6 +78,9 @@ class RideService : LifecycleService() {
     private val routeMatcher = RouteCameraMatcher()
     private val enforcementDetector = CameraAheadDetector()
     private val enforcementRouteMatcher = RouteCameraMatcher()
+    private val overLimit = OverLimitWarner()
+    private val parkingZones = NearbyOnceNotifier()
+    private val announcedCameraIds = mutableSetOf<Long>()
 
     /** Where speed cameras were announced this ride, so an enforcement point there is not repeated. */
     private val announcedCameraSpots = ArrayDeque<GeoPoint>()
@@ -184,38 +192,49 @@ class RideService : LifecycleService() {
             enforcementDetector.update(fix, points)
         }
 
+        val speedKmh = fix.speedMps?.let { it * 3.6 }
         sessionState.update {
             it.copy(
                 hasFix = true,
-                speedKmh = fix.speedMps?.let { mps -> (mps * 3.6).roundToInt() },
+                speedKmh = speedKmh?.roundToInt(),
                 next = result.next,
                 nextEnforcement = enforcement.next,
             )
         }
-        result.announce?.let { announce(it) }
+        val roadKnown = currentRoad != null
+        result.announce?.let { announce(it, roadKnown) }
         // Enforcement points are spoken only while navigating; otherwise they are just shown.
-        if (guiding != null) enforcement.announce?.let { announceEnforcement(it) }
+        if (guiding != null) enforcement.announce?.let { announceEnforcement(it, roadKnown) }
+        if (result.passed != null || (guiding != null && enforcement.passed != null)) {
+            voicePlayer.speak("alert_passed")
+        }
+        result.next?.let { next ->
+            if (next.camera.id in announcedCameraIds &&
+                overLimit.shouldWarn(next.camera.id, next.distanceM, next.camera.limitKmh, speedKmh)
+            ) {
+                voicePlayer.speak("over_limit")
+            }
+        }
+        val parking = enforcementRepository.pointsNear(fix.lat, fix.lng, PARKING_SEARCH_M, setOf(EnforcementKind.PARKING))
+        parkingZones.update(fix, parking)?.let { voicePlayer.speak("parking_zone") }
     }
 
-    private fun announce(ahead: CameraAhead) {
+    private fun announce(ahead: CameraAhead, roadKnown: Boolean) {
+        announcedCameraIds += ahead.camera.id
         announcedCameraSpots.addLast(GeoPoint(ahead.camera.lat, ahead.camera.lng))
         if (announcedCameraSpots.size > MAX_REMEMBERED_SPOTS) announcedCameraSpots.removeFirst()
-        val distance = CameraAheadDetector.spokenDistanceMeters(ahead.distanceM)
-        val limit = ahead.camera.limitKmh
-        // A limit without a recorded fragment (new data) still gets the distance announced.
-        if (limit != null && limit.toString() in phraseCatalog.slots["limit"].orEmpty()) {
-            voicePlayer.speak("speed_camera_ahead_limit", mapOf("distance" to distance, "limit" to limit))
-        } else {
-            voicePlayer.speak("speed_camera_ahead", mapOf("distance" to distance))
-        }
+        val description = CameraDescriber.describe(ahead.camera, roadKnown)
+        voicePlayer.speak(AlertPhrases.ahead(description, ahead.distanceM, ahead.camera.limitKmh, limitSlots))
     }
 
-    private fun announceEnforcement(ahead: Ahead<EnforcementPoint>) {
+    private fun announceEnforcement(ahead: Ahead<EnforcementPoint>, roadKnown: Boolean) {
         val point = ahead.point
         if (announcedCameraSpots.any { Geo.distanceMeters(it.lat, it.lng, point.lat, point.lng) <= SAME_SPOT_M }) return
-        val distance = CameraAheadDetector.spokenDistanceMeters(ahead.distanceM)
-        voicePlayer.speak("enforcement_ahead", mapOf("distance" to distance))
+        val description = CameraDescriber.describe(point, roadKnown)
+        voicePlayer.speak(AlertPhrases.ahead(description, ahead.distanceM, point.limitKmh, limitSlots))
     }
+
+    private val limitSlots by lazy { phraseCatalog.slots["limit"].orEmpty() }
 
     private fun speakTurn(prompt: TurnPrompt) {
         Log.i(TAG, "Turn prompt $prompt at ${speedMps?.let { (it * 3.6).roundToInt() }} km/h")
@@ -235,6 +254,7 @@ class RideService : LifecycleService() {
         /** An enforcement point this close to an announced speed camera is the same spot. */
         private const val SAME_SPOT_M = 50.0
         private const val MAX_REMEMBERED_SPOTS = 20
+        private const val PARKING_SEARCH_M = 200.0
 
         /** Only from the foreground (a user action), as Android requires for foreground services. */
         fun start(context: Context) {

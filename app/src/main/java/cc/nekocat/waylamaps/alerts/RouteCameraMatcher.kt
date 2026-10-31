@@ -23,6 +23,8 @@ class RouteCameraMatcher(
     private val maxPositionOffsetM: Double = 60.0,
     /** Progress is searched from this far behind the last known progress, for GPS jitter. */
     private val backtrackM: Double = 100.0,
+    /** How far past an announced point counts as passed. */
+    private val passMarginM: Double = 30.0,
 ) {
     private var points: List<GeoPoint> = emptyList()
 
@@ -30,6 +32,9 @@ class RouteCameraMatcher(
     private var cumulative: DoubleArray = DoubleArray(0)
     private var progressM: Double? = null
     private val announced = mutableSetOf<Long>()
+
+    /** Announced points not passed yet, by their distance along the route. */
+    private val awaitingPass = mutableMapOf<Long, Double>()
 
     val hasRoute: Boolean get() = points.size >= 2
 
@@ -41,21 +46,29 @@ class RouteCameraMatcher(
             cumulative[i] = cumulative[i - 1] + Geo.distanceMeters(route[i - 1].lat, route[i - 1].lng, route[i].lat, route[i].lng)
         }
         progressM = null
+        // Positions along the old route mean nothing on the new one.
+        awaitingPass.clear()
     }
 
     fun <T : AlertPoint> update(fix: Fix, candidates: List<T>): CameraAheadDetector.Result<T> {
         // Forget cameras that dropped out of the search area, so a later pass can announce them again.
         val candidateIds = candidates.mapTo(HashSet()) { it.id }
         announced.retainAll(candidateIds)
+        awaitingPass.keys.retainAll(candidateIds)
 
         val position = locate(fix) ?: return CameraAheadDetector.Result<T>(next = null, announce = null)
         progressM = position.alongM
+
+        val passedId = awaitingPass.entries.firstOrNull { (_, alongM) -> position.alongM >= alongM + passMarginM }?.key
+        passedId?.let { awaitingPass.remove(it) }
+        val passed = passedId?.let { id -> candidates.firstOrNull { it.id == id } }
 
         val next = candidates
             .mapNotNull { camera -> measure(camera, position.alongM) }
             .minByOrNull { it.distanceM }
         val announce = next?.takeIf { it.distanceM <= alertDistanceM && announced.add(it.point.id) }
-        return CameraAheadDetector.Result(next, announce)
+        announce?.let { awaitingPass[it.point.id] = position.alongM + it.distanceM }
+        return CameraAheadDetector.Result(next, announce, passed)
     }
 
     /** Places the fix on the route, preferring the stretch just ahead of the last progress. */

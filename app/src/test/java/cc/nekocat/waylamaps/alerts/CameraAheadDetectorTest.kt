@@ -109,4 +109,15 @@ class CameraAheadDetectorTest {
         assertEquals(250, CameraAheadDetector.spokenDistanceMeters(260.0))
         assertEquals(50, CameraAheadDetector.spokenDistanceMeters(10.0))
     }
+
+    @Test
+    fun reportsPassingAnAnnouncedCameraOnce() {
+        val detector = CameraAheadDetector()
+        val cameras = listOf(camera(1, 200.0))
+        detector.update(origin, cameras)
+
+        assertNull(detector.update(north(190.0), cameras).passed)
+        assertEquals(1L, detector.update(north(240.0), cameras).passed?.id)
+        assertNull(detector.update(north(260.0), cameras).passed)
+    }
 }

@@ -21,16 +21,21 @@ class CameraAheadDetector(
     private val passedDistanceM: Double = 100.0,
     /** An announced camera this far away can be announced again. */
     private val resetDistanceM: Double = 500.0,
+    /** How far behind an announced point must be to count as passed. */
+    private val passMarginM: Double = 30.0,
 ) {
     data class Result<T : AlertPoint>(
         /** Nearest point ahead within [lookAheadM], for display. */
         val next: Ahead<T>?,
         /** Set when [next] has just come within [alertDistanceM] and was not announced yet. */
         val announce: Ahead<T>?,
+        /** An announced point that is now [passMarginM] behind, reported once. */
+        val passed: T? = null,
     )
 
     private var heading: Double? = null
     private val announced = mutableSetOf<Long>()
+    private val awaitingPass = mutableSetOf<Long>()
 
     fun <T : AlertPoint> update(fix: Fix, candidates: List<T>): Result<T> {
         if (fix.bearingDeg != null && (fix.speedMps ?: 0.0) >= minHeadingSpeedMps) {
@@ -47,17 +52,24 @@ class CameraAheadDetector(
         forgetPassedPoints(measured)
 
         val currentHeading = heading ?: return Result<T>(next = null, announce = null)
+        val passed = measured.firstOrNull { m ->
+            m.point.id in awaitingPass && m.distanceM >= passMarginM &&
+                Geo.angleBetween(m.bearingToCamera, currentHeading) > 90.0
+        }?.point
+        passed?.let { awaitingPass.remove(it.id) }
         val next = measured
             .filter { it.distanceM <= lookAheadM && it.isAhead(currentHeading) }
             .minByOrNull { it.distanceM }
             ?.let { Ahead(it.point, it.distanceM) }
 
         val announce = next?.takeIf { it.distanceM <= alertDistanceM && announced.add(it.point.id) }
-        return Result(next, announce)
+        announce?.let { awaitingPass += it.point.id }
+        return Result(next, announce, passed)
     }
 
     private fun forgetPassedPoints(measured: List<Measured<*>>) {
         val byId = measured.associateBy { it.point.id }
+        awaitingPass.retainAll(byId.keys)
         val currentHeading = heading
         announced.removeAll { id ->
             val m = byId[id] ?: return@removeAll true

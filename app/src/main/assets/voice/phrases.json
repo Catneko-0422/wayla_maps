@@ -1,119 +1,640 @@
 {
   "languages": {
-    "zh-TW": { "joiner": "，" },
-    "en": { "joiner": ", " }
+    "zh-TW": {
+      "joiner": "，"
+    },
+    "en": {
+      "joiner": ", "
+    }
   },
   "slots": {
-    "distance": ["50", "100", "150", "200", "250", "300", "500", "1000"],
-    "limit": ["25", "30", "40", "50", "60", "70", "80", "90", "100", "110"],
+    "distance": [
+      "50",
+      "100",
+      "150",
+      "200",
+      "250",
+      "300",
+      "350",
+      "400",
+      "450",
+      "500",
+      "550",
+      "600",
+      "650",
+      "700",
+      "750",
+      "800",
+      "850",
+      "900",
+      "950",
+      "1000",
+      "1050",
+      "1100",
+      "1150",
+      "1200",
+      "1250"
+    ],
+    "limit": [
+      "15",
+      "20",
+      "25",
+      "30",
+      "35",
+      "40",
+      "50",
+      "60",
+      "70",
+      "80",
+      "90",
+      "100",
+      "110",
+      "120"
+    ],
+    "type": [
+      "type_speed_camera",
+      "type_speed_red_light",
+      "type_enforcement",
+      "type_intersection_speed",
+      "type_red_light",
+      "type_pedestrian",
+      "type_turn",
+      "type_noise",
+      "type_following_distance"
+    ],
+    "context": [
+      "ctx_freeway_1",
+      "ctx_freeway_1a",
+      "ctx_freeway_2",
+      "ctx_freeway_2a",
+      "ctx_freeway_3",
+      "ctx_freeway_3a",
+      "ctx_freeway_4",
+      "ctx_freeway_5",
+      "ctx_freeway_6",
+      "ctx_freeway_7",
+      "ctx_freeway_8",
+      "ctx_freeway_9",
+      "ctx_freeway_10",
+      "ctx_expressway",
+      "ctx_elevated",
+      "ctx_tunnel",
+      "ctx_ramp"
+    ],
     "maneuver": [
-      "maneuver_turn_left", "maneuver_turn_right", "maneuver_keep_left", "maneuver_keep_right",
-      "maneuver_u_turn", "maneuver_straight", "maneuver_merge",
-      "maneuver_roundabout", "maneuver_roundabout_exit_1", "maneuver_roundabout_exit_2",
-      "maneuver_roundabout_exit_3", "maneuver_roundabout_exit_4", "maneuver_roundabout_exit_5",
+      "maneuver_turn_left",
+      "maneuver_turn_right",
+      "maneuver_keep_left",
+      "maneuver_keep_right",
+      "maneuver_u_turn",
+      "maneuver_straight",
+      "maneuver_merge",
+      "maneuver_roundabout",
+      "maneuver_roundabout_exit_1",
+      "maneuver_roundabout_exit_2",
+      "maneuver_roundabout_exit_3",
+      "maneuver_roundabout_exit_4",
+      "maneuver_roundabout_exit_5",
       "maneuver_roundabout_leave",
-      "maneuver_on_ramp", "maneuver_on_ramp_left", "maneuver_on_ramp_right",
-      "maneuver_off_ramp", "maneuver_off_ramp_left", "maneuver_off_ramp_right",
-      "maneuver_destination", "maneuver_destination_left", "maneuver_destination_right"
+      "maneuver_on_ramp",
+      "maneuver_on_ramp_left",
+      "maneuver_on_ramp_right",
+      "maneuver_off_ramp",
+      "maneuver_off_ramp_left",
+      "maneuver_off_ramp_right",
+      "maneuver_destination",
+      "maneuver_destination_left",
+      "maneuver_destination_right"
     ]
   },
   "fragments": {
-    "ahead_50m": { "zh-TW": "前方五十公尺", "en": "in 50 meters" },
-    "ahead_100m": { "zh-TW": "前方一百公尺", "en": "in 100 meters" },
-    "ahead_150m": { "zh-TW": "前方一百五十公尺", "en": "in 150 meters" },
-    "ahead_200m": { "zh-TW": "前方兩百公尺", "en": "in 200 meters" },
-    "ahead_250m": { "zh-TW": "前方兩百五十公尺", "en": "in 250 meters" },
-    "ahead_300m": { "zh-TW": "前方三百公尺", "en": "in 300 meters" },
-    "ahead_500m": { "zh-TW": "前方五百公尺", "en": "in 500 meters" },
-    "ahead_1000m": { "zh-TW": "前方一公里", "en": "in 1 kilometer" },
-
-    "speed_camera": { "zh-TW": "測速照相", "en": "Speed camera" },
-    "enforcement_intersection": { "zh-TW": "科技執法路口", "en": "Traffic enforcement intersection" },
-
-    "limit_25": { "zh-TW": "限速二十五", "en": "limit 25" },
-    "limit_30": { "zh-TW": "限速三十", "en": "limit 30" },
-    "limit_40": { "zh-TW": "限速四十", "en": "limit 40" },
-    "limit_50": { "zh-TW": "限速五十", "en": "limit 50" },
-    "limit_60": { "zh-TW": "限速六十", "en": "limit 60" },
-    "limit_70": { "zh-TW": "限速七十", "en": "limit 70" },
-    "limit_80": { "zh-TW": "限速八十", "en": "limit 80" },
-    "limit_90": { "zh-TW": "限速九十", "en": "limit 90" },
-    "limit_100": { "zh-TW": "限速一百", "en": "limit 100" },
-    "limit_110": { "zh-TW": "限速一百一十", "en": "limit 110" },
-
-    "average_speed_enter": { "zh-TW": "進入區間測速", "en": "Entering average speed zone" },
-    "average_speed_exit": { "zh-TW": "離開區間測速", "en": "Leaving average speed zone" },
-
-    "maneuver_turn_left": { "zh-TW": "左轉", "en": "Turn left" },
-    "maneuver_turn_right": { "zh-TW": "右轉", "en": "Turn right" },
-    "maneuver_keep_left": { "zh-TW": "靠左", "en": "Keep left" },
-    "maneuver_keep_right": { "zh-TW": "靠右", "en": "Keep right" },
-    "maneuver_u_turn": { "zh-TW": "迴轉", "en": "Make a U-turn" },
-    "maneuver_straight": { "zh-TW": "直行", "en": "Go straight" },
-    "maneuver_merge": { "zh-TW": "匯入車道", "en": "Merge" },
-    "maneuver_roundabout": { "zh-TW": "進入圓環", "en": "Enter the roundabout" },
-    "maneuver_roundabout_exit_1": { "zh-TW": "圓環第一個出口", "en": "At the roundabout, take the first exit" },
-    "maneuver_roundabout_exit_2": { "zh-TW": "圓環第二個出口", "en": "At the roundabout, take the second exit" },
-    "maneuver_roundabout_exit_3": { "zh-TW": "圓環第三個出口", "en": "At the roundabout, take the third exit" },
-    "maneuver_roundabout_exit_4": { "zh-TW": "圓環第四個出口", "en": "At the roundabout, take the fourth exit" },
-    "maneuver_roundabout_exit_5": { "zh-TW": "圓環第五個出口", "en": "At the roundabout, take the fifth exit" },
-    "maneuver_roundabout_leave": { "zh-TW": "離開圓環", "en": "Exit the roundabout" },
-    "maneuver_on_ramp": { "zh-TW": "上匝道", "en": "Take the ramp" },
-    "maneuver_on_ramp_left": { "zh-TW": "靠左上匝道", "en": "Take the ramp on the left" },
-    "maneuver_on_ramp_right": { "zh-TW": "靠右上匝道", "en": "Take the ramp on the right" },
-    "maneuver_off_ramp": { "zh-TW": "下匝道", "en": "Take the exit" },
-    "maneuver_off_ramp_left": { "zh-TW": "靠左下匝道", "en": "Take the exit on the left" },
-    "maneuver_off_ramp_right": { "zh-TW": "靠右下匝道", "en": "Take the exit on the right" },
-    "maneuver_destination": { "zh-TW": "抵達目的地", "en": "Your destination" },
-    "maneuver_destination_left": { "zh-TW": "目的地在左側", "en": "Your destination is on the left" },
-    "maneuver_destination_right": { "zh-TW": "目的地在右側", "en": "Your destination is on the right" },
-
-    "arrived": { "zh-TW": "已抵達目的地", "en": "You have arrived" }
+    "ahead_50m": {
+      "zh-TW": "前方五十公尺",
+      "en": "in 50 meters"
+    },
+    "ahead_100m": {
+      "zh-TW": "前方一百公尺",
+      "en": "in 100 meters"
+    },
+    "ahead_150m": {
+      "zh-TW": "前方一百五十公尺",
+      "en": "in 150 meters"
+    },
+    "ahead_200m": {
+      "zh-TW": "前方兩百公尺",
+      "en": "in 200 meters"
+    },
+    "ahead_250m": {
+      "zh-TW": "前方兩百五十公尺",
+      "en": "in 250 meters"
+    },
+    "ahead_300m": {
+      "zh-TW": "前方三百公尺",
+      "en": "in 300 meters"
+    },
+    "ahead_350m": {
+      "zh-TW": "前方三百五十公尺",
+      "en": "in 350 meters"
+    },
+    "ahead_400m": {
+      "zh-TW": "前方四百公尺",
+      "en": "in 400 meters"
+    },
+    "ahead_450m": {
+      "zh-TW": "前方四百五十公尺",
+      "en": "in 450 meters"
+    },
+    "ahead_500m": {
+      "zh-TW": "前方五百公尺",
+      "en": "in 500 meters"
+    },
+    "ahead_550m": {
+      "zh-TW": "前方五百五十公尺",
+      "en": "in 550 meters"
+    },
+    "ahead_600m": {
+      "zh-TW": "前方六百公尺",
+      "en": "in 600 meters"
+    },
+    "ahead_650m": {
+      "zh-TW": "前方六百五十公尺",
+      "en": "in 650 meters"
+    },
+    "ahead_700m": {
+      "zh-TW": "前方七百公尺",
+      "en": "in 700 meters"
+    },
+    "ahead_750m": {
+      "zh-TW": "前方七百五十公尺",
+      "en": "in 750 meters"
+    },
+    "ahead_800m": {
+      "zh-TW": "前方八百公尺",
+      "en": "in 800 meters"
+    },
+    "ahead_850m": {
+      "zh-TW": "前方八百五十公尺",
+      "en": "in 850 meters"
+    },
+    "ahead_900m": {
+      "zh-TW": "前方九百公尺",
+      "en": "in 900 meters"
+    },
+    "ahead_950m": {
+      "zh-TW": "前方九百五十公尺",
+      "en": "in 950 meters"
+    },
+    "ahead_1000m": {
+      "zh-TW": "前方一公里",
+      "en": "in 1 kilometer"
+    },
+    "ahead_1050m": {
+      "zh-TW": "前方一千零五十公尺",
+      "en": "in 1,050 meters"
+    },
+    "ahead_1100m": {
+      "zh-TW": "前方一千一百公尺",
+      "en": "in 1,100 meters"
+    },
+    "ahead_1150m": {
+      "zh-TW": "前方一千一百五十公尺",
+      "en": "in 1,150 meters"
+    },
+    "ahead_1200m": {
+      "zh-TW": "前方一千兩百公尺",
+      "en": "in 1,200 meters"
+    },
+    "ahead_1250m": {
+      "zh-TW": "前方一千兩百五十公尺",
+      "en": "in 1,250 meters"
+    },
+    "type_speed_camera": {
+      "zh-TW": "測速照相",
+      "en": "Speed camera"
+    },
+    "type_speed_red_light": {
+      "zh-TW": "測速兼闖紅燈照相",
+      "en": "Speed and red light camera"
+    },
+    "type_enforcement": {
+      "zh-TW": "科技執法路口",
+      "en": "Traffic enforcement intersection"
+    },
+    "type_intersection_speed": {
+      "zh-TW": "路口測速照相",
+      "en": "Intersection speed camera"
+    },
+    "type_red_light": {
+      "zh-TW": "闖紅燈照相",
+      "en": "Red light camera"
+    },
+    "type_pedestrian": {
+      "zh-TW": "行人優先路口",
+      "en": "Pedestrian priority intersection"
+    },
+    "type_turn": {
+      "zh-TW": "違規轉彎取締",
+      "en": "Illegal turn enforcement"
+    },
+    "type_noise": {
+      "zh-TW": "噪音取締",
+      "en": "Noise enforcement"
+    },
+    "type_following_distance": {
+      "zh-TW": "車距取締",
+      "en": "Following distance enforcement"
+    },
+    "ctx_freeway_1": {
+      "zh-TW": "國道一號",
+      "en": "on National Freeway 1"
+    },
+    "ctx_freeway_1a": {
+      "zh-TW": "國道一甲",
+      "en": "on National Freeway 1A"
+    },
+    "ctx_freeway_2": {
+      "zh-TW": "國道二號",
+      "en": "on National Freeway 2"
+    },
+    "ctx_freeway_2a": {
+      "zh-TW": "國道二甲",
+      "en": "on National Freeway 2A"
+    },
+    "ctx_freeway_3": {
+      "zh-TW": "國道三號",
+      "en": "on National Freeway 3"
+    },
+    "ctx_freeway_3a": {
+      "zh-TW": "國道三甲",
+      "en": "on National Freeway 3A"
+    },
+    "ctx_freeway_4": {
+      "zh-TW": "國道四號",
+      "en": "on National Freeway 4"
+    },
+    "ctx_freeway_5": {
+      "zh-TW": "國道五號",
+      "en": "on National Freeway 5"
+    },
+    "ctx_freeway_6": {
+      "zh-TW": "國道六號",
+      "en": "on National Freeway 6"
+    },
+    "ctx_freeway_7": {
+      "zh-TW": "國道七號",
+      "en": "on National Freeway 7"
+    },
+    "ctx_freeway_8": {
+      "zh-TW": "國道八號",
+      "en": "on National Freeway 8"
+    },
+    "ctx_freeway_9": {
+      "zh-TW": "國道九號",
+      "en": "on National Freeway 9"
+    },
+    "ctx_freeway_10": {
+      "zh-TW": "國道十號",
+      "en": "on National Freeway 10"
+    },
+    "ctx_expressway": {
+      "zh-TW": "快速道路",
+      "en": "on the expressway"
+    },
+    "ctx_elevated": {
+      "zh-TW": "高架道路上",
+      "en": "on the elevated road"
+    },
+    "ctx_tunnel": {
+      "zh-TW": "隧道內",
+      "en": "in the tunnel"
+    },
+    "ctx_ramp": {
+      "zh-TW": "匝道口",
+      "en": "at the ramp"
+    },
+    "limit_15": {
+      "zh-TW": "限速十五",
+      "en": "limit 15"
+    },
+    "limit_20": {
+      "zh-TW": "限速二十",
+      "en": "limit 20"
+    },
+    "limit_25": {
+      "zh-TW": "限速二十五",
+      "en": "limit 25"
+    },
+    "limit_30": {
+      "zh-TW": "限速三十",
+      "en": "limit 30"
+    },
+    "limit_35": {
+      "zh-TW": "限速三十五",
+      "en": "limit 35"
+    },
+    "limit_40": {
+      "zh-TW": "限速四十",
+      "en": "limit 40"
+    },
+    "limit_50": {
+      "zh-TW": "限速五十",
+      "en": "limit 50"
+    },
+    "limit_60": {
+      "zh-TW": "限速六十",
+      "en": "limit 60"
+    },
+    "limit_70": {
+      "zh-TW": "限速七十",
+      "en": "limit 70"
+    },
+    "limit_80": {
+      "zh-TW": "限速八十",
+      "en": "limit 80"
+    },
+    "limit_90": {
+      "zh-TW": "限速九十",
+      "en": "limit 90"
+    },
+    "limit_100": {
+      "zh-TW": "限速一百",
+      "en": "limit 100"
+    },
+    "limit_110": {
+      "zh-TW": "限速一百一十",
+      "en": "limit 110"
+    },
+    "limit_120": {
+      "zh-TW": "限速一百二十",
+      "en": "limit 120"
+    },
+    "passed": {
+      "zh-TW": "通過",
+      "en": "Passed"
+    },
+    "over_limit": {
+      "zh-TW": "已超速",
+      "en": "Over the limit"
+    },
+    "parking_zone": {
+      "zh-TW": "這裡是違規臨停取締路段",
+      "en": "No-stopping enforcement zone here"
+    },
+    "average_speed_enter": {
+      "zh-TW": "進入區間測速",
+      "en": "Entering average speed zone"
+    },
+    "average_speed_exit": {
+      "zh-TW": "離開區間測速",
+      "en": "Leaving average speed zone"
+    },
+    "maneuver_turn_left": {
+      "zh-TW": "左轉",
+      "en": "Turn left"
+    },
+    "maneuver_turn_right": {
+      "zh-TW": "右轉",
+      "en": "Turn right"
+    },
+    "maneuver_keep_left": {
+      "zh-TW": "靠左",
+      "en": "Keep left"
+    },
+    "maneuver_keep_right": {
+      "zh-TW": "靠右",
+      "en": "Keep right"
+    },
+    "maneuver_u_turn": {
+      "zh-TW": "迴轉",
+      "en": "Make a U-turn"
+    },
+    "maneuver_straight": {
+      "zh-TW": "直行",
+      "en": "Go straight"
+    },
+    "maneuver_merge": {
+      "zh-TW": "匯入車道",
+      "en": "Merge"
+    },
+    "maneuver_roundabout": {
+      "zh-TW": "進入圓環",
+      "en": "Enter the roundabout"
+    },
+    "maneuver_roundabout_exit_1": {
+      "zh-TW": "圓環第一個出口",
+      "en": "At the roundabout, take the first exit"
+    },
+    "maneuver_roundabout_exit_2": {
+      "zh-TW": "圓環第二個出口",
+      "en": "At the roundabout, take the second exit"
+    },
+    "maneuver_roundabout_exit_3": {
+      "zh-TW": "圓環第三個出口",
+      "en": "At the roundabout, take the third exit"
+    },
+    "maneuver_roundabout_exit_4": {
+      "zh-TW": "圓環第四個出口",
+      "en": "At the roundabout, take the fourth exit"
+    },
+    "maneuver_roundabout_exit_5": {
+      "zh-TW": "圓環第五個出口",
+      "en": "At the roundabout, take the fifth exit"
+    },
+    "maneuver_roundabout_leave": {
+      "zh-TW": "離開圓環",
+      "en": "Exit the roundabout"
+    },
+    "maneuver_on_ramp": {
+      "zh-TW": "上匝道",
+      "en": "Take the ramp"
+    },
+    "maneuver_on_ramp_left": {
+      "zh-TW": "靠左上匝道",
+      "en": "Take the ramp on the left"
+    },
+    "maneuver_on_ramp_right": {
+      "zh-TW": "靠右上匝道",
+      "en": "Take the ramp on the right"
+    },
+    "maneuver_off_ramp": {
+      "zh-TW": "下匝道",
+      "en": "Take the exit"
+    },
+    "maneuver_off_ramp_left": {
+      "zh-TW": "靠左下匝道",
+      "en": "Take the exit on the left"
+    },
+    "maneuver_off_ramp_right": {
+      "zh-TW": "靠右下匝道",
+      "en": "Take the exit on the right"
+    },
+    "maneuver_destination": {
+      "zh-TW": "抵達目的地",
+      "en": "Your destination"
+    },
+    "maneuver_destination_left": {
+      "zh-TW": "目的地在左側",
+      "en": "Your destination is on the left"
+    },
+    "maneuver_destination_right": {
+      "zh-TW": "目的地在右側",
+      "en": "Your destination is on the right"
+    },
+    "arrived": {
+      "zh-TW": "已抵達目的地",
+      "en": "You have arrived"
+    }
   },
   "phrases": {
-    "speed_camera_ahead": {
+    "alert_ahead": {
       "priority": "SPEED_CAMERA",
       "fragments": {
-        "zh-TW": ["ahead_{distance}m", "speed_camera"],
-        "en": ["speed_camera", "ahead_{distance}m"]
+        "zh-TW": [
+          "ahead_{distance}m",
+          "{type}"
+        ],
+        "en": [
+          "{type}",
+          "ahead_{distance}m"
+        ]
       }
     },
-    "speed_camera_ahead_limit": {
+    "alert_ahead_limit": {
       "priority": "SPEED_CAMERA",
       "fragments": {
-        "zh-TW": ["ahead_{distance}m", "speed_camera", "limit_{limit}"],
-        "en": ["speed_camera", "ahead_{distance}m", "limit_{limit}"]
+        "zh-TW": [
+          "ahead_{distance}m",
+          "{type}",
+          "limit_{limit}"
+        ],
+        "en": [
+          "{type}",
+          "ahead_{distance}m",
+          "limit_{limit}"
+        ]
       }
     },
-    "enforcement_ahead": {
+    "alert_ahead_context": {
       "priority": "SPEED_CAMERA",
       "fragments": {
-        "zh-TW": ["ahead_{distance}m", "enforcement_intersection"],
-        "en": ["enforcement_intersection", "ahead_{distance}m"]
+        "zh-TW": [
+          "ahead_{distance}m",
+          "{context}",
+          "{type}"
+        ],
+        "en": [
+          "{type}",
+          "{context}",
+          "ahead_{distance}m"
+        ]
+      }
+    },
+    "alert_ahead_context_limit": {
+      "priority": "SPEED_CAMERA",
+      "fragments": {
+        "zh-TW": [
+          "ahead_{distance}m",
+          "{context}",
+          "{type}",
+          "limit_{limit}"
+        ],
+        "en": [
+          "{type}",
+          "{context}",
+          "ahead_{distance}m",
+          "limit_{limit}"
+        ]
+      }
+    },
+    "alert_passed": {
+      "priority": "SPEED_CAMERA",
+      "fragments": {
+        "zh-TW": [
+          "passed"
+        ],
+        "en": [
+          "passed"
+        ]
+      }
+    },
+    "over_limit": {
+      "priority": "SPEED_CAMERA",
+      "fragments": {
+        "zh-TW": [
+          "over_limit"
+        ],
+        "en": [
+          "over_limit"
+        ]
+      }
+    },
+    "parking_zone": {
+      "priority": "SPEED_CAMERA",
+      "fragments": {
+        "zh-TW": [
+          "parking_zone"
+        ],
+        "en": [
+          "parking_zone"
+        ]
       }
     },
     "average_speed_enter": {
       "priority": "SPEED_CAMERA",
-      "fragments": { "zh-TW": ["average_speed_enter"], "en": ["average_speed_enter"] }
+      "fragments": {
+        "zh-TW": [
+          "average_speed_enter"
+        ],
+        "en": [
+          "average_speed_enter"
+        ]
+      }
     },
     "average_speed_exit": {
       "priority": "SPEED_CAMERA",
-      "fragments": { "zh-TW": ["average_speed_exit"], "en": ["average_speed_exit"] }
+      "fragments": {
+        "zh-TW": [
+          "average_speed_exit"
+        ],
+        "en": [
+          "average_speed_exit"
+        ]
+      }
     },
     "turn_ahead": {
       "priority": "TURN",
       "fragments": {
-        "zh-TW": ["ahead_{distance}m", "{maneuver}"],
-        "en": ["{maneuver}", "ahead_{distance}m"]
+        "zh-TW": [
+          "ahead_{distance}m",
+          "{maneuver}"
+        ],
+        "en": [
+          "{maneuver}",
+          "ahead_{distance}m"
+        ]
       }
     },
     "turn_now": {
       "priority": "TURN",
-      "fragments": { "zh-TW": ["{maneuver}"], "en": ["{maneuver}"] }
+      "fragments": {
+        "zh-TW": [
+          "{maneuver}"
+        ],
+        "en": [
+          "{maneuver}"
+        ]
+      }
     },
     "arrived": {
       "priority": "TURN",
-      "fragments": { "zh-TW": ["arrived"], "en": ["arrived"] }
+      "fragments": {
+        "zh-TW": [
+          "arrived"
+        ],
+        "en": [
+          "arrived"
+        ]
+      }
     }
   }
 }

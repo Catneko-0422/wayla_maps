@@ -37,6 +37,10 @@ class PhraseCatalog(private val table: Table) {
 
     fun priorityOf(phraseId: String): Priority = phrase(phraseId).priority
 
+    /** Names of the slots [phraseId] uses, in any language. */
+    fun slotsOf(phraseId: String): Set<String> =
+        phrase(phraseId).fragments.values.flatten().flatMap { SLOT.findAll(it).map { m -> m.groupValues[1] } }.toSet()
+
     /** @throws IllegalArgumentException for an unknown phrase, language, slot or fragment. */
     fun resolve(phraseId: String, args: Map<String, Any>, language: String): Resolved {
         val joiner = requireNotNull(table.languages[language]) { "Unknown language $language" }.joiner

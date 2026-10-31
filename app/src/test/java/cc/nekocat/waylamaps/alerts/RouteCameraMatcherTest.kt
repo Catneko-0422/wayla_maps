@@ -103,6 +103,16 @@ class RouteCameraMatcherTest {
     }
 
     @Test
+    fun reportsPassingAnAnnouncedCameraOnce() {
+        val cameras = listOf(camera(1, 0.0, 300.0))
+        matcher.update(fix(0.0, 100.0), cameras)
+
+        assertNull(matcher.update(fix(0.0, 320.0), cameras).passed)
+        assertEquals(1L, matcher.update(fix(0.0, 335.0), cameras).passed?.id)
+        assertNull(matcher.update(fix(0.0, 360.0), cameras).passed)
+    }
+
+    @Test
     fun reportsNothingWhenOffTheRoute() {
         val result = matcher.update(fix(300.0, 100.0), listOf(camera(1, 0.0, 300.0)))
 

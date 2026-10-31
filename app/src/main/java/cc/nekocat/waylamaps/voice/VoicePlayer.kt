@@ -70,6 +70,8 @@ class VoicePlayer @Inject constructor(
         scheduler.submit(Prompt(phraseId, args, catalog.priorityOf(phraseId)))
     }
 
+    fun speak(prompt: Prompt) = scheduler.submit(prompt)
+
     /** Speaks [text] with the system TTS; [key] replaces a queued prompt with the same key. */
     fun speakText(key: String, text: String, priority: Priority) {
         scheduler.submit(Prompt(key, priority = priority, text = text))
