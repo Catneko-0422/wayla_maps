@@ -78,4 +78,13 @@
     <string name="theme_system">Follow the phone</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="settings_character">Character and voice</string>
+    <string name="character_voice_count">Recorded phrases: %1$d (the rest use the phone voice)</string>
+    <string name="character_import">Import a voice pack (zip)</string>
+    <string name="character_imported">Imported %1$s. Recorded: %2$d, missing: %3$d (spoken by the phone voice).</string>
+    <string name="character_import_not_a_pack">This file is not a voice pack: character.json is missing or invalid.</string>
+    <string name="character_import_reserved">A built-in character already uses this id.</string>
+    <string name="character_import_rejected">The pack was refused: it is too large or has unsafe paths.</string>
+    <string name="character_import_failed">The file could not be read.</string>
+    <string name="legal_characters_section">Characters</string>
 </resources>

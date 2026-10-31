@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cc.nekocat.waylamaps.character.CharacterRepository
 import cc.nekocat.waylamaps.service.RidePreferences
 import cc.nekocat.waylamaps.service.ThemeMode
 import cc.nekocat.waylamaps.ui.legal.LegalScreen
@@ -28,6 +29,7 @@ private enum class Screen { MAP, SETTINGS, LEGAL }
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject lateinit var ridePreferences: RidePreferences
+    @Inject lateinit var characterRepository: CharacterRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,7 +64,8 @@ class MainActivity : ComponentActivity() {
                     }
                     Screen.LEGAL -> {
                         BackHandler(onBack = back)
-                        LegalScreen(onBack = back)
+                        val characters by characterRepository.characters.collectAsStateWithLifecycle()
+                        LegalScreen(credits = characters.mapNotNull { it.manifest.credit }, onBack = back)
                     }
                 }
             }

@@ -1,6 +1,12 @@
 package cc.nekocat.waylamaps.ui.settings
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
+import cc.nekocat.waylamaps.character.Character
+import cc.nekocat.waylamaps.character.CharacterPackImporter
+import cc.nekocat.waylamaps.character.CharacterRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import androidx.lifecycle.viewModelScope
 import cc.nekocat.waylamaps.alerts.UserPoint
 import cc.nekocat.waylamaps.data.UserPointRepository
@@ -23,7 +29,16 @@ class SettingsViewModel @Inject constructor(
     private val ridePreferences: RidePreferences,
     private val voice: VoiceFeedback,
     private val userPointRepository: UserPointRepository,
+    private val characterRepository: CharacterRepository,
 ) : ViewModel() {
+    val characters = characterRepository.characters
+    val selectedCharacter = characterRepository.selected
+
+    private val _importMessage = MutableStateFlow<CharacterPackImporter.Result?>(null)
+
+    /** Outcome of the last pack import, shown under the import button. */
+    val importMessage: StateFlow<CharacterPackImporter.Result?> = _importMessage.asStateFlow()
+
     val travelMode = travelModePreference.mode
     val matchElevation = ridePreferences.matchElevation
     val autoLock = ridePreferences.autoLock
@@ -50,6 +65,17 @@ class SettingsViewModel @Inject constructor(
     fun setTheme(mode: ThemeMode) = ridePreferences.setTheme(mode)
 
     fun playVoiceDemo() = voice.speak("voice_demo")
+
+    fun selectCharacter(character: Character) {
+        characterRepository.select(character.id)
+        voice.speak("voice_demo")
+    }
+
+    fun deleteCharacter(character: Character) = characterRepository.delete(character)
+
+    fun importCharacter(uri: Uri) {
+        viewModelScope.launch { _importMessage.value = characterRepository.import(uri) }
+    }
 
     fun deletePoint(point: UserPoint) {
         viewModelScope.launch {

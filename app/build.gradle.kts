@@ -22,6 +22,12 @@ android {
         versionName = "0.1.0"
     }
 
+    sourceSets {
+        // Character packs whose licenses forbid redistribution (the repo is public): kept out of
+        // git, bundled only in local builds.
+        getByName("main").assets.directories.add("src/local/assets")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false

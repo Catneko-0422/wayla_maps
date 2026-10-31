@@ -73,4 +73,13 @@
     <string name="theme_system">跟隨手機設定</string>
     <string name="theme_light">淺色</string>
     <string name="theme_dark">深色</string>
+    <string name="settings_character">角色與語音</string>
+    <string name="character_voice_count">已錄製 %1$d 句（其餘用手機語音念）</string>
+    <string name="character_import">匯入語音包（zip）</string>
+    <string name="character_imported">已匯入 %1$s：錄製 %2$d 句，缺 %3$d 句（改用手機語音念）。</string>
+    <string name="character_import_not_a_pack">這個檔案不是語音包：缺少 character.json 或格式不對。</string>
+    <string name="character_import_reserved">內建角色已經使用這個 id。</string>
+    <string name="character_import_rejected">已拒絕匯入：檔案太大，或含有不安全的路徑。</string>
+    <string name="character_import_failed">無法讀取這個檔案。</string>
+    <string name="legal_characters_section">角色</string>
 </resources>

@@ -3,6 +3,7 @@ package cc.nekocat.waylamaps.voice
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import cc.nekocat.waylamaps.character.CharacterRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Provider
@@ -18,6 +19,8 @@ class VoiceFeedback @Inject constructor(
     private val catalog: PhraseCatalog,
     private val tts: Provider<TtsSpeaker>,
     private val audioFocus: Provider<AudioFocusController>,
+    private val characters: CharacterRepository,
+    private val speechState: SpeechState,
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private var player: VoicePlayer? = null
@@ -28,7 +31,7 @@ class VoiceFeedback @Inject constructor(
 
     /** Call on the main thread. */
     fun speak(phraseId: String) {
-        val current = player ?: VoicePlayer(context, catalog, tts.get(), audioFocus.get()).also { player = it }
+        val current = player ?: VoicePlayer(context, catalog, tts.get(), audioFocus.get(), characters, speechState).also { player = it }
         current.speak(phraseId)
         handler.removeCallbacks(release)
         handler.postDelayed(release, IDLE_RELEASE_MS)

@@ -15,3 +15,8 @@ build/
 # Local GPT-SoVITS server settings
 /tools/voice/config.toml
 __pycache__/
+
+# Licensed character packs (models, voices) for local builds only; never commit
+/app/src/local/
+# Generated voice packs
+/tools/voice/out/

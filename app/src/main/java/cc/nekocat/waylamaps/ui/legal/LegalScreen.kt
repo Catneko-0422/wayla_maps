@@ -30,7 +30,7 @@ private const val LINES_PER_ITEM = 200
 
 /** Attribution and open source licenses, as the Navigation SDK terms require. */
 @Composable
-fun LegalScreen(onBack: () -> Unit) {
+fun LegalScreen(credits: List<String>, onBack: () -> Unit) {
     val context = LocalContext.current
     var notice by remember { mutableStateOf("") }
     // The license file is ~50k lines; chunk it so the list stays lazy.
@@ -59,6 +59,9 @@ fun LegalScreen(onBack: () -> Unit) {
                     stringResource(R.string.legal_data_section),
                     stringResource(R.string.data_attribution) + "\n\n" + stringResource(R.string.enforcement_attribution),
                 )
+            }
+            if (credits.isNotEmpty()) {
+                item { Section(stringResource(R.string.legal_characters_section), credits.joinToString("\n")) }
             }
             item { Section(stringResource(R.string.legal_navigation_section), notice) }
             items(licenseChunks) { chunk ->

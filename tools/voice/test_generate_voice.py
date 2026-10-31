@@ -6,7 +6,7 @@ import unittest
 import wave
 from pathlib import Path
 
-from generate_voice import build_request, fragment_hash, generate, load_manifest, trim_silence
+from generate_voice import build_request, fragment_hash, generate, load_manifest, trim_silence, write_pack
 
 CONFIG = {
     "server_url": "http://tts.local:9880",
@@ -149,6 +149,33 @@ class GenerateTest(unittest.TestCase):
 
         self.assertEqual(stats["pruned"], ["zh-TW/old_phrase"])
         self.assertFalse((self.voice_dir / "zh-TW" / "old_phrase.wav").exists())
+
+
+class OpenAIBackendTest(unittest.TestCase):
+    def test_request_is_text_language_and_voice(self):
+        config = {"backend": "openai", "voice": {"zh-TW": {"voice": "stylet", "language": "zh"}}}
+
+        self.assertEqual(
+            build_request(config, "zh-TW", "前方三百公尺"),
+            {"input": "前方三百公尺", "language": "zh", "voice": "stylet"},
+        )
+
+
+class WritePackTest(unittest.TestCase):
+    def test_writes_manifest_and_zip(self):
+        import zipfile
+        with tempfile.TemporaryDirectory() as tmp:
+            pack = Path(tmp) / "stylet"
+            (pack / "voice" / "zh-TW").mkdir(parents=True)
+            (pack / "voice" / "zh-TW" / "passed.wav").write_bytes(b"RIFF")
+
+            archive = write_pack(pack, "stylet", "Stylet", credit="voice: personal use")
+
+            manifest = json.loads((pack / "character.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest, {"id": "stylet", "name": "Stylet", "credit": "voice: personal use"})
+            with zipfile.ZipFile(archive) as z:
+                self.assertIn("character.json", z.namelist())
+                self.assertIn("voice/zh-TW/passed.wav", z.namelist())
 
 
 if __name__ == "__main__":

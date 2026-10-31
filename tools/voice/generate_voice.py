@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
-"""Generate the app's voice fragments with a GPT-SoVITS api_v2 server.
+"""Generate a character's voice fragments with a GPT-SoVITS server.
 
 Reads fragments from app/src/main/assets/voice/phrases.json and writes
-app/src/main/assets/voice/<language>/<fragment_id>.wav. A fragment is skipped
-when its file exists and its text and voice settings are unchanged since the
-last run (tracked in <language>/manifest.json).
+<pack>/voice/<language>/<fragment_id>.wav. A fragment is skipped when its file
+exists and its text and voice settings are unchanged since the last run
+(tracked in <language>/manifest.json).
+
+Two server types (config `backend`): "api_v2" for GPT-SoVITS api_v2.py, and
+"openai" for an OpenAI-style POST /v1/audio/speech (such as Genie-TTS behind
+gpu-switch), whose key is read from the environment variable named in the config.
+
+Without --character the bundled Wayla pack in app/src/main/assets/characters/wayla
+is written: only use voices you recorded or may publish there, the repo is public.
+With --character the pack goes to tools/voice/out/<id>/ (gitignored) and is zipped
+for importing on the phone.
 
 Usage:
     python3 tools/voice/generate_voice.py                 # generate what changed
     python3 tools/voice/generate_voice.py --dry-run       # show what would be sent
     python3 tools/voice/generate_voice.py --only limit_50 --force
     python3 tools/voice/generate_voice.py --prune         # also delete unused files
+    python3 tools/voice/generate_voice.py --character stylet --name Stylet   # importable zip
 """
 
 import argparse
@@ -18,6 +28,8 @@ import array
 import hashlib
 import io
 import json
+import os
+import shutil
 import sys
 import tomllib
 import urllib.error
@@ -26,14 +38,17 @@ import wave
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-VOICE_DIR = REPO_ROOT / "app" / "src" / "main" / "assets" / "voice"
-PHRASES = VOICE_DIR / "phrases.json"
+PHRASES = REPO_ROOT / "app" / "src" / "main" / "assets" / "voice" / "phrases.json"
+BUNDLED_PACK = REPO_ROOT / "app" / "src" / "main" / "assets" / "characters" / "wayla"
+OUT_DIR = Path(__file__).resolve().parent / "out"
 DEFAULT_CONFIG = Path(__file__).resolve().parent / "config.toml"
 MANIFEST = "manifest.json"
 
 
 def build_request(config, language, text):
     voice = config["voice"][language]
+    if config.get("backend") == "openai":
+        return {"input": text, "language": voice["language"], "voice": voice["voice"]}
     request = dict(config.get("params", {}))
     request.update({
         "text": text,
@@ -103,6 +118,41 @@ def post_tts(server_url, request, timeout):
     if not data.startswith(b"RIFF"):
         raise RuntimeError(f"server did not return a WAV file: {data[:300]!r}")
     return data
+
+
+def post_speech(server_url, request, timeout, api_key):
+    """OpenAI-style text to speech; returns WAV bytes."""
+    body = json.dumps(request, ensure_ascii=False).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    req = urllib.request.Request(server_url.rstrip("/") + "/v1/audio/speech", data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            data = response.read()
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:300]}") from e
+    if not data.startswith(b"RIFF"):
+        raise RuntimeError(f"server did not return a WAV file: {data[:300]!r}")
+    return data
+
+
+def fetcher(config):
+    """The request function for the configured backend."""
+    if config.get("backend") == "openai":
+        api_key = os.environ.get(config.get("api_key_env", "WAYLA_TTS_API_KEY"), "")
+        return lambda url, request, timeout: post_speech(url, request, timeout, api_key)
+    return post_tts
+
+
+def write_pack(pack_dir, character_id, name, credit=None):
+    """Writes character.json next to voice/ and zips the pack; returns the zip path."""
+    manifest = {"id": character_id, "name": name}
+    if credit:
+        manifest["credit"] = credit
+    (pack_dir / "character.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    archive = shutil.make_archive(str(pack_dir), "zip", root_dir=pack_dir)
+    return Path(archive)
 
 
 def load_manifest(directory):
@@ -182,6 +232,9 @@ def main():
     parser.add_argument("--only", nargs="+", metavar="ID", help="only these fragment ids")
     parser.add_argument("--dry-run", action="store_true", help="print requests without calling the server")
     parser.add_argument("--prune", action="store_true", help="delete audio for fragments no longer in the table")
+    parser.add_argument("--character", metavar="ID", help="write an importable pack to tools/voice/out/ID")
+    parser.add_argument("--name", help="character name shown in the app (with --character)")
+    parser.add_argument("--credit", help="credit line for the about screen (with --character)")
     args = parser.parse_args()
 
     if not args.config.exists():
@@ -193,8 +246,12 @@ def main():
     if unknown:
         sys.exit(f"unknown fragment ids: {', '.join(sorted(unknown))}")
 
-    stats = generate(config, fragments, VOICE_DIR, post_tts, force=args.force, only=args.only,
+    pack_dir = OUT_DIR / args.character if args.character else BUNDLED_PACK
+    stats = generate(config, fragments, pack_dir / "voice", fetcher(config), force=args.force, only=args.only,
                      dry_run=args.dry_run, prune=args.prune)
+    if args.character and not args.dry_run:
+        archive = write_pack(pack_dir, args.character, args.name or args.character, args.credit)
+        print(f"pack: {archive}")
 
     print(f"\ngenerated: {len(stats['generated'])}  skipped (unchanged): {len(stats['skipped'])}  "
           f"failed: {len(stats['failed'])}  pruned: {len(stats['pruned'])}")

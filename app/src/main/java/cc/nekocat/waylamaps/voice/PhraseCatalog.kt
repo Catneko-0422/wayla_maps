@@ -34,6 +34,7 @@ class PhraseCatalog(private val table: Table) {
     val languages: Set<String> get() = table.languages.keys
     val phraseIds: Set<String> get() = table.phrases.keys
     val slots: Map<String, List<String>> get() = table.slots
+    val fragmentIds: Set<String> get() = table.fragments.keys
 
     fun priorityOf(phraseId: String): Priority = phrase(phraseId).priority
 

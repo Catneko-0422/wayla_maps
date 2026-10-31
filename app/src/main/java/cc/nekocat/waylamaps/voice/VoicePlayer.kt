@@ -3,6 +3,7 @@ package cc.nekocat.waylamaps.voice
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
+import cc.nekocat.waylamaps.character.CharacterRepository
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -16,9 +17,9 @@ import javax.inject.Inject
 /**
  * Speaks phrases from the phrase table (CLAUDE.md voice pipeline).
  *
- * Plays the pre-generated fragments in `assets/voice/<language>/` back to back. If any fragment
- * of a sentence is missing, or playback fails, the whole sentence goes to system TTS instead,
- * so a prompt is never silently dropped.
+ * Plays the selected character's pre-generated fragments (`voice/<language>/` in its pack) back
+ * to back. If any fragment of a sentence is missing, or playback fails, the whole sentence goes
+ * to system TTS instead, so a prompt is never silently dropped.
  */
 @ServiceScoped
 class VoicePlayer @Inject constructor(
@@ -26,16 +27,14 @@ class VoicePlayer @Inject constructor(
     private val catalog: PhraseCatalog,
     private val tts: TtsSpeaker,
     private val audioFocus: AudioFocusController,
+    private val characters: CharacterRepository,
+    private val speechState: SpeechState,
 ) : PromptOutput {
     private val language = if (context.resources.configuration.locales[0].language == "zh") "zh-TW" else "en"
     private val scheduler = PromptScheduler(this, SystemClock::elapsedRealtime)
 
-    private val availableFragments: Set<String> by lazy {
-        context.assets.list("voice/$language").orEmpty()
-            .filter { it.endsWith(".wav") }
-            .map { it.removeSuffix(".wav") }
-            .toSet()
-    }
+    /** What is being said, for the character UI. */
+    private var speech: Speech? = null
 
     /** The prompt ExoPlayer is playing, with its text in case playback fails. */
     private var audioPrompt: Pair<Prompt, String>? = null
@@ -88,6 +87,7 @@ class VoicePlayer @Inject constructor(
         if (prompt.text != null) {
             Log.i(TAG, "Playing ${prompt.phraseId} with TTS: ${prompt.text}")
             audioFocus.acquire()
+            announce(prompt, prompt.text)
             speakWithTts(prompt, prompt.text)
             return
         }
@@ -100,10 +100,12 @@ class VoicePlayer @Inject constructor(
         }
 
         audioFocus.acquire()
-        if (resolved.fragmentIds.all { it in availableFragments }) {
-            Log.i(TAG, "Playing ${prompt.phraseId} from audio: ${resolved.fragmentIds}")
+        announce(prompt, resolved.text)
+        val character = characters.selected.value
+        if (resolved.fragmentIds.all { character.hasVoice(language, it) }) {
+            Log.i(TAG, "Playing ${prompt.phraseId} from ${character.id} audio: ${resolved.fragmentIds}")
             audioPrompt = prompt to resolved.text
-            player.setMediaItems(resolved.fragmentIds.map { MediaItem.fromUri("asset:///voice/$language/$it.wav") })
+            player.setMediaItems(resolved.fragmentIds.map { MediaItem.fromUri(character.voiceUri(language, it)) })
             player.prepare()
             player.play()
         } else {
@@ -113,6 +115,8 @@ class VoicePlayer @Inject constructor(
     }
 
     override fun stop() {
+        speechState.finished(speech)
+        speech = null
         audioPrompt = null
         player.stop()
         tts.stop()
@@ -124,7 +128,14 @@ class VoicePlayer @Inject constructor(
         tts.speak(text) { finish(prompt) }
     }
 
+    private fun announce(prompt: Prompt, text: String) {
+        speechState.finished(speech)
+        speech = Speech(text, prompt.priority, SystemClock.elapsedRealtime()).also { speechState.started(it) }
+    }
+
     private fun finish(prompt: Prompt) {
+        speechState.finished(speech)
+        speech = null
         if (audioPrompt?.first === prompt) audioPrompt = null
         scheduler.onFinished(prompt)
     }

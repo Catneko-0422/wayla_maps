@@ -1,5 +1,7 @@
 package cc.nekocat.waylamaps.ui.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -29,6 +31,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cc.nekocat.waylamaps.R
 import cc.nekocat.waylamaps.alerts.UserPoint
+import cc.nekocat.waylamaps.character.CharacterPackImporter
+import cc.nekocat.waylamaps.character.CharacterSource
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.service.ThemeMode
 import cc.nekocat.waylamaps.ui.labelRes
@@ -45,6 +49,12 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
     val autoLock by viewModel.autoLock.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
     val userPoints by viewModel.userPoints.collectAsStateWithLifecycle()
+    val characters by viewModel.characters.collectAsStateWithLifecycle()
+    val selectedCharacter by viewModel.selectedCharacter.collectAsStateWithLifecycle()
+    val importMessage by viewModel.importMessage.collectAsStateWithLifecycle()
+    val importPack = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::importCharacter)
+    }
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         LazyColumn(
@@ -62,6 +72,39 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 item {
                     RadioRow(stringResource(mode.labelRes()), mode == travelMode) { viewModel.setTravelMode(mode) }
                 }
+            }
+            item { SectionTitle(stringResource(R.string.settings_character)) }
+            items(characters, key = { "character-${it.id}" }) { character ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        RadioRow(character.manifest.name, character.id == selectedCharacter.id) {
+                            viewModel.selectCharacter(character)
+                        }
+                        Text(
+                            stringResource(
+                                R.string.character_voice_count,
+                                character.voiceFragments[VOICE_LANGUAGE].orEmpty().size,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 40.dp),
+                        )
+                    }
+                    if (character.source == CharacterSource.IMPORTED) {
+                        TextButton(onClick = { viewModel.deleteCharacter(character) }) {
+                            Text(stringResource(R.string.action_delete))
+                        }
+                    }
+                }
+            }
+            item {
+                OutlinedButton(
+                    onClick = { importPack.launch(arrayOf("application/zip", "application/octet-stream")) },
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    Text(stringResource(R.string.character_import))
+                }
+                importMessage?.let { Text(describe(it), style = MaterialTheme.typography.bodyMedium) }
             }
             item { SectionTitle(stringResource(R.string.settings_theme)) }
             ThemeMode.entries.forEach { mode ->
@@ -107,6 +150,25 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
             }
         }
     }
+}
+
+/** Fragment counts are shown for the language the voice packs are made for. */
+private const val VOICE_LANGUAGE = "zh-TW"
+
+@Composable
+private fun describe(result: CharacterPackImporter.Result): String = when (result) {
+    is CharacterPackImporter.Result.Imported ->
+        stringResource(R.string.character_imported, result.name, result.recorded, result.missing)
+    is CharacterPackImporter.Result.Failed -> stringResource(
+        when (result.reason) {
+            CharacterPackImporter.Reason.NOT_A_PACK, CharacterPackImporter.Reason.INVALID_MANIFEST ->
+                R.string.character_import_not_a_pack
+            CharacterPackImporter.Reason.RESERVED_ID -> R.string.character_import_reserved
+            CharacterPackImporter.Reason.UNSAFE_PATH, CharacterPackImporter.Reason.TOO_LARGE ->
+                R.string.character_import_rejected
+            CharacterPackImporter.Reason.IO_ERROR -> R.string.character_import_failed
+        },
+    )
 }
 
 private val POINT_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
