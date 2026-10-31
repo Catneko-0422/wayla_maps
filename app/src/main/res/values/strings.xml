@@ -10,4 +10,15 @@
     <string name="notification_channel_alerts">Speed camera alerts</string>
     <string name="notification_alerts_running">Speed camera alerts are on</string>
     <string name="action_stop">Stop</string>
+    <string name="action_start">Start</string>
+
+    <string name="speed_unit">km/h</string>
+    <string name="speed_unknown" translatable="false">--</string>
+    <string name="waiting_for_gps">Waiting for GPS…</string>
+    <string name="no_camera_nearby">No speed camera ahead</string>
+    <string name="next_camera_distance">Speed camera in %1$d m</string>
+    <string name="next_camera_limit">Limit %1$d</string>
+    <string name="location_permission_needed">Precise location is needed to warn about speed cameras ahead.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="data_attribution">Speed camera data: National Police Agency, \"測速執法設置點\" (data.gov.tw), Open Government Data License v1.0</string>
 </resources>

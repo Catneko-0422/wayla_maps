@@ -9,6 +9,8 @@ import javax.inject.Singleton
 
 data class AlertSession(
     val running: Boolean = false,
+    /** False until the first GPS fix arrives after starting. */
+    val hasFix: Boolean = false,
     val speedKmh: Int? = null,
     val next: CameraAhead? = null,
 )

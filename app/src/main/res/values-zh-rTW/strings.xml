@@ -6,4 +6,14 @@
     <string name="notification_channel_alerts">測速照相提醒</string>
     <string name="notification_alerts_running">測速照相提醒執行中</string>
     <string name="action_stop">停止</string>
+    <string name="action_start">開始</string>
+
+    <string name="speed_unit">公里/時</string>
+    <string name="waiting_for_gps">正在等待 GPS 定位…</string>
+    <string name="no_camera_nearby">前方沒有測速照相</string>
+    <string name="next_camera_distance">前方 %1$d 公尺測速照相</string>
+    <string name="next_camera_limit">限速 %1$d</string>
+    <string name="location_permission_needed">需要「精確位置」權限，才能提醒前方的測速照相。</string>
+    <string name="open_settings">開啟設定</string>
+    <string name="data_attribution">測速照相資料來源：內政部警政署「測速執法設置點」（政府資料開放平臺），依政府資料開放授權條款第 1 版使用</string>
 </resources>

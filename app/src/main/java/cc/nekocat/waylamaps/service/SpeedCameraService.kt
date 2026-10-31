@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import cc.nekocat.waylamaps.R
+import cc.nekocat.waylamaps.alerts.AlertSession
 import cc.nekocat.waylamaps.alerts.AlertSessionState
 import cc.nekocat.waylamaps.alerts.CameraAhead
 import cc.nekocat.waylamaps.alerts.CameraAheadDetector
@@ -59,7 +60,7 @@ class SpeedCameraService : LifecycleService() {
     override fun onDestroy() {
         getSystemService(LocationManager::class.java).removeUpdates(locationListener)
         announcer.shutdown()
-        sessionState.update { it.copy(running = false, speedKmh = null, next = null) }
+        sessionState.update { AlertSession() }
         super.onDestroy()
     }
 
@@ -105,7 +106,11 @@ class SpeedCameraService : LifecycleService() {
         val result = detector.update(fix, candidates)
 
         sessionState.update {
-            it.copy(speedKmh = fix.speedMps?.let { mps -> (mps * 3.6).roundToInt() }, next = result.next)
+            it.copy(
+                hasFix = true,
+                speedKmh = fix.speedMps?.let { mps -> (mps * 3.6).roundToInt() },
+                next = result.next,
+            )
         }
         result.announce?.let { announcer.announce(phraseFor(it)) }
     }
