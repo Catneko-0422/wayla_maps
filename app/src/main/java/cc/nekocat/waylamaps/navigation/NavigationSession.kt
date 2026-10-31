@@ -9,6 +9,7 @@ import com.google.android.libraries.navigation.NavigationUpdatesOptions
 import com.google.android.libraries.navigation.Navigator
 import com.google.android.libraries.navigation.RoutingOptions
 import com.google.android.libraries.navigation.SimulationOptions
+import com.google.android.libraries.navigation.TimeAndDistance
 import com.google.android.libraries.navigation.Waypoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +20,16 @@ import javax.inject.Singleton
 sealed interface GuidanceState {
     data object Idle : GuidanceState
     data class Routing(val destination: PlaceSuggestion) : GuidanceState
+
+    /** A route is ready and shown on the map; guidance starts once the rider confirms. */
+    data class Previewing(
+        val destination: PlaceSuggestion,
+        val travelMode: TravelMode,
+        val seconds: Int,
+        val meters: Int,
+        /** One of `TimeAndDistance.DELAY_*`: traffic on the route. */
+        val delaySeverity: Int,
+    ) : GuidanceState
     data class Guiding(val destination: PlaceSuggestion, val travelMode: TravelMode, val simulated: Boolean) : GuidanceState
     data class Failed(val destination: PlaceSuggestion, val reason: RouteFailure) : GuidanceState
 
@@ -58,8 +69,20 @@ class NavigationSession @Inject constructor(
     }
     private val routeChangedListener = Navigator.RouteChangedListener { refreshRoute() }
 
-    /** Routes to [destination] with the current travel mode and starts guidance. */
-    fun start(destination: PlaceSuggestion, simulate: Boolean = false) {
+    /** Routes to [destination] with the current travel mode and starts guidance straight away. */
+    fun start(destination: PlaceSuggestion, simulate: Boolean = false) = route(destination, startNow = true, simulate)
+
+    /** Routes to [destination] and shows the route; [confirm] starts guidance. */
+    fun preview(destination: PlaceSuggestion) = route(destination, startNow = false, simulate = false)
+
+    /** Starts guidance on the previewed route. */
+    fun confirm(simulate: Boolean = false) {
+        val preview = _state.value as? GuidanceState.Previewing ?: return
+        val navigator = controller.navigator ?: return
+        beginGuidance(navigator, preview.destination, preview.travelMode, simulate)
+    }
+
+    private fun route(destination: PlaceSuggestion, startNow: Boolean, simulate: Boolean) {
         val navigator = controller.navigator
         if (navigator == null) {
             _state.value = GuidanceState.Failed(destination, RouteFailure.NOT_READY)
@@ -75,7 +98,7 @@ class NavigationSession @Inject constructor(
         val mode = travelMode.mode.value
         _state.value = GuidanceState.Routing(destination)
         navigator.setDestination(waypoint, RoutingOptions().travelMode(mode.sdkTravelMode).avoidHighways(mode.avoidHighways)) { description ->
-            mainHandler.post { onRouteResult(navigator, destination, mode, simulate, description.routeStatus) }
+            mainHandler.post { onRouteResult(navigator, destination, mode, startNow, simulate, description.routeStatus) }
         }
     }
 
@@ -106,6 +129,7 @@ class NavigationSession @Inject constructor(
         navigator: Navigator,
         destination: PlaceSuggestion,
         mode: TravelMode,
+        startNow: Boolean,
         simulate: Boolean,
         status: Navigator.RouteStatus,
     ) {
@@ -116,6 +140,22 @@ class NavigationSession @Inject constructor(
             _state.value = GuidanceState.Failed(destination, status.toFailure())
             return
         }
+        if (startNow) {
+            beginGuidance(navigator, destination, mode, simulate)
+        } else {
+            val estimate = navigator.currentTimeAndDistance
+            _state.value = GuidanceState.Previewing(
+                destination,
+                mode,
+                seconds = estimate?.seconds ?: 0,
+                meters = estimate?.meters ?: 0,
+                delaySeverity = estimate?.delaySeverity ?: TimeAndDistance.DELAY_NODATA,
+            )
+            refreshRoute()
+        }
+    }
+
+    private fun beginGuidance(navigator: Navigator, destination: PlaceSuggestion, mode: TravelMode, simulate: Boolean) {
         navigator.addArrivalListener(arrivalListener)
         navigator.addRouteChangedListener(routeChangedListener)
         // Maneuver pictures are generated for the Android Auto turn card.
