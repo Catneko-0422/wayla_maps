@@ -93,7 +93,7 @@ fun SpeedAlertCard(alerts: MainUiState, modifier: Modifier = Modifier) {
 
 /** Arrival time, distance and time left, with the button that ends the trip. */
 @Composable
-fun TripPill(turn: TurnUpdate?, onStop: () -> Unit, modifier: Modifier = Modifier) {
+fun TripPill(turn: TurnUpdate?, onStop: () -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
     Surface(shape = CARD_SHAPE, shadowElevation = 6.dp, modifier = modifier) {
         Row(
             Modifier.padding(start = 18.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
@@ -109,8 +109,16 @@ fun TripPill(turn: TurnUpdate?, onStop: () -> Unit, modifier: Modifier = Modifie
                 meters?.let { add(formatDistance(it)) }
                 seconds?.let { add(formatDuration(it)) }
             }
-            Box(Modifier.widthIn(min = 120.dp)) {
-                Text(parts.joinToString(" ・ "), style = MaterialTheme.typography.titleMedium)
+            Box(Modifier.widthIn(min = if (compact) 0.dp else 120.dp)) {
+                if (compact) {
+                    // Arrival time on top, distance and time left below, to fit beside the character.
+                    Column {
+                        parts.firstOrNull()?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+                        Text(parts.drop(1).joinToString(" ・ "), style = MaterialTheme.typography.bodyMedium)
+                    }
+                } else {
+                    Text(parts.joinToString(" ・ "), style = MaterialTheme.typography.titleMedium)
+                }
             }
             Button(
                 onClick = onStop,

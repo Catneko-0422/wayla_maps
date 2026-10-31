@@ -137,6 +137,7 @@ fun MapScreen(
     val characterModel by viewModel.characterModel.collectAsStateWithLifecycle()
     // Set by the layout below: landscape guidance draws its own cards over a full-screen map.
     var immersive by remember { mutableStateOf(false) }
+    var immersivePortrait by remember { mutableStateOf(false) }
     val currentImmersive by rememberUpdatedState(immersive)
     // Equal padding on both sides keeps the vehicle in the middle of the screen, right of the
     // character; the small margin and the bottom padding put the Google logo just above the
@@ -144,7 +145,15 @@ fun MapScreen(
     val currentInset by rememberUpdatedState(if (immersive) SIDE_INSET else 0.dp)
     // The map is laid out right to left so the logo sits in the padded area's bottom right corner.
     val currentRightInset by rememberUpdatedState(if (immersive) SIDE_INSET else 0.dp)
-    val currentBottomInset by rememberUpdatedState(if (immersive) TRIP_PILL_CLEARANCE else 0.dp)
+    // Portrait guidance puts the vehicle near the bottom of the padded area, so a tall bottom
+    // padding lifts it to the middle of the screen (the logo then sits mid-height on the right).
+    val currentBottomInset by rememberUpdatedState(
+        when {
+            immersivePortrait -> PORTRAIT_VEHICLE_LIFT
+            immersive -> TRIP_PILL_CLEARANCE
+            else -> 0.dp
+        },
+    )
     val map = remember {
         movableContentOf {
             NavigationMap(
@@ -174,7 +183,10 @@ fun MapScreen(
             val portraitPanelMaxHeight = maxHeight * PORTRAIT_PANEL_FRACTION
             val guidance = state.guidance
             val immersiveNow = state.navigatorReady && guidance is GuidanceState.Guiding
-            LaunchedEffect(immersiveNow) { immersive = immersiveNow }
+            LaunchedEffect(immersiveNow, landscape) {
+                immersive = immersiveNow
+                immersivePortrait = immersiveNow && !landscape
+            }
             when {
                 !state.navigatorReady -> ControlPanel(state, query, locationDenied, actions, Modifier.fillMaxSize(), large = true)
                 immersiveNow -> Box(Modifier.fillMaxSize()) {
@@ -186,9 +198,9 @@ fun MapScreen(
                         val characterModifier = if (landscape) {
                             Modifier.width(IMMERSIVE_CHARACTER_WIDTH).fillMaxHeight()
                         } else {
+                            // Cut off by the screen's bottom edge, like in landscape.
                             Modifier
                                 .align(Alignment.BottomStart)
-                                .padding(bottom = TRIP_PILL_CLEARANCE)
                                 .size(PORTRAIT_CHARACTER_WIDTH, PORTRAIT_CHARACTER_HEIGHT)
                         }
                         Box(characterModifier) {
@@ -240,6 +252,8 @@ fun MapScreen(
                         Modifier
                             .align(Alignment.BottomEnd)
                             .padding(12.dp),
+                        // Portrait: two lines, narrow enough to sit beside the character.
+                        compact = !landscape && characterModel != null,
                     )
                 }
                 landscape -> Row(Modifier.fillMaxSize()) {
@@ -586,8 +600,9 @@ private val PANEL_WIDTH = 290.dp
 /** The character's column in landscape guidance, over the map's left side. */
 private val IMMERSIVE_CHARACTER_WIDTH = 330.dp
 private val SIDE_INSET = 16.dp
-private val PORTRAIT_CHARACTER_WIDTH = 160.dp
-private val PORTRAIT_CHARACTER_HEIGHT = 220.dp
+private val PORTRAIT_CHARACTER_WIDTH = 170.dp
+private val PORTRAIT_CHARACTER_HEIGHT = 240.dp
+private val PORTRAIT_VEHICLE_LIFT = 360.dp
 private val PORTRAIT_BUBBLE_MAX_WIDTH = 300.dp
 
 /** The trip pill's height plus margins, so the logo sits right above it. */
