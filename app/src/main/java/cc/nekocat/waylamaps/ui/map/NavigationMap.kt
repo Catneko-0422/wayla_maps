@@ -13,6 +13,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,6 +66,11 @@ fun NavigationMap(
      * the padded area. The map content is not mirrored.
      */
     logoOnRight: Boolean = false,
+    /**
+     * Follow the vehicle from straight above, heading up, which keeps it in the middle of the
+     * padded area; the default tilted view puts it near the bottom.
+     */
+    topDown: Boolean = false,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -129,16 +135,29 @@ fun NavigationMap(
         view.setEtaCardEnabled(sdkCards)
     }
     val density = LocalDensity.current
+    // Guidance and the recenter button reset the perspective, so it is set again on both.
+    var recenters by remember { mutableIntStateOf(0) }
+    DisposableEffect(view) {
+        val listener = NavigationView.OnRecenterButtonClickedListener { recenters++ }
+        view.addOnRecenterButtonClickedListener(listener)
+        onDispose { view.removeOnRecenterButtonClickedListener(listener) }
+    }
+
     LaunchedEffect(logoOnRight) {
         view.layoutDirection = if (logoOnRight) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
     }
-    LaunchedEffect(googleMap, leftInset, rightInset, bottomInset, logoOnRight) {
+    LaunchedEffect(googleMap, leftInset, rightInset, bottomInset, logoOnRight, topDown, recenters) {
+        val map = googleMap ?: return@LaunchedEffect
         with(density) {
             // Right to left, the map reads its padding as start and end, so the sides swap.
             val left = (if (logoOnRight) rightInset else leftInset).roundToPx()
             val right = (if (logoOnRight) leftInset else rightInset).roundToPx()
-            googleMap?.setPadding(left, 0, right, bottomInset.roundToPx())
+            map.setPadding(left, 0, right, bottomInset.roundToPx())
         }
+        // After the padding, so the followed vehicle is placed within the new padded area.
+        map.followMyLocation(
+            if (topDown) GoogleMap.CameraPerspective.TOP_DOWN_HEADING_UP else GoogleMap.CameraPerspective.TILTED,
+        )
     }
 
     LaunchedEffect(themeMode) {

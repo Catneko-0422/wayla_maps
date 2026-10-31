@@ -145,15 +145,11 @@ fun MapScreen(
     val currentInset by rememberUpdatedState(if (immersive) SIDE_INSET else 0.dp)
     // The map is laid out right to left so the logo sits in the padded area's bottom right corner.
     val currentRightInset by rememberUpdatedState(if (immersive) SIDE_INSET else 0.dp)
-    // Portrait guidance puts the vehicle near the bottom of the padded area, so a tall bottom
-    // padding lifts it to the middle of the screen (the logo then sits mid-height on the right).
-    val currentBottomInset by rememberUpdatedState(
-        when {
-            immersivePortrait -> PORTRAIT_VEHICLE_LIFT
-            immersive -> TRIP_PILL_CLEARANCE
-            else -> 0.dp
-        },
-    )
+    // Bottom padding puts the logo just above the trip pill's end button.
+    val currentBottomInset by rememberUpdatedState(if (immersive) TRIP_PILL_CLEARANCE else 0.dp)
+    // The tilted view puts the vehicle near the bottom of a tall portrait map; straight from
+    // above, heading up, it sits a little below the middle (about 60 % down), whatever the padding.
+    val currentTopDown by rememberUpdatedState(immersivePortrait)
     val map = remember {
         movableContentOf {
             NavigationMap(
@@ -165,6 +161,7 @@ fun MapScreen(
                 rightInset = currentRightInset,
                 bottomInset = currentBottomInset,
                 logoOnRight = currentImmersive,
+                topDown = currentTopDown,
             )
         }
     }
@@ -602,7 +599,6 @@ private val IMMERSIVE_CHARACTER_WIDTH = 330.dp
 private val SIDE_INSET = 16.dp
 private val PORTRAIT_CHARACTER_WIDTH = 170.dp
 private val PORTRAIT_CHARACTER_HEIGHT = 240.dp
-private val PORTRAIT_VEHICLE_LIFT = 360.dp
 private val PORTRAIT_BUBBLE_MAX_WIDTH = 300.dp
 
 /** The trip pill's height plus margins, so the logo sits right above it. */
