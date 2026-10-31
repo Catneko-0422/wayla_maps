@@ -1,7 +1,13 @@
 package cc.nekocat.waylamaps.ui.map
 
 import android.app.Activity
-import androidx.compose.foundation.clickable
+import android.graphics.Bitmap
+import androidx.compose.foundation.ScrollState
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filterNotNull
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -10,7 +16,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,25 +26,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,63 +49,55 @@ import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cc.nekocat.waylamaps.BuildConfig
 import cc.nekocat.waylamaps.R
 import cc.nekocat.waylamaps.navigation.GuidanceState
-import cc.nekocat.waylamaps.navigation.PlaceSuggestion
-import cc.nekocat.waylamaps.navigation.RouteFailure
-import cc.nekocat.waylamaps.navigation.TravelMode
+import cc.nekocat.waylamaps.navigation.SavedPlacesData
+import cc.nekocat.waylamaps.navigation.TurnUpdate
 import cc.nekocat.waylamaps.service.ThemeMode
 import cc.nekocat.waylamaps.ui.character.CharacterView
-import cc.nekocat.waylamaps.ui.labelRes
 import cc.nekocat.waylamaps.ui.main.NavigationSetupCard
 import cc.nekocat.waylamaps.ui.main.NextCamera
 import cc.nekocat.waylamaps.ui.main.Speed
 import cc.nekocat.waylamaps.ui.permissions.openAppSettings
 import cc.nekocat.waylamaps.ui.permissions.rememberLocationPermissionRequest
 import cc.nekocat.waylamaps.voice.Speech
-import java.util.Locale
 import kotlinx.coroutines.withTimeoutOrNull
 
-private class PanelActions(
-    val onEnableNavigation: (Activity?) -> Unit,
-    val onAlertsChange: (Boolean) -> Unit,
-    val onQueryChange: (String) -> Unit,
-    val onSelect: (PlaceSuggestion) -> Unit,
-    val onClearSearch: () -> Unit,
-    val onTravelMode: (TravelMode) -> Unit,
-    val onStart: (simulate: Boolean) -> Unit,
-    val onStop: () -> Unit,
-    val onAddPointHere: () -> Unit,
-    val onUnlock: () -> Unit,
-    val onOpenAppSettings: () -> Unit,
-    val onOpenSettings: () -> Unit,
-    val onOpenLegal: () -> Unit,
+/** How the map is padded and followed, set by the layout that is showing. */
+private data class MapFrame(
+    val left: Dp = 0.dp,
+    val right: Dp = 0.dp,
+    val bottom: Dp = 0.dp,
+    /** Guidance layouts draw their own cards and put the Google logo bottom right. */
+    val guidanceLayout: Boolean = false,
+    val topDown: Boolean = false,
 )
 
 /**
- * Main screen: the navigation map plus a control panel. Portrait puts the panel under the map;
- * landscape (handlebar mounts, car dashboards) puts it beside the map.
+ * Main screen: a full-screen map in every mode.
+ * - Browsing: a search bar and a panel with saved places, results and the route preview; a
+ *   bottom sheet in portrait, a card on the left in landscape (handlebar mounts, dashboards).
+ * - Guiding: turn, speed and trip cards over the map, with the character beside them.
  */
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun MapScreen(
     themeMode: ThemeMode,
     onOpenSettings: () -> Unit,
-    onOpenLegal: () -> Unit,
     viewModel: MapViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -115,60 +108,51 @@ fun MapScreen(
         locationDenied = !granted
         if (granted) viewModel.setAlertsEnabled(true)
     }
-    val actions = PanelActions(
-        onEnableNavigation = viewModel::initializeNavigation,
-        onAlertsChange = { on -> if (on) enableAlerts() else viewModel.setAlertsEnabled(false) },
+    val actions = BrowseActions(
         onQueryChange = viewModel::onQueryChange,
         onSelect = viewModel::select,
         onClearSearch = viewModel::clearSearch,
         onTravelMode = viewModel::setTravelMode,
         onStart = viewModel::startNavigation,
-        onStop = viewModel::stopNavigation,
+        onSetHome = viewModel::setHome,
+        onSetWork = viewModel::setWork,
+        onRemoveRecent = viewModel::removeRecent,
+        onAlertsChange = { on -> if (on) enableAlerts() else viewModel.setAlertsEnabled(false) },
         onAddPointHere = viewModel::addPointHere,
-        onUnlock = viewModel::unlockManually,
-        onOpenAppSettings = { context.openAppSettings() },
         onOpenSettings = onOpenSettings,
-        onOpenLegal = onOpenLegal,
     )
-    // One map instance moved between the two layouts, so rotating keeps the route on screen.
-    val currentTheme by rememberUpdatedState(themeMode)
-    // The turn card covers the map's top edge while guiding, so the compass shows only otherwise.
-    val currentGuiding by rememberUpdatedState(state.guiding)
     val characterModel by viewModel.characterModel.collectAsStateWithLifecycle()
-    // Set by the layout below: landscape guidance draws its own cards over a full-screen map.
-    var immersive by remember { mutableStateOf(false) }
-    var immersivePortrait by remember { mutableStateOf(false) }
-    val currentImmersive by rememberUpdatedState(immersive)
-    // Equal padding on both sides keeps the vehicle in the middle of the screen, right of the
-    // character; the small margin and the bottom padding put the Google logo just above the
-    // trip pill's end button in the bottom right corner.
-    val currentInset by rememberUpdatedState(if (immersive) SIDE_INSET else 0.dp)
-    // The map is laid out right to left so the logo sits in the padded area's bottom right corner.
-    val currentRightInset by rememberUpdatedState(if (immersive) SIDE_INSET else 0.dp)
-    // Bottom padding puts the logo just above the trip pill's end button.
-    val currentBottomInset by rememberUpdatedState(if (immersive) TRIP_PILL_CLEARANCE else 0.dp)
-    // The tilted view puts the vehicle near the bottom of a tall portrait map; straight from
-    // above, heading up, it sits a little below the middle (about 60 % down), whatever the padding.
-    val currentTopDown by rememberUpdatedState(immersivePortrait)
-    val map = remember {
-        movableContentOf {
-            NavigationMap(
-                currentTheme,
-                showCompass = !currentGuiding,
-                modifier = Modifier.fillMaxSize(),
-                sdkCards = !currentImmersive,
-                leftInset = currentInset,
-                rightInset = currentRightInset,
-                bottomInset = currentBottomInset,
-                logoOnRight = currentImmersive,
-                topDown = currentTopDown,
-            )
-        }
-    }
     val turn by viewModel.turn.collectAsStateWithLifecycle()
     val turnIcon by viewModel.turnIcon.collectAsStateWithLifecycle()
     val speech by viewModel.speech.collectAsStateWithLifecycle()
     val characterName by viewModel.selectedCharacterName.collectAsStateWithLifecycle()
+    val saved by viewModel.saved.collectAsStateWithLifecycle()
+    val route by viewModel.route.collectAsStateWithLifecycle()
+
+    // One map instance moved between layouts, so rotating or starting guidance keeps it.
+    var frame by remember { mutableStateOf(MapFrame()) }
+    val currentFrame by rememberUpdatedState(frame)
+    val currentTheme by rememberUpdatedState(themeMode)
+    val currentGuiding by rememberUpdatedState(state.guiding)
+    // While previewing, the camera shows the whole route.
+    val currentOverview by rememberUpdatedState(if (state.guidance is GuidanceState.Previewing) route else emptyList())
+    val map = remember {
+        movableContentOf {
+            NavigationMap(
+                currentTheme,
+                // The turn card covers the map's top right while guiding.
+                showCompass = !currentGuiding,
+                modifier = Modifier.fillMaxSize(),
+                sdkCards = !currentFrame.guidanceLayout,
+                leftInset = currentFrame.left,
+                rightInset = currentFrame.right,
+                bottomInset = currentFrame.bottom,
+                logoOnRight = currentFrame.guidanceLayout,
+                topDown = currentFrame.topDown,
+                overview = currentOverview,
+            )
+        }
+    }
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         BoxWithConstraints(
@@ -177,205 +161,273 @@ fun MapScreen(
                 .padding(innerPadding),
         ) {
             val landscape = maxWidth > maxHeight
-            val portraitPanelMaxHeight = maxHeight * PORTRAIT_PANEL_FRACTION
-            val guidance = state.guidance
-            val immersiveNow = state.navigatorReady && guidance is GuidanceState.Guiding
-            LaunchedEffect(immersiveNow, landscape) {
-                immersive = immersiveNow
-                immersivePortrait = immersiveNow && !landscape
+            // A new destination starts at the top of the panel, not where the last list was scrolled.
+            val panelScroll = remember(state.search.selected) { ScrollState(0) }
+            // The character would cover the route's far end while previewing.
+            val showCharacter = state.guidance !is GuidanceState.Previewing
+            // How much of the map the portrait sheet covers, so the route preview stays visible.
+            var sheetCover by remember { mutableStateOf(SHEET_PEEK_HEIGHT) }
+            val guiding = state.navigatorReady && state.guidance is GuidanceState.Guiding
+            val wanted = when {
+                // Equal side padding keeps the vehicle mid-screen; the bottom padding puts the
+                // logo just above the trip pill's end button. Portrait follows from above, which
+                // keeps the vehicle near the middle of the tall map (the tilted view puts it low).
+                guiding -> MapFrame(SIDE_INSET, SIDE_INSET, TRIP_PILL_CLEARANCE, guidanceLayout = true, topDown = !landscape)
+                landscape -> MapFrame(left = LANDSCAPE_PANEL_WIDTH + PANEL_MARGIN * 2)
+                else -> MapFrame(bottom = sheetCover + SHEET_MAP_GAP)
             }
+            LaunchedEffect(wanted) { frame = wanted }
+
             when {
-                !state.navigatorReady -> ControlPanel(state, query, locationDenied, actions, Modifier.fillMaxSize(), large = true)
-                immersiveNow -> Box(Modifier.fillMaxSize()) {
+                !state.navigatorReady -> SetupScreen(state, locationDenied, actions, viewModel::initializeNavigation) {
+                    context.openAppSettings()
+                }
+                guiding -> GuidanceLayout(
+                    landscape = landscape,
+                    state = state,
+                    turn = turn,
+                    turnIcon = turnIcon,
+                    speech = speech,
+                    characterModel = characterModel,
+                    characterName = characterName,
+                    onStop = viewModel::stopNavigation,
+                    map = map,
+                )
+                landscape -> Box(Modifier.fillMaxSize()) {
                     map()
-                    // Landscape: the character stands on the left, the full height of the screen,
-                    // with what she says as a caption over her. Portrait: her upper body sits in
-                    // the bottom left corner above the trip pill, with the caption beside her.
-                    characterModel?.let { model ->
-                        val characterModifier = if (landscape) {
-                            Modifier.width(IMMERSIVE_CHARACTER_WIDTH).fillMaxHeight()
-                        } else {
-                            // Cut off by the screen's bottom edge, like in landscape.
-                            Modifier
-                                .align(Alignment.BottomStart)
-                                .size(PORTRAIT_CHARACTER_WIDTH, PORTRAIT_CHARACTER_HEIGHT)
-                        }
-                        Box(characterModifier) {
-                            key(model.id) {
-                                CharacterView(model.bytes, model.spec, speech, Modifier.fillMaxSize())
-                            }
-                            if (landscape) {
-                                speech?.let {
-                                    SpeechBubble(model.name, it.text, Modifier.align(Alignment.BottomCenter).padding(12.dp))
-                                }
-                            }
-                        }
+                    characterModel?.takeIf { showCharacter }?.let { model ->
+                        FloatingCharacter(model, speech, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp))
                     }
-                    if (characterModel == null && landscape) {
-                        speech?.let {
-                            SpeechBubble(
-                                characterName,
-                                it.text,
-                                Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(start = 12.dp, bottom = 12.dp)
-                                    .widthIn(max = BUBBLE_MAX_WIDTH),
-                            )
-                        }
-                    }
-                    Column(
-                        Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        shadowElevation = 8.dp,
+                        modifier = Modifier
+                            .padding(PANEL_MARGIN)
+                            .width(LANDSCAPE_PANEL_WIDTH)
+                            .fillMaxHeight(),
                     ) {
-                        turn?.let { TurnCard(it, turnIcon) }
-                        SpeedAlertCard(state.alerts)
-                        // Portrait has the vehicle in the lower half, so the caption goes up here.
-                        if (!landscape) {
-                            speech?.let {
-                                SpeechBubble(
-                                    characterModel?.name ?: characterName,
-                                    it.text,
-                                    Modifier.widthIn(max = PORTRAIT_BUBBLE_MAX_WIDTH),
+                        // The search bar stays put while the list below it scrolls.
+                        // Tighter than the portrait sheet: a landscape phone is only ~400dp tall and
+                        // the route preview's start button must fit without scrolling.
+                        Column(
+                            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            SearchBar(query, actions)
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .verticalScroll(panelScroll),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                BrowseBody(state, saved, query, locationDenied, actions, viewModel::unlockManually, context)
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    val sheetState = rememberBottomSheetScaffoldState()
+                    // Results and the route preview need room; an idle sheet stays small.
+                    val wantsRoom = query.isNotBlank() || state.search.selected != null
+                    // Read here: inside sheetContent the implicit receiver hides maxHeight.
+                    val sheetMaxHeight = maxHeight * SHEET_MAX_FRACTION
+                    LaunchedEffect(wantsRoom) {
+                        if (wantsRoom) sheetState.bottomSheetState.expand() else sheetState.bottomSheetState.partialExpand()
+                    }
+                    val density = LocalDensity.current
+                    val layoutHeight = maxHeight
+                    LaunchedEffect(sheetState) {
+                        // Only settled positions: moving the camera on every drag frame is jumpy.
+                        snapshotFlow { runCatching { sheetState.bottomSheetState.requireOffset() }.getOrNull() }
+                            .filterNotNull()
+                            .debounce(SHEET_SETTLE_MS)
+                            .collect { offset -> sheetCover = layoutHeight - with(density) { offset.toDp() } }
+                    }
+                    BottomSheetScaffold(
+                        scaffoldState = sheetState,
+                        sheetPeekHeight = SHEET_PEEK_HEIGHT,
+                        sheetContainerColor = MaterialTheme.colorScheme.surface,
+                        sheetShadowElevation = 8.dp,
+                        sheetContent = {
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = sheetMaxHeight)
+                                    .verticalScroll(panelScroll)
+                                    .padding(horizontal = 16.dp)
+                                    .padding(bottom = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                BrowseBody(state, saved, query, locationDenied, actions, viewModel::unlockManually, context)
+                            }
+                        },
+                    ) {
+                        Box(Modifier.fillMaxSize()) {
+                            map()
+                            characterModel?.takeIf { showCharacter }?.let { model ->
+                                FloatingCharacter(
+                                    model,
+                                    speech,
+                                    Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(end = 8.dp, bottom = SHEET_PEEK_HEIGHT),
                                 )
                             }
+                            if (characterModel == null) {
+                                speech?.let {
+                                    SpeechBubble(
+                                        characterName,
+                                        it.text,
+                                        Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .widthIn(max = PORTRAIT_BUBBLE_MAX_WIDTH)
+                                            .padding(end = 12.dp, bottom = SHEET_PEEK_HEIGHT + 12.dp),
+                                    )
+                                }
+                            }
+                            // Clear of the compass in the top right corner.
+                            SearchBar(query, actions, Modifier.padding(start = 12.dp, top = 12.dp, end = 72.dp))
                         }
                     }
-                    TripPill(
-                        turn,
-                        actions.onStop,
-                        Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(12.dp),
-                        // Portrait: two lines, narrow enough to sit beside the character.
-                        compact = !landscape && characterModel != null,
-                    )
-                }
-                landscape -> Row(Modifier.fillMaxSize()) {
-                    ControlPanel(
-                        state,
-                        query,
-                        locationDenied,
-                        actions,
-                        Modifier
-                            .width(PANEL_WIDTH)
-                            .fillMaxHeight(),
-                    )
-                    Box(Modifier.weight(1f).fillMaxHeight()) {
-                        map()
-                        // The character's upper body rises from the bottom right corner, cut off by
-                        // the screen edge over the empty right half of the SDK's trip summary. It
-                        // stays below the turn card even when lane guidance makes the card taller.
-                        characterModel?.let { model ->
-                            FloatingCharacter(
-                                model,
-                                speech,
-                                Modifier.align(Alignment.BottomEnd).padding(end = 16.dp),
-                            )
-                        }
-                    }
-                }
-                else -> Column(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f).fillMaxWidth()) {
-                        map()
-                        // Portrait has no room for the 3D character; the sentence appears bottom right,
-                        // above the trip summary, clear of the vehicle (center) and Google logo (left).
-                        speech?.let {
-                            SpeechBubble(
-                                characterName,
-                                it.text,
-                                Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .widthIn(max = BUBBLE_MAX_WIDTH)
-                                    .padding(end = 12.dp, bottom = TRIP_SUMMARY_HEIGHT),
-                            )
-                        }
-                    }
-                    ControlPanel(
-                        state,
-                        query,
-                        locationDenied,
-                        actions,
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = portraitPanelMaxHeight),
-                    )
                 }
             }
         }
     }
 }
 
+/** The browse panel's content, shared by the portrait sheet and the landscape card. */
 @Composable
-private fun ControlPanel(
+private fun BrowseBody(
     state: MapUiState,
+    saved: SavedPlacesData,
     query: String,
     locationDenied: Boolean,
-    actions: PanelActions,
-    modifier: Modifier = Modifier,
-    large: Boolean = false,
+    actions: BrowseActions,
+    onUnlock: () -> Unit,
+    context: android.content.Context,
 ) {
     if (state.locked) {
-        LockedPanel(state, actions, modifier)
+        LockedPanel(state, null, onUnlock, Modifier.fillMaxWidth())
         return
     }
+    // A chosen destination needs the room for its route and the start button.
+    if (state.search.selected == null) RideStatusRow(state, actions.onAlertsChange)
+    if (locationDenied) LocationDeniedNotice { context.openAppSettings() }
+    DestinationContent(state, saved, query, actions)
+    if (state.search.selected == null) PanelFooter(actions)
+}
+
+@Composable
+private fun LocationDeniedNotice(onOpenSettings: () -> Unit) {
+    Text(
+        text = stringResource(R.string.location_permission_needed),
+        color = MaterialTheme.colorScheme.error,
+        style = MaterialTheme.typography.bodyMedium,
+    )
+    OutlinedButton(onClick = onOpenSettings) { Text(stringResource(R.string.open_settings)) }
+}
+
+/** Before the navigator is ready: terms, permission, and the alerts that work without it. */
+@Composable
+private fun SetupScreen(
+    state: MapUiState,
+    locationDenied: Boolean,
+    actions: BrowseActions,
+    onEnableNavigation: (Activity?) -> Unit,
+    onOpenAppSettings: () -> Unit,
+) {
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Speed(state.alerts.speedKmh, fontSize = if (large) 96.sp else 48.sp)
-            Spacer(Modifier.weight(1f))
-            // Alerts always run during guidance, so the switch only matters otherwise.
-            if (!state.guiding) {
-                Text(stringResource(R.string.speed_camera_alerts), style = MaterialTheme.typography.bodyLarge)
-                Switch(
-                    checked = state.alertsEnabled,
-                    onCheckedChange = actions.onAlertsChange,
-                    modifier = Modifier.padding(start = 8.dp),
+            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = actions.onOpenSettings) {
+                Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings_title))
+            }
+        }
+        RideStatusRow(state, actions.onAlertsChange)
+        if (locationDenied) LocationDeniedNotice(onOpenAppSettings)
+        NavigationSetupCard(state.navigator, onEnableNavigation)
+    }
+}
+
+/** Landscape and portrait guidance: full-screen map, cards and the character. */
+@Composable
+private fun GuidanceLayout(
+    landscape: Boolean,
+    state: MapUiState,
+    turn: TurnUpdate?,
+    turnIcon: Bitmap?,
+    speech: Speech?,
+    characterModel: CharacterModel?,
+    characterName: String,
+    onStop: () -> Unit,
+    map: @Composable () -> Unit,
+) {
+    Box(Modifier.fillMaxSize()) {
+        map()
+        // Landscape: the character stands on the left, the full height of the screen, with what
+        // she says as a caption over her. Portrait: her upper body sits in the bottom left corner,
+        // cut off by the screen edge, and her captions go under the speed card.
+        characterModel?.let { model ->
+            val characterModifier = if (landscape) {
+                Modifier.width(IMMERSIVE_CHARACTER_WIDTH).fillMaxHeight()
+            } else {
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .size(PORTRAIT_CHARACTER_WIDTH, PORTRAIT_CHARACTER_HEIGHT)
+            }
+            Box(characterModifier) {
+                key(model.id) {
+                    CharacterView(model.bytes, model.spec, speech, Modifier.fillMaxSize())
+                }
+                if (landscape) {
+                    speech?.let {
+                        SpeechBubble(model.name, it.text, Modifier.align(Alignment.BottomCenter).padding(12.dp))
+                    }
+                }
+            }
+        }
+        if (characterModel == null && landscape) {
+            speech?.let {
+                SpeechBubble(
+                    characterName,
+                    it.text,
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 12.dp, bottom = 12.dp)
+                        .widthIn(max = BUBBLE_MAX_WIDTH),
                 )
             }
         }
-        val guidance = state.guidance
-        // While navigating, ending the trip comes first so it stays on screen in landscape.
-        if (state.navigatorReady && guidance is GuidanceState.Guiding) GuidingControls(guidance, actions.onStop)
-        NextCamera(state.alerts)
-
-        if (locationDenied) {
-            Text(
-                text = stringResource(R.string.location_permission_needed),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            OutlinedButton(onClick = actions.onOpenAppSettings) { Text(stringResource(R.string.open_settings)) }
-        }
-
-        when {
-            !state.navigatorReady -> NavigationSetupCard(state.navigator, actions.onEnableNavigation)
-            guidance is GuidanceState.Guiding -> Unit
-            else -> DestinationControls(state, query, actions)
-        }
-
-        if (!state.guiding) {
-            // Only offered when not navigating; the view model also refuses while moving.
-            OutlinedButton(onClick = actions.onAddPointHere, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.add_point_here))
-            }
-            HorizontalDivider()
-            Text(
-                text = stringResource(R.string.data_attribution),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row {
-                TextButton(onClick = actions.onOpenSettings) { Text(stringResource(R.string.settings_title)) }
-                TextButton(onClick = actions.onOpenLegal) { Text(stringResource(R.string.legal_title)) }
+        Column(
+            Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            turn?.let { TurnCard(it, turnIcon) }
+            SpeedAlertCard(state.alerts)
+            if (!landscape) {
+                speech?.let {
+                    SpeechBubble(characterModel?.name ?: characterName, it.text, Modifier.widthIn(max = PORTRAIT_BUBBLE_MAX_WIDTH))
+                }
             }
         }
+        TripPill(
+            turn,
+            onStop,
+            Modifier
+                .align(Alignment.BottomEnd)
+                .padding(12.dp),
+            // Portrait: two lines, narrow enough to sit beside the character.
+            compact = !landscape && characterModel != null,
+        )
     }
 }
 
@@ -384,7 +436,7 @@ private fun ControlPanel(
  * a press-and-hold area for a passenger to unlock.
  */
 @Composable
-private fun LockedPanel(state: MapUiState, actions: PanelActions, modifier: Modifier) {
+private fun LockedPanel(state: MapUiState, onStop: (() -> Unit)?, onUnlock: () -> Unit, modifier: Modifier) {
     // Compact enough for a landscape phone: both buttons share one row under the alerts.
     Column(
         modifier = modifier
@@ -395,9 +447,9 @@ private fun LockedPanel(state: MapUiState, actions: PanelActions, modifier: Modi
         Speed(state.alerts.speedKmh, fontSize = 72.sp)
         NextCamera(state.alerts)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (state.guidance is GuidanceState.Guiding) {
+            if (onStop != null && state.guidance is GuidanceState.Guiding) {
                 Button(
-                    onClick = actions.onStop,
+                    onClick = onStop,
                     colors = endTripColors(),
                     modifier = Modifier
                         .weight(1f)
@@ -416,7 +468,7 @@ private fun LockedPanel(state: MapUiState, actions: PanelActions, modifier: Modi
                         awaitEachGesture {
                             awaitFirstDown()
                             val released = withTimeoutOrNull(UNLOCK_HOLD_MS) { waitForUpOrCancellation() }
-                            if (released == null) actions.onUnlock()
+                            if (released == null) onUnlock()
                         }
                     },
             ) {
@@ -431,136 +483,6 @@ private fun LockedPanel(state: MapUiState, actions: PanelActions, modifier: Modi
         }
     }
 }
-
-/** Destination search and route options. Never shown during guidance (no typing while moving). */
-@Composable
-private fun DestinationControls(state: MapUiState, query: String, actions: PanelActions) {
-    val search = state.search
-    val keyboard = LocalSoftwareKeyboardController.current
-    var simulate by rememberSaveable { mutableStateOf(false) }
-
-    OutlinedTextField(
-        value = query,
-        onValueChange = actions.onQueryChange,
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        placeholder = { Text(stringResource(R.string.search_hint)) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                TextButton(onClick = actions.onClearSearch) { Text(stringResource(R.string.action_clear)) }
-            }
-        },
-    )
-    if (search.failed) {
-        Text(stringResource(R.string.search_failed), color = MaterialTheme.colorScheme.error)
-    }
-    search.suggestions.forEach { suggestion ->
-        ListItem(
-            headlineContent = { Text(suggestion.name) },
-            supportingContent = { Text(suggestion.address, maxLines = 1) },
-            trailingContent = { suggestion.distanceMeters?.let { Text(formatDistance(it)) } },
-            modifier = Modifier.clickable {
-                keyboard?.hide()
-                actions.onSelect(suggestion)
-            },
-        )
-    }
-
-    search.selected?.let { destination ->
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Text(destination.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(destination.address, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-    }
-
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        TravelMode.entries.forEachIndexed { index, mode ->
-            SegmentedButton(
-                selected = state.travelMode == mode,
-                onClick = { actions.onTravelMode(mode) },
-                shape = SegmentedButtonDefaults.itemShape(index, TravelMode.entries.size),
-            ) {
-                Text(stringResource(mode.labelRes()))
-            }
-        }
-    }
-    val routeNotice = when (state.travelMode) {
-        TravelMode.SCOOTER -> R.string.scooter_route_notice
-        TravelMode.HEAVY_MOTORCYCLE -> R.string.heavy_motorcycle_route_notice
-        TravelMode.CAR -> null
-    }
-    routeNotice?.let {
-        Text(
-            text = stringResource(it),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-
-    when (val guidance = state.guidance) {
-        is GuidanceState.Routing -> Row(verticalAlignment = Alignment.CenterVertically) {
-            CircularProgressIndicator(Modifier.padding(end = 12.dp))
-            Text(stringResource(R.string.navigation_routing))
-        }
-        is GuidanceState.Failed -> Text(
-            text = stringResource(guidance.reason.messageRes()),
-            color = MaterialTheme.colorScheme.error,
-        )
-        is GuidanceState.Arrived -> Text(stringResource(R.string.navigation_arrived, guidance.destination.name))
-        else -> Unit
-    }
-
-    if (BuildConfig.DEBUG) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = simulate, onCheckedChange = { simulate = it })
-            Text(stringResource(R.string.simulate_route))
-        }
-    }
-
-    Button(
-        onClick = { actions.onStart(simulate) },
-        enabled = search.selected != null && state.guidance !is GuidanceState.Routing,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp),
-    ) {
-        Text(stringResource(R.string.navigation_start), fontSize = 22.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun GuidingControls(guidance: GuidanceState.Guiding, onStop: () -> Unit) {
-    Text(
-        text = stringResource(R.string.navigating_to, guidance.destination.name),
-        style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Start,
-    )
-    if (guidance.simulated) {
-        Text(stringResource(R.string.simulate_route), style = MaterialTheme.typography.bodySmall)
-    }
-    Button(
-        onClick = onStop,
-        colors = endTripColors(),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(72.dp),
-    ) {
-        Text(stringResource(R.string.navigation_stop), fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-private fun RouteFailure.messageRes() = when (this) {
-    RouteFailure.NO_ROUTE -> R.string.route_failed_no_route
-    RouteFailure.NETWORK -> R.string.route_failed_network
-    RouteFailure.LOCATION_UNKNOWN -> R.string.route_failed_location
-    RouteFailure.QUOTA -> R.string.route_failed_quota
-    RouteFailure.NOT_READY, RouteFailure.OTHER -> R.string.route_failed_other
-}
-
-private fun formatDistance(meters: Int): String =
-    if (meters < 1000) "$meters m" else String.format(Locale.ROOT, "%.1f km", meters / 1000.0)
 
 @Composable
 private fun FloatingCharacter(model: CharacterModel, speech: Speech?, modifier: Modifier) {
@@ -592,7 +514,12 @@ private fun endTripColors() = ButtonDefaults.buttonColors(
     contentColor = MaterialTheme.colorScheme.surface,
 )
 
-private val PANEL_WIDTH = 290.dp
+private val LANDSCAPE_PANEL_WIDTH = 360.dp
+private val PANEL_MARGIN = 12.dp
+private val SHEET_PEEK_HEIGHT = 128.dp
+private val SHEET_MAP_GAP = 8.dp
+private const val SHEET_SETTLE_MS = 250L
+private const val SHEET_MAX_FRACTION = 0.7f
 
 /** The character's column in landscape guidance, over the map's left side. */
 private val IMMERSIVE_CHARACTER_WIDTH = 330.dp
@@ -605,11 +532,8 @@ private val PORTRAIT_BUBBLE_MAX_WIDTH = 300.dp
 private val TRIP_PILL_CLEARANCE = 92.dp
 private val BUBBLE_MAX_WIDTH = 170.dp
 
-/** Height of the Navigation SDK's trip summary (time, distance, arrival) along the map's bottom. */
-private val TRIP_SUMMARY_HEIGHT = 96.dp
 private val CHARACTER_WIDTH = 240.dp
 
 /** Below the turn card even with lane guidance (about 155 dp of a 385 dp landscape map). */
 private val CHARACTER_HEIGHT = 210.dp
 private const val UNLOCK_HOLD_MS = 2_000L
-private const val PORTRAIT_PANEL_FRACTION = 0.55f

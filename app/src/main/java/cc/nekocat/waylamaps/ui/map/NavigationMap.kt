@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,12 +34,15 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import cc.nekocat.waylamaps.R
+import cc.nekocat.waylamaps.alerts.GeoPoint
 import cc.nekocat.waylamaps.service.ThemeMode
 import cc.nekocat.waylamaps.ui.permissions.hasLocationPermission
 import cc.nekocat.waylamaps.ui.theme.WaylaPalette
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.libraries.navigation.ForceNightMode
 import com.google.android.libraries.navigation.NavigationView
@@ -73,10 +77,17 @@ fun NavigationMap(
      * padded area; the default tilted view puts it near the bottom.
      */
     topDown: Boolean = false,
+    /** When not empty, the camera shows this whole route instead of following the vehicle. */
+    overview: List<GeoPoint> = emptyList(),
+    /** Incremented by the app's recenter button: follow the vehicle again. */
+    followRequests: Int = 0,
+    /** Whether the camera follows the vehicle; false after the rider pans the map. */
+    onFollowingChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val configuration = LocalConfiguration.current
+    val currentOnFollowingChanged by rememberUpdatedState(onFollowingChanged)
     val view = remember {
         NavigationView(context).apply {
             onCreate(null)
@@ -105,6 +116,10 @@ fun NavigationMap(
         view.addOnNightModeChangedListener(listener)
         view.getMapAsync {
             map = it
+            it.setOnFollowMyLocationCallback(object : GoogleMap.OnCameraFollowLocationCallback {
+                override fun onCameraStartedFollowingLocation() = currentOnFollowingChanged(true)
+                override fun onCameraStoppedFollowingLocation() = currentOnFollowingChanged(false)
+            })
             // Our own compass sits in the top right corner instead (see MapCompass).
             it.uiSettings.isCompassEnabled = false
             googleMap = it
@@ -148,7 +163,7 @@ fun NavigationMap(
     LaunchedEffect(logoOnRight) {
         view.layoutDirection = if (logoOnRight) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
     }
-    LaunchedEffect(googleMap, leftInset, rightInset, bottomInset, logoOnRight, topDown, recenters) {
+    LaunchedEffect(googleMap, leftInset, rightInset, bottomInset, logoOnRight, topDown, recenters, overview, followRequests) {
         val map = googleMap ?: return@LaunchedEffect
         with(density) {
             // Right to left, the map reads its padding as start and end, so the sides swap.
@@ -157,7 +172,13 @@ fun NavigationMap(
             map.setPadding(left, 0, right, bottomInset.roundToPx())
         }
         // After the padding, so the followed vehicle is placed within the new padded area.
-        if (context.hasLocationPermission()) map.follow(topDown)
+        if (overview.size >= 2) {
+            val bounds = LatLngBounds.builder().apply { overview.forEach { include(LatLng(it.lat, it.lng)) } }.build()
+            val margin = with(density) { OVERVIEW_MARGIN.roundToPx() }
+            map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, margin))
+        } else if (context.hasLocationPermission()) {
+            map.follow(topDown)
+        }
     }
 
     LaunchedEffect(themeMode) {
@@ -245,6 +266,7 @@ private fun MapCompass(bearing: Float, night: Boolean, onClick: () -> Unit, modi
 }
 
 private const val COMPASS_POLL_MS = 200L
+private val OVERVIEW_MARGIN = 48.dp
 
 /** The SDK's turn card in the app palette: deep blue by day, near black by night, white type. */
 private fun turnCardStyle() = StylingOptions()

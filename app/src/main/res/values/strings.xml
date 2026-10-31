@@ -97,4 +97,17 @@
     <string name="distance_km">%1$.1f km</string>
     <string name="duration_minutes">%1$d min</string>
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
+    <string name="place_home">Home</string>
+    <string name="place_work">Work</string>
+    <string name="place_recent">Recent</string>
+    <string name="place_not_set">Not set. Search for a place to save it.</string>
+    <string name="place_set_home">Save as home</string>
+    <string name="place_set_work">Save as work</string>
+    <string name="place_unset_home">Remove home</string>
+    <string name="place_unset_work">Remove work</string>
+    <string name="route_retry">Try again</string>
+    <string name="route_arrival">Arrive %1$s</string>
+    <string name="traffic_light">light traffic</string>
+    <string name="traffic_medium">some traffic</string>
+    <string name="traffic_heavy">heavy traffic</string>
 </resources>

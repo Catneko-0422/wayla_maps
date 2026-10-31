@@ -92,4 +92,17 @@
     <string name="distance_km">%1$.1f 公里</string>
     <string name="duration_minutes">%1$d 分鐘</string>
     <string name="duration_hours_minutes">%1$d 小時 %2$d 分</string>
+    <string name="place_home">住家</string>
+    <string name="place_work">公司</string>
+    <string name="place_recent">最近</string>
+    <string name="place_not_set">尚未設定，搜尋地點後即可設定</string>
+    <string name="place_set_home">設為住家</string>
+    <string name="place_set_work">設為公司</string>
+    <string name="place_unset_home">取消住家</string>
+    <string name="place_unset_work">取消公司</string>
+    <string name="route_retry">再試一次</string>
+    <string name="route_arrival">預計 %1$s 抵達</string>
+    <string name="traffic_light">路況順暢</string>
+    <string name="traffic_medium">路況稍壅塞</string>
+    <string name="traffic_heavy">路況壅塞</string>
 </resources>

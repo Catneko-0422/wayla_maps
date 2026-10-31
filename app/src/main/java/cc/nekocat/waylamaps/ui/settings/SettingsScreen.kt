@@ -43,7 +43,7 @@ import java.util.Locale
 
 /** Ride settings. Opened only while not navigating; nothing here needs typing. */
 @Composable
-fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(onBack: () -> Unit, onOpenLegal: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val travelMode by viewModel.travelMode.collectAsStateWithLifecycle()
     val matchElevation by viewModel.matchElevation.collectAsStateWithLifecycle()
     val autoLock by viewModel.autoLock.collectAsStateWithLifecycle()

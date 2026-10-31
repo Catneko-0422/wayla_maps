@@ -56,16 +56,16 @@ class MainActivity : ComponentActivity() {
                     Screen.MAP -> MapScreen(
                         themeMode = themeMode,
                         onOpenSettings = { screen = Screen.SETTINGS },
-                        onOpenLegal = { screen = Screen.LEGAL },
                     )
                     Screen.SETTINGS -> {
                         BackHandler(onBack = back)
-                        SettingsScreen(onBack = back)
+                        SettingsScreen(onBack = back, onOpenLegal = { screen = Screen.LEGAL })
                     }
                     Screen.LEGAL -> {
-                        BackHandler(onBack = back)
+                        val toSettings = { screen = Screen.SETTINGS }
+                        BackHandler(onBack = toSettings)
                         val characters by characterRepository.characters.collectAsStateWithLifecycle()
-                        LegalScreen(credits = characters.mapNotNull { it.manifest.credit }, onBack = back)
+                        LegalScreen(credits = characters.mapNotNull { it.manifest.credit }, onBack = toSettings)
                     }
                 }
             }

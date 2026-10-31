@@ -16,6 +16,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cc.nekocat.waylamaps.alerts.AlertSessionState
+import cc.nekocat.waylamaps.alerts.GeoPoint
 import cc.nekocat.waylamaps.character.CharacterRepository
 import cc.nekocat.waylamaps.character.ModelSpec
 import cc.nekocat.waylamaps.data.UserPointRepository
@@ -25,6 +26,9 @@ import cc.nekocat.waylamaps.navigation.NavigationSession
 import cc.nekocat.waylamaps.navigation.NavigatorState
 import cc.nekocat.waylamaps.navigation.PlaceSuggestion
 import cc.nekocat.waylamaps.navigation.PlacesSearch
+import cc.nekocat.waylamaps.navigation.SavedPlace
+import cc.nekocat.waylamaps.navigation.SavedPlaces
+import cc.nekocat.waylamaps.navigation.SavedPlacesData
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
@@ -96,6 +100,7 @@ class MapViewModel @Inject constructor(
     private val voice: VoiceFeedback,
     private val userPoints: UserPointRepository,
     private val ridePreferences: RidePreferences,
+    private val savedPlaces: SavedPlaces,
     characters: CharacterRepository,
     speechState: SpeechState,
     turnByTurn: TurnByTurnFeed,
@@ -114,6 +119,11 @@ class MapViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), characters.selected.value.manifest.name)
 
     val speech: StateFlow<Speech?> = speechState.current
+
+    val saved: StateFlow<SavedPlacesData> = savedPlaces.data
+
+    /** The route shown while previewing, for fitting the camera to it. */
+    val route: StateFlow<List<GeoPoint>> = session.route
 
     /** The current maneuver for the app's own turn card. */
     val turn: StateFlow<TurnUpdate?> = turnByTurn.updates
@@ -189,28 +199,43 @@ class MapViewModel @Inject constructor(
         if (search.value.selected != null) search.update { it.copy(selected = null) }
     }
 
+    /** Picks a destination and shows the route to it, like tapping a search result in Google Maps. */
     fun select(suggestion: PlaceSuggestion) {
         places.endSession()
         query = suggestion.name
         search.value = SearchState(selected = suggestion)
+        savedPlaces.addRecent(suggestion)
+        session.preview(suggestion)
     }
 
     fun clearSearch() {
         places.endSession()
         query = ""
         search.value = SearchState()
+        if (session.state.value !is GuidanceState.Guiding) session.stop()
     }
 
     fun setTravelMode(mode: TravelMode) {
         if (mode == travelMode.mode.value) return
         travelMode.set(mode)
         voice.speak(mode.confirmationPhrase())
+        // A previewed route is for the old vehicle; route again.
+        search.value.selected?.let { if (session.state.value !is GuidanceState.Guiding) session.preview(it) }
     }
 
     fun startNavigation(simulate: Boolean) {
-        val destination = search.value.selected ?: return
-        session.start(destination, simulate)
+        if (session.state.value is GuidanceState.Previewing) {
+            session.confirm(simulate)
+        } else {
+            search.value.selected?.let { session.start(it, simulate) }
+        }
     }
+
+    fun setHome(place: PlaceSuggestion?) = savedPlaces.setHome(place)
+
+    fun setWork(place: PlaceSuggestion?) = savedPlaces.setWork(place)
+
+    fun removeRecent(place: SavedPlace) = savedPlaces.removeRecent(place.placeId)
 
     fun stopNavigation() {
         session.stop()

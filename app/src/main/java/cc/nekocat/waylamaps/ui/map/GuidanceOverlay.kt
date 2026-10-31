@@ -134,7 +134,7 @@ fun TripPill(turn: TurnUpdate?, onStop: () -> Unit, modifier: Modifier = Modifie
 }
 
 @Composable
-private fun formatDistance(meters: Int): String =
+internal fun formatDistance(meters: Int): String =
     if (meters < 1000) {
         stringResource(R.string.distance_meters, (meters / 10) * 10)
     } else {
@@ -142,7 +142,7 @@ private fun formatDistance(meters: Int): String =
     }
 
 @Composable
-private fun formatDuration(seconds: Int): String {
+internal fun formatDuration(seconds: Int): String {
     val minutes = (seconds + 59) / 60
     return if (minutes < 60) {
         stringResource(R.string.duration_minutes, minutes)
