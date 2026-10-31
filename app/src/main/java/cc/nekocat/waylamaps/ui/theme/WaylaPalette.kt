@@ -17,4 +17,7 @@ object WaylaPalette {
     const val MIST = 0xFFE6E8EB.toInt()
     const val PAPER = 0xFFF5F6F7.toInt()
     const val WHITE = 0xFFFFFFFF.toInt()
+
+    /** Only for the speed limit sign, which copies the real road sign. */
+    const val SIGN_RED = 0xFFD7191C.toInt()
 }

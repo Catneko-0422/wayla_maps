@@ -105,4 +105,9 @@
     <string name="traffic_light">路況順暢</string>
     <string name="traffic_medium">路況稍壅塞</string>
     <string name="traffic_heavy">路況壅塞</string>
+    <string name="voice_mode_all">語音：全部</string>
+    <string name="voice_mode_essential">語音：只報轉彎和測速</string>
+    <string name="voice_mode_muted">語音：靜音</string>
+    <string name="action_route_overview">路線總覽</string>
+    <string name="action_follow_vehicle">回到目前位置</string>
 </resources>

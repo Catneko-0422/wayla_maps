@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import android.util.Log
 import cc.nekocat.waylamaps.character.CharacterRepository
+import cc.nekocat.waylamaps.service.RidePreferences
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -29,6 +30,7 @@ class VoicePlayer @Inject constructor(
     private val audioFocus: AudioFocusController,
     private val characters: CharacterRepository,
     private val speechState: SpeechState,
+    private val ridePreferences: RidePreferences,
 ) : PromptOutput {
     private val language = if (context.resources.configuration.locales[0].language == "zh") "zh-TW" else "en"
     private val scheduler = PromptScheduler(this, SystemClock::elapsedRealtime)
@@ -66,14 +68,25 @@ class VoicePlayer @Inject constructor(
         }
 
     fun speak(phraseId: String, args: Map<String, Any> = emptyMap()) {
-        scheduler.submit(Prompt(phraseId, args, catalog.priorityOf(phraseId)))
+        submit(Prompt(phraseId, args, catalog.priorityOf(phraseId)))
     }
 
-    fun speak(prompt: Prompt) = scheduler.submit(prompt)
+    fun speak(prompt: Prompt) = submit(prompt)
 
     /** Speaks [text] with the system TTS; [key] replaces a queued prompt with the same key. */
     fun speakText(key: String, text: String, priority: Priority) {
-        scheduler.submit(Prompt(key, priority = priority, text = text))
+        submit(Prompt(key, priority = priority, text = text))
+    }
+
+    /**
+     * Whether the rider's voice mode applies. Off for the settings screen's confirmations and
+     * demos, which the rider asked to hear.
+     */
+    var followVoiceMode = true
+
+    /** Drops what the rider's voice mode leaves out (see [VoiceMode]). */
+    private fun submit(prompt: Prompt) {
+        if (!followVoiceMode || ridePreferences.voiceMode.value.allows(prompt.priority)) scheduler.submit(prompt)
     }
 
     fun release() {

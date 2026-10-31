@@ -2,6 +2,8 @@ package cc.nekocat.waylamaps.ui.map
 
 import android.app.Activity
 import android.graphics.Bitmap
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.foundation.ScrollState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalDensity
@@ -82,9 +84,9 @@ private data class MapFrame(
     val left: Dp = 0.dp,
     val right: Dp = 0.dp,
     val bottom: Dp = 0.dp,
-    /** Guidance layouts draw their own cards and put the Google logo bottom right. */
-    val guidanceLayout: Boolean = false,
+    val top: Dp = 0.dp,
     val topDown: Boolean = false,
+    val logoOnRight: Boolean = false,
 )
 
 /**
@@ -128,6 +130,15 @@ fun MapScreen(
     val characterName by viewModel.selectedCharacterName.collectAsStateWithLifecycle()
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val route by viewModel.route.collectAsStateWithLifecycle()
+    val voiceMode by viewModel.voiceMode.collectAsStateWithLifecycle()
+
+    // Guidance camera: whole-route overview on request, and whether the map still follows the
+    // vehicle (a drag or the overview stops it).
+    val guidingNow = state.guidance is GuidanceState.Guiding
+    var routeOverview by remember { mutableStateOf(false) }
+    var following by remember { mutableStateOf(true) }
+    var followRequests by remember { mutableIntStateOf(0) }
+    LaunchedEffect(guidingNow) { if (!guidingNow) routeOverview = false }
 
     // One map instance moved between layouts, so rotating or starting guidance keeps it.
     var frame by remember { mutableStateOf(MapFrame()) }
@@ -135,7 +146,9 @@ fun MapScreen(
     val currentTheme by rememberUpdatedState(themeMode)
     val currentGuiding by rememberUpdatedState(state.guiding)
     // While previewing, the camera shows the whole route.
-    val currentOverview by rememberUpdatedState(if (state.guidance is GuidanceState.Previewing) route else emptyList())
+    val showRoute = state.guidance is GuidanceState.Previewing || (guidingNow && routeOverview)
+    val currentOverview by rememberUpdatedState(if (showRoute) route else emptyList())
+    val currentFollowRequests by rememberUpdatedState(followRequests)
     val map = remember {
         movableContentOf {
             NavigationMap(
@@ -143,13 +156,15 @@ fun MapScreen(
                 // The turn card covers the map's top right while guiding.
                 showCompass = !currentGuiding,
                 modifier = Modifier.fillMaxSize(),
-                sdkCards = !currentFrame.guidanceLayout,
                 leftInset = currentFrame.left,
                 rightInset = currentFrame.right,
                 bottomInset = currentFrame.bottom,
-                logoOnRight = currentFrame.guidanceLayout,
+                topInset = currentFrame.top,
+                logoOnRight = currentFrame.logoOnRight,
                 topDown = currentFrame.topDown,
                 overview = currentOverview,
+                followRequests = currentFollowRequests,
+                onFollowingChanged = { following = it },
             )
         }
     }
@@ -165,6 +180,9 @@ fun MapScreen(
             val panelScroll = remember(state.search.selected) { ScrollState(0) }
             // The character would cover the route's far end while previewing.
             val showCharacter = state.guidance !is GuidanceState.Previewing
+            // Browsing after a drag; the route preview's overview is not a drag.
+            val showFollow = !following && state.guidance !is GuidanceState.Previewing
+            val onFollow: () -> Unit = { followRequests++ }
             // How much of the map the portrait sheet covers, so the route preview stays visible.
             var sheetCover by remember { mutableStateOf(SHEET_PEEK_HEIGHT) }
             val guiding = state.navigatorReady && state.guidance is GuidanceState.Guiding
@@ -172,9 +190,24 @@ fun MapScreen(
                 // Equal side padding keeps the vehicle mid-screen; the bottom padding puts the
                 // logo just above the trip pill's end button. Portrait follows from above, which
                 // keeps the vehicle near the middle of the tall map (the tilted view puts it low).
-                guiding -> MapFrame(SIDE_INSET, SIDE_INSET, TRIP_PILL_CLEARANCE, guidanceLayout = true, topDown = !landscape)
+                // The route overview keeps the whole route clear of the character, the cards and
+                // the buttons. Uneven side padding only frames the route right left to right, so
+                // the logo goes bottom left here, just past the character.
+                guiding && routeOverview && landscape -> MapFrame(
+                    left = if (characterModel != null) IMMERSIVE_CHARACTER_WIDTH else SIDE_INSET,
+                    right = SIDE_INSET,
+                    bottom = TRIP_PILL_CLEARANCE,
+                )
+                guiding && routeOverview -> MapFrame(
+                    left = SIDE_INSET,
+                    right = PORTRAIT_CONTROLS_CLEARANCE,
+                    bottom = if (characterModel != null) PORTRAIT_CHARACTER_HEIGHT else TRIP_PILL_CLEARANCE,
+                    top = PORTRAIT_CARDS_CLEARANCE,
+                )
+                guiding -> MapFrame(SIDE_INSET, SIDE_INSET, TRIP_PILL_CLEARANCE, topDown = !landscape, logoOnRight = true)
                 landscape -> MapFrame(left = LANDSCAPE_PANEL_WIDTH + PANEL_MARGIN * 2)
-                else -> MapFrame(bottom = sheetCover + SHEET_MAP_GAP)
+                // As in portrait guidance: the character on the left, the logo bottom right.
+                else -> MapFrame(bottom = sheetCover + SHEET_MAP_GAP, logoOnRight = true)
             }
             LaunchedEffect(wanted) { frame = wanted }
 
@@ -191,10 +224,25 @@ fun MapScreen(
                     characterModel = characterModel,
                     characterName = characterName,
                     onStop = viewModel::stopNavigation,
+                    controls = { vertical, modifier ->
+                        GuidanceControls(
+                            voiceMode = voiceMode,
+                            onVoiceMode = viewModel::cycleVoiceMode,
+                            followingVehicle = following && !routeOverview,
+                            onOverview = { routeOverview = true },
+                            onFollow = {
+                                routeOverview = false
+                                followRequests++
+                            },
+                            vertical = vertical,
+                            modifier = modifier,
+                        )
+                    },
                     map = map,
                 )
                 landscape -> Box(Modifier.fillMaxSize()) {
                     map()
+                    if (showFollow) FollowVehicleButton(onFollow, Modifier.align(Alignment.TopEnd).padding(FOLLOW_BUTTON_PADDING))
                     characterModel?.takeIf { showCharacter }?.let { model ->
                         FloatingCharacter(model, speech, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp))
                     }
@@ -264,13 +312,17 @@ fun MapScreen(
                     ) {
                         Box(Modifier.fillMaxSize()) {
                             map()
+                            if (showFollow) {
+                                FollowVehicleButton(onFollow, Modifier.align(Alignment.TopEnd).padding(FOLLOW_BUTTON_PADDING))
+                            }
                             characterModel?.takeIf { showCharacter }?.let { model ->
                                 FloatingCharacter(
                                     model,
                                     speech,
                                     Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(end = 8.dp, bottom = SHEET_PEEK_HEIGHT),
+                                        .align(Alignment.BottomStart)
+                                        .padding(start = 8.dp, bottom = SHEET_PEEK_HEIGHT),
+                                    bubbleFirst = false,
                                 )
                             }
                             if (characterModel == null) {
@@ -279,9 +331,9 @@ fun MapScreen(
                                         characterName,
                                         it.text,
                                         Modifier
-                                            .align(Alignment.BottomEnd)
+                                            .align(Alignment.BottomStart)
                                             .widthIn(max = PORTRAIT_BUBBLE_MAX_WIDTH)
-                                            .padding(end = 12.dp, bottom = SHEET_PEEK_HEIGHT + 12.dp),
+                                            .padding(start = 12.dp, bottom = SHEET_PEEK_HEIGHT + 12.dp),
                                     )
                                 }
                             }
@@ -366,6 +418,8 @@ private fun GuidanceLayout(
     characterModel: CharacterModel?,
     characterName: String,
     onStop: () -> Unit,
+    /** Voice and camera buttons; laid out in a column when the first argument is true. */
+    controls: @Composable (vertical: Boolean, modifier: Modifier) -> Unit,
     map: @Composable () -> Unit,
 ) {
     Box(Modifier.fillMaxSize()) {
@@ -419,15 +473,31 @@ private fun GuidanceLayout(
                 }
             }
         }
-        TripPill(
-            turn,
-            onStop,
-            Modifier
-                .align(Alignment.BottomEnd)
-                .padding(12.dp),
-            // Portrait: two lines, narrow enough to sit beside the character.
-            compact = !landscape && characterModel != null,
-        )
+        if (landscape) {
+            // Beside the trip pill: the right edge above it is kept for the Google logo.
+            Row(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(12.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                controls(false, Modifier)
+                TripPill(turn, onStop)
+            }
+        } else {
+            // Halfway down the right edge, between the cards and the logo above the trip pill.
+            controls(true, Modifier.align(Alignment.CenterEnd).padding(end = 12.dp))
+            TripPill(
+                turn,
+                onStop,
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(12.dp),
+                // Two lines, narrow enough to sit beside the character.
+                compact = characterModel != null,
+            )
+        }
     }
 }
 
@@ -485,15 +555,19 @@ private fun LockedPanel(state: MapUiState, onStop: (() -> Unit)?, onUnlock: () -
 }
 
 @Composable
-private fun FloatingCharacter(model: CharacterModel, speech: Speech?, modifier: Modifier) {
-    Row(modifier, verticalAlignment = Alignment.Bottom) {
+private fun FloatingCharacter(model: CharacterModel, speech: Speech?, modifier: Modifier, bubbleFirst: Boolean = true) {
+    // The bubble goes on the side facing the middle of the screen.
+    val bubble = @Composable {
         speech?.let {
-            // Over the empty right half of the trip summary, clear of the vehicle in the map's center.
             SpeechBubble(model.name, it.text, Modifier.widthIn(max = BUBBLE_MAX_WIDTH).padding(bottom = 8.dp))
         }
+    }
+    Row(modifier, verticalAlignment = Alignment.Bottom) {
+        if (bubbleFirst) bubble()
         key(model.id) {
             CharacterView(model.bytes, model.spec, speech, Modifier.size(CHARACTER_WIDTH, CHARACTER_HEIGHT))
         }
+        if (!bubbleFirst) bubble()
     }
 }
 
@@ -515,6 +589,9 @@ private fun endTripColors() = ButtonDefaults.buttonColors(
 )
 
 private val LANDSCAPE_PANEL_WIDTH = 360.dp
+
+/** Under the 48dp compass in the top right corner. */
+private val FOLLOW_BUTTON_PADDING = PaddingValues(top = 72.dp, end = 12.dp)
 private val PANEL_MARGIN = 12.dp
 private val SHEET_PEEK_HEIGHT = 128.dp
 private val SHEET_MAP_GAP = 8.dp
@@ -530,6 +607,10 @@ private val PORTRAIT_BUBBLE_MAX_WIDTH = 300.dp
 
 /** The trip pill's height plus margins, so the logo sits right above it. */
 private val TRIP_PILL_CLEARANCE = 92.dp
+
+/** Portrait guidance: the turn and speed cards at the top, the buttons on the right. */
+private val PORTRAIT_CARDS_CLEARANCE = 200.dp
+private val PORTRAIT_CONTROLS_CLEARANCE = 88.dp
 private val BUBBLE_MAX_WIDTH = 170.dp
 
 private val CHARACTER_WIDTH = 240.dp

@@ -35,6 +35,7 @@ import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
 import cc.nekocat.waylamaps.navigation.TurnUpdate
 import cc.nekocat.waylamaps.service.RideController
 import cc.nekocat.waylamaps.service.RidePreferences
+import cc.nekocat.waylamaps.voice.VoiceMode
 import cc.nekocat.waylamaps.ui.confirmationPhrase
 import cc.nekocat.waylamaps.ui.main.MainUiState
 import cc.nekocat.waylamaps.ui.main.toUiState
@@ -241,6 +242,10 @@ class MapViewModel @Inject constructor(
         session.stop()
         clearSearch()
     }
+
+    val voiceMode: StateFlow<VoiceMode> = ridePreferences.voiceMode
+
+    fun cycleVoiceMode() = ridePreferences.setVoiceMode(ridePreferences.voiceMode.value.next())
 
     /** Callers make sure location permission is granted before enabling. */
     fun setAlertsEnabled(enabled: Boolean) = rideController.setAlertsEnabled(enabled)

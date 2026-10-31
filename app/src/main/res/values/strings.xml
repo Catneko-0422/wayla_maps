@@ -110,4 +110,9 @@
     <string name="traffic_light">light traffic</string>
     <string name="traffic_medium">some traffic</string>
     <string name="traffic_heavy">heavy traffic</string>
+    <string name="voice_mode_all">Voice: everything</string>
+    <string name="voice_mode_essential">Voice: turns and cameras only</string>
+    <string name="voice_mode_muted">Voice: muted</string>
+    <string name="action_route_overview">Route overview</string>
+    <string name="action_follow_vehicle">Follow my position</string>
 </resources>

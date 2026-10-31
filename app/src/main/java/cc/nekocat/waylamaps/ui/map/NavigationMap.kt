@@ -59,14 +59,14 @@ fun NavigationMap(
     themeMode: ThemeMode,
     showCompass: Boolean,
     modifier: Modifier = Modifier,
-    /** The SDK's own turn card and trip summary; off when the app draws its own. */
-    sdkCards: Boolean = true,
     /** Keeps the camera's focus (the vehicle) clear of what is drawn over the map's left side. */
     leftInset: Dp = 0.dp,
     /** The same for the right edge (the app's turn and speed cards). */
     rightInset: Dp = 0.dp,
     /** The same for the bottom edge (the app's trip pill). */
     bottomInset: Dp = 0.dp,
+    /** The same for the top edge; only the route overview uses it. */
+    topInset: Dp = 0.dp,
     /**
      * Lays the map out right to left, which moves the Google logo to the bottom right corner of
      * the padded area. The map content is not mirrored.
@@ -91,8 +91,12 @@ fun NavigationMap(
     val view = remember {
         NavigationView(context).apply {
             onCreate(null)
-            // Speed is shown in our own panel.
+            // The app draws its own speed, turn and trip cards and follow button. The SDK's
+            // versions also make the map ignore its padding, which hides the Google logo.
             setSpeedometerEnabled(false)
+            setHeaderEnabled(false)
+            setEtaCardEnabled(false)
+            setRecenterButtonEnabled(false)
             setStylingOptions(turnCardStyle())
         }
     }
@@ -147,29 +151,18 @@ fun NavigationMap(
         }
     }
 
-    LaunchedEffect(sdkCards) {
-        view.setHeaderEnabled(sdkCards)
-        view.setEtaCardEnabled(sdkCards)
-    }
     val density = LocalDensity.current
-    // Guidance and the recenter button reset the perspective, so it is set again on both.
-    var recenters by remember { mutableIntStateOf(0) }
-    DisposableEffect(view) {
-        val listener = NavigationView.OnRecenterButtonClickedListener { recenters++ }
-        view.addOnRecenterButtonClickedListener(listener)
-        onDispose { view.removeOnRecenterButtonClickedListener(listener) }
-    }
-
     LaunchedEffect(logoOnRight) {
         view.layoutDirection = if (logoOnRight) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
     }
-    LaunchedEffect(googleMap, leftInset, rightInset, bottomInset, logoOnRight, topDown, recenters, overview, followRequests) {
+    LaunchedEffect(googleMap, leftInset, rightInset, bottomInset, topInset, logoOnRight, topDown, overview, followRequests) {
         val map = googleMap ?: return@LaunchedEffect
         with(density) {
-            // Right to left, the map reads its padding as start and end, so the sides swap.
+            // Right to left, the logo reads the padding as start and end, so the sides swap; the
+            // camera still reads them as left and right, so use equal sides with logoOnRight.
             val left = (if (logoOnRight) rightInset else leftInset).roundToPx()
             val right = (if (logoOnRight) leftInset else rightInset).roundToPx()
-            map.setPadding(left, 0, right, bottomInset.roundToPx())
+            map.setPadding(left, topInset.roundToPx(), right, bottomInset.roundToPx())
         }
         // After the padding, so the followed vehicle is placed within the new padded area.
         if (overview.size >= 2) {

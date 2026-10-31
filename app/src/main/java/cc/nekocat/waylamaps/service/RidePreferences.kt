@@ -1,6 +1,7 @@
 package cc.nekocat.waylamaps.service
 
 import android.content.Context
+import cc.nekocat.waylamaps.voice.VoiceMode
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,9 +51,22 @@ class RidePreferences @Inject constructor(
         prefs.edit { putString(KEY_THEME, mode.name) }
     }
 
+    private val _voiceMode = MutableStateFlow(
+        prefs.getString(KEY_VOICE_MODE, null)?.let { runCatching { VoiceMode.valueOf(it) }.getOrNull() } ?: VoiceMode.ALL,
+    )
+
+    /** How much is spoken; shared by the phone and Android Auto. */
+    val voiceMode: StateFlow<VoiceMode> = _voiceMode.asStateFlow()
+
+    fun setVoiceMode(mode: VoiceMode) {
+        _voiceMode.value = mode
+        prefs.edit { putString(KEY_VOICE_MODE, mode.name) }
+    }
+
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_MATCH_ELEVATION = "match_elevation"
         const val KEY_AUTO_LOCK = "auto_lock"
+        const val KEY_VOICE_MODE = "voice_mode"
     }
 }
