@@ -36,7 +36,7 @@ class VoicePlayer @Inject constructor(
     private val speechState: SpeechState,
     private val ridePreferences: RidePreferences,
 ) : PromptOutput {
-    private val language = if (context.resources.configuration.locales[0].language == "zh") "zh-TW" else "en"
+    private val phoneLanguage = if (context.resources.configuration.locales[0].language == "zh") "zh-TW" else "en"
     private val scheduler = PromptScheduler(this, SystemClock::elapsedRealtime)
 
     /** What is being said, for the character UI. */
@@ -140,6 +140,8 @@ class VoicePlayer @Inject constructor(
             speakWithTts(prompt, prompt.text)
             return
         }
+        val character = characters.selected.value
+        val language = character.manifest.voiceLanguage?.takeIf { it in catalog.languages } ?: phoneLanguage
         val resolved = try {
             catalog.resolve(prompt.phraseId, prompt.args, language)
         } catch (e: IllegalArgumentException) {
@@ -150,7 +152,6 @@ class VoicePlayer @Inject constructor(
 
         audioFocus.acquire()
         announce(prompt, resolved.text)
-        val character = characters.selected.value
         if (resolved.fragmentIds.all { character.hasVoice(language, it) }) {
             Log.i(TAG, "Playing ${prompt.phraseId} from ${character.id} audio: ${resolved.fragmentIds}")
             audioPrompt = prompt to resolved.text
@@ -159,7 +160,7 @@ class VoicePlayer @Inject constructor(
             player.play()
         } else {
             Log.i(TAG, "Playing ${prompt.phraseId} with TTS: ${resolved.text}")
-            speakWithTts(prompt, resolved.text)
+            speakWithTts(prompt, resolved.text, language)
         }
     }
 
@@ -173,8 +174,9 @@ class VoicePlayer @Inject constructor(
 
     override fun onIdle() = audioFocus.release()
 
-    private fun speakWithTts(prompt: Prompt, text: String) {
-        tts.speak(text) { finish(prompt) }
+    /** [language] is a phrase table language; null speaks in the phone's language. */
+    private fun speakWithTts(prompt: Prompt, text: String, language: String? = null) {
+        tts.speak(text, language?.takeIf { it != phoneLanguage }) { finish(prompt) }
     }
 
     private fun announce(prompt: Prompt, text: String) {

@@ -5,6 +5,9 @@
     },
     "en": {
       "joiner": ", "
+    },
+    "ja": {
+      "joiner": "、"
     }
   },
   "slots": {
@@ -112,487 +115,608 @@
   "fragments": {
     "ahead_50m": {
       "zh-TW": "前方五十公尺",
-      "en": "in 50 meters"
+      "en": "in 50 meters",
+      "ja": "前方、五十メートル"
     },
     "ahead_100m": {
       "zh-TW": "前方一百公尺",
-      "en": "in 100 meters"
+      "en": "in 100 meters",
+      "ja": "前方、百メートル"
     },
     "ahead_150m": {
       "zh-TW": "前方一百五十公尺",
-      "en": "in 150 meters"
+      "en": "in 150 meters",
+      "ja": "前方、百五十メートル"
     },
     "ahead_200m": {
       "zh-TW": "前方兩百公尺",
-      "en": "in 200 meters"
+      "en": "in 200 meters",
+      "ja": "前方、二百メートル"
     },
     "ahead_250m": {
       "zh-TW": "前方兩百五十公尺",
-      "en": "in 250 meters"
+      "en": "in 250 meters",
+      "ja": "前方、二百五十メートル"
     },
     "ahead_300m": {
       "zh-TW": "前方三百公尺",
-      "en": "in 300 meters"
+      "en": "in 300 meters",
+      "ja": "前方、三百メートル"
     },
     "ahead_350m": {
       "zh-TW": "前方三百五十公尺",
-      "en": "in 350 meters"
+      "en": "in 350 meters",
+      "ja": "前方、三百五十メートル"
     },
     "ahead_400m": {
       "zh-TW": "前方四百公尺",
-      "en": "in 400 meters"
+      "en": "in 400 meters",
+      "ja": "前方、四百メートル"
     },
     "ahead_450m": {
       "zh-TW": "前方四百五十公尺",
-      "en": "in 450 meters"
+      "en": "in 450 meters",
+      "ja": "前方、四百五十メートル"
     },
     "ahead_500m": {
       "zh-TW": "前方五百公尺",
-      "en": "in 500 meters"
+      "en": "in 500 meters",
+      "ja": "前方、五百メートル"
     },
     "ahead_550m": {
       "zh-TW": "前方五百五十公尺",
-      "en": "in 550 meters"
+      "en": "in 550 meters",
+      "ja": "前方、五百五十メートル"
     },
     "ahead_600m": {
       "zh-TW": "前方六百公尺",
-      "en": "in 600 meters"
+      "en": "in 600 meters",
+      "ja": "前方、六百メートル"
     },
     "ahead_650m": {
       "zh-TW": "前方六百五十公尺",
-      "en": "in 650 meters"
+      "en": "in 650 meters",
+      "ja": "前方、六百五十メートル"
     },
     "ahead_700m": {
       "zh-TW": "前方七百公尺",
-      "en": "in 700 meters"
+      "en": "in 700 meters",
+      "ja": "前方、七百メートル"
     },
     "ahead_750m": {
       "zh-TW": "前方七百五十公尺",
-      "en": "in 750 meters"
+      "en": "in 750 meters",
+      "ja": "前方、七百五十メートル"
     },
     "ahead_800m": {
       "zh-TW": "前方八百公尺",
-      "en": "in 800 meters"
+      "en": "in 800 meters",
+      "ja": "前方、八百メートル"
     },
     "ahead_850m": {
       "zh-TW": "前方八百五十公尺",
-      "en": "in 850 meters"
+      "en": "in 850 meters",
+      "ja": "前方、八百五十メートル"
     },
     "ahead_900m": {
       "zh-TW": "前方九百公尺",
-      "en": "in 900 meters"
+      "en": "in 900 meters",
+      "ja": "前方、九百メートル"
     },
     "ahead_950m": {
       "zh-TW": "前方九百五十公尺",
-      "en": "in 950 meters"
+      "en": "in 950 meters",
+      "ja": "前方、九百五十メートル"
     },
     "ahead_1000m": {
       "zh-TW": "前方一公里",
-      "en": "in 1 kilometer"
+      "en": "in 1 kilometer",
+      "ja": "前方、一キロ"
     },
     "ahead_1050m": {
       "zh-TW": "前方一千零五十公尺",
-      "en": "in 1,050 meters"
+      "en": "in 1,050 meters",
+      "ja": "前方、千五十メートル"
     },
     "ahead_1100m": {
       "zh-TW": "前方一千一百公尺",
-      "en": "in 1,100 meters"
+      "en": "in 1,100 meters",
+      "ja": "前方、千百メートル"
     },
     "ahead_1150m": {
       "zh-TW": "前方一千一百五十公尺",
-      "en": "in 1,150 meters"
+      "en": "in 1,150 meters",
+      "ja": "前方、千百五十メートル"
     },
     "ahead_1200m": {
       "zh-TW": "前方一千兩百公尺",
-      "en": "in 1,200 meters"
+      "en": "in 1,200 meters",
+      "ja": "前方、千二百メートル"
     },
     "ahead_1250m": {
       "zh-TW": "前方一千兩百五十公尺",
-      "en": "in 1,250 meters"
+      "en": "in 1,250 meters",
+      "ja": "前方、千二百五十メートル"
     },
     "type_speed_camera": {
       "zh-TW": "測速照相",
-      "en": "Speed camera"
+      "en": "Speed camera",
+      "ja": "速度取締機"
     },
     "type_speed_red_light": {
       "zh-TW": "測速兼闖紅燈照相",
-      "en": "Speed and red light camera"
+      "en": "Speed and red light camera",
+      "ja": "速度・信号無視取締機"
     },
     "type_enforcement": {
       "zh-TW": "科技執法路口",
-      "en": "Traffic enforcement intersection"
+      "en": "Traffic enforcement intersection",
+      "ja": "自動取締交差点"
     },
     "type_intersection_speed": {
       "zh-TW": "路口測速照相",
-      "en": "Intersection speed camera"
+      "en": "Intersection speed camera",
+      "ja": "交差点速度取締機"
     },
     "type_red_light": {
       "zh-TW": "闖紅燈照相",
-      "en": "Red light camera"
+      "en": "Red light camera",
+      "ja": "信号無視取締機"
     },
     "type_pedestrian": {
       "zh-TW": "行人優先路口",
-      "en": "Pedestrian priority intersection"
+      "en": "Pedestrian priority intersection",
+      "ja": "歩行者優先交差点"
     },
     "type_turn": {
       "zh-TW": "違規轉彎取締",
-      "en": "Illegal turn enforcement"
+      "en": "Illegal turn enforcement",
+      "ja": "違反転回取締"
     },
     "type_noise": {
       "zh-TW": "噪音取締",
-      "en": "Noise enforcement"
+      "en": "Noise enforcement",
+      "ja": "騒音取締"
     },
     "type_following_distance": {
       "zh-TW": "車距取締",
-      "en": "Following distance enforcement"
+      "en": "Following distance enforcement",
+      "ja": "車間距離取締"
     },
     "ctx_freeway_1": {
       "zh-TW": "國道一號",
-      "en": "on National Freeway 1"
+      "en": "on National Freeway 1",
+      "ja": "国道一号"
     },
     "ctx_freeway_1a": {
       "zh-TW": "國道一甲",
-      "en": "on National Freeway 1A"
+      "en": "on National Freeway 1A",
+      "ja": "国道一号甲線"
     },
     "ctx_freeway_2": {
       "zh-TW": "國道二號",
-      "en": "on National Freeway 2"
+      "en": "on National Freeway 2",
+      "ja": "国道二号"
     },
     "ctx_freeway_2a": {
       "zh-TW": "國道二甲",
-      "en": "on National Freeway 2A"
+      "en": "on National Freeway 2A",
+      "ja": "国道二号甲線"
     },
     "ctx_freeway_3": {
       "zh-TW": "國道三號",
-      "en": "on National Freeway 3"
+      "en": "on National Freeway 3",
+      "ja": "国道三号"
     },
     "ctx_freeway_3a": {
       "zh-TW": "國道三甲",
-      "en": "on National Freeway 3A"
+      "en": "on National Freeway 3A",
+      "ja": "国道三号甲線"
     },
     "ctx_freeway_4": {
       "zh-TW": "國道四號",
-      "en": "on National Freeway 4"
+      "en": "on National Freeway 4",
+      "ja": "国道四号"
     },
     "ctx_freeway_5": {
       "zh-TW": "國道五號",
-      "en": "on National Freeway 5"
+      "en": "on National Freeway 5",
+      "ja": "国道五号"
     },
     "ctx_freeway_6": {
       "zh-TW": "國道六號",
-      "en": "on National Freeway 6"
+      "en": "on National Freeway 6",
+      "ja": "国道六号"
     },
     "ctx_freeway_7": {
       "zh-TW": "國道七號",
-      "en": "on National Freeway 7"
+      "en": "on National Freeway 7",
+      "ja": "国道七号"
     },
     "ctx_freeway_8": {
       "zh-TW": "國道八號",
-      "en": "on National Freeway 8"
+      "en": "on National Freeway 8",
+      "ja": "国道八号"
     },
     "ctx_freeway_9": {
       "zh-TW": "國道九號",
-      "en": "on National Freeway 9"
+      "en": "on National Freeway 9",
+      "ja": "国道九号"
     },
     "ctx_freeway_10": {
       "zh-TW": "國道十號",
-      "en": "on National Freeway 10"
+      "en": "on National Freeway 10",
+      "ja": "国道十号"
     },
     "ctx_expressway": {
       "zh-TW": "快速道路",
-      "en": "on the expressway"
+      "en": "on the expressway",
+      "ja": "快速道路"
     },
     "ctx_elevated": {
       "zh-TW": "高架道路上",
-      "en": "on the elevated road"
+      "en": "on the elevated road",
+      "ja": "高架上"
     },
     "ctx_tunnel": {
       "zh-TW": "隧道內",
-      "en": "in the tunnel"
+      "en": "in the tunnel",
+      "ja": "トンネル内"
     },
     "ctx_ramp": {
       "zh-TW": "匝道口",
-      "en": "at the ramp"
+      "en": "at the ramp",
+      "ja": "ランプ出入口"
     },
     "limit_15": {
       "zh-TW": "限速十五",
-      "en": "limit 15"
+      "en": "limit 15",
+      "ja": "制限速度、十五"
     },
     "limit_20": {
       "zh-TW": "限速二十",
-      "en": "limit 20"
+      "en": "limit 20",
+      "ja": "制限速度、二十"
     },
     "limit_25": {
       "zh-TW": "限速二十五",
-      "en": "limit 25"
+      "en": "limit 25",
+      "ja": "制限速度、二十五"
     },
     "limit_30": {
       "zh-TW": "限速三十",
-      "en": "limit 30"
+      "en": "limit 30",
+      "ja": "制限速度、三十"
     },
     "limit_35": {
       "zh-TW": "限速三十五",
-      "en": "limit 35"
+      "en": "limit 35",
+      "ja": "制限速度、三十五"
     },
     "limit_40": {
       "zh-TW": "限速四十",
-      "en": "limit 40"
+      "en": "limit 40",
+      "ja": "制限速度、四十"
     },
     "limit_50": {
       "zh-TW": "限速五十",
-      "en": "limit 50"
+      "en": "limit 50",
+      "ja": "制限速度、五十"
     },
     "limit_60": {
       "zh-TW": "限速六十",
-      "en": "limit 60"
+      "en": "limit 60",
+      "ja": "制限速度、六十"
     },
     "limit_70": {
       "zh-TW": "限速七十",
-      "en": "limit 70"
+      "en": "limit 70",
+      "ja": "制限速度、七十"
     },
     "limit_80": {
       "zh-TW": "限速八十",
-      "en": "limit 80"
+      "en": "limit 80",
+      "ja": "制限速度、八十"
     },
     "limit_90": {
       "zh-TW": "限速九十",
-      "en": "limit 90"
+      "en": "limit 90",
+      "ja": "制限速度、九十"
     },
     "limit_100": {
       "zh-TW": "限速一百",
-      "en": "limit 100"
+      "en": "limit 100",
+      "ja": "制限速度、百"
     },
     "limit_110": {
       "zh-TW": "限速一百一十",
-      "en": "limit 110"
+      "en": "limit 110",
+      "ja": "制限速度、百十"
     },
     "limit_120": {
       "zh-TW": "限速一百二十",
-      "en": "limit 120"
+      "en": "limit 120",
+      "ja": "制限速度、百二十"
     },
     "passed": {
       "zh-TW": "通過",
-      "en": "Passed"
+      "en": "Passed",
+      "ja": "通過"
     },
     "over_limit": {
       "zh-TW": "已超速",
-      "en": "Over the limit"
+      "en": "Over the limit",
+      "ja": "速度超過"
     },
     "parking_zone": {
       "zh-TW": "這裡是違規臨停取締路段",
-      "en": "No-stopping enforcement zone here"
+      "en": "No-stopping enforcement zone here",
+      "ja": "駐停車取締区間"
     },
     "average_speed_enter": {
       "zh-TW": "進入區間測速",
-      "en": "Entering average speed zone"
+      "en": "Entering average speed zone",
+      "ja": "区間速度取締、進入"
     },
     "average_speed_exit": {
       "zh-TW": "離開區間測速",
-      "en": "Leaving average speed zone"
+      "en": "Leaving average speed zone",
+      "ja": "区間速度取締、離脱"
     },
     "maneuver_turn_left": {
       "zh-TW": "左轉",
-      "en": "Turn left"
+      "en": "Turn left",
+      "ja": "左旋回"
     },
     "maneuver_turn_right": {
       "zh-TW": "右轉",
-      "en": "Turn right"
+      "en": "Turn right",
+      "ja": "右旋回"
     },
     "maneuver_keep_left": {
       "zh-TW": "靠左",
-      "en": "Keep left"
+      "en": "Keep left",
+      "ja": "左寄せ"
     },
     "maneuver_keep_right": {
       "zh-TW": "靠右",
-      "en": "Keep right"
+      "en": "Keep right",
+      "ja": "右寄せ"
     },
     "maneuver_u_turn": {
       "zh-TW": "迴轉",
-      "en": "Make a U-turn"
+      "en": "Make a U-turn",
+      "ja": "反転"
     },
     "maneuver_straight": {
       "zh-TW": "直行",
-      "en": "Go straight"
+      "en": "Go straight",
+      "ja": "直進"
     },
     "maneuver_merge": {
       "zh-TW": "匯入車道",
-      "en": "Merge"
+      "en": "Merge",
+      "ja": "合流"
     },
     "maneuver_roundabout": {
       "zh-TW": "進入圓環",
-      "en": "Enter the roundabout"
+      "en": "Enter the roundabout",
+      "ja": "ロータリー進入"
     },
     "maneuver_roundabout_exit_1": {
       "zh-TW": "圓環第一個出口",
-      "en": "At the roundabout, take the first exit"
+      "en": "At the roundabout, take the first exit",
+      "ja": "ロータリー、第一出口"
     },
     "maneuver_roundabout_exit_2": {
       "zh-TW": "圓環第二個出口",
-      "en": "At the roundabout, take the second exit"
+      "en": "At the roundabout, take the second exit",
+      "ja": "ロータリー、第二出口"
     },
     "maneuver_roundabout_exit_3": {
       "zh-TW": "圓環第三個出口",
-      "en": "At the roundabout, take the third exit"
+      "en": "At the roundabout, take the third exit",
+      "ja": "ロータリー、第三出口"
     },
     "maneuver_roundabout_exit_4": {
       "zh-TW": "圓環第四個出口",
-      "en": "At the roundabout, take the fourth exit"
+      "en": "At the roundabout, take the fourth exit",
+      "ja": "ロータリー、第四出口"
     },
     "maneuver_roundabout_exit_5": {
       "zh-TW": "圓環第五個出口",
-      "en": "At the roundabout, take the fifth exit"
+      "en": "At the roundabout, take the fifth exit",
+      "ja": "ロータリー、第五出口"
     },
     "maneuver_roundabout_leave": {
       "zh-TW": "離開圓環",
-      "en": "Exit the roundabout"
+      "en": "Exit the roundabout",
+      "ja": "ロータリー離脱"
     },
     "maneuver_on_ramp": {
       "zh-TW": "上匝道",
-      "en": "Take the ramp"
+      "en": "Take the ramp",
+      "ja": "ランプ進入"
     },
     "maneuver_on_ramp_left": {
       "zh-TW": "靠左上匝道",
-      "en": "Take the ramp on the left"
+      "en": "Take the ramp on the left",
+      "ja": "左側ランプへ進入"
     },
     "maneuver_on_ramp_right": {
       "zh-TW": "靠右上匝道",
-      "en": "Take the ramp on the right"
+      "en": "Take the ramp on the right",
+      "ja": "右側ランプへ進入"
     },
     "maneuver_off_ramp": {
       "zh-TW": "下匝道",
-      "en": "Take the exit"
+      "en": "Take the exit",
+      "ja": "ランプ離脱"
     },
     "maneuver_off_ramp_left": {
       "zh-TW": "靠左下匝道",
-      "en": "Take the exit on the left"
+      "en": "Take the exit on the left",
+      "ja": "左側ランプで離脱"
     },
     "maneuver_off_ramp_right": {
       "zh-TW": "靠右下匝道",
-      "en": "Take the exit on the right"
+      "en": "Take the exit on the right",
+      "ja": "右側ランプで離脱"
     },
     "maneuver_destination": {
       "zh-TW": "抵達目的地",
-      "en": "Your destination"
+      "en": "Your destination",
+      "ja": "目標地点"
     },
     "maneuver_destination_left": {
       "zh-TW": "目的地在左側",
-      "en": "Your destination is on the left"
+      "en": "Your destination is on the left",
+      "ja": "目標地点、左側"
     },
     "maneuver_destination_right": {
       "zh-TW": "目的地在右側",
-      "en": "Your destination is on the right"
+      "en": "Your destination is on the right",
+      "ja": "目標地点、右側"
     },
     "arrived": {
       "zh-TW": "已抵達目的地",
-      "en": "You have arrived"
+      "en": "You have arrived",
+      "ja": "目標地点に到着。任務完了、お疲れ様でした"
     },
     "detect_start": {
       "zh-TW": "偵測啟動",
-      "en": "Detection started"
+      "en": "Detection started",
+      "ja": "監視、開始"
     },
     "detect_stop": {
       "zh-TW": "偵測停止",
-      "en": "Detection stopped"
+      "en": "Detection stopped",
+      "ja": "監視、終了"
     },
     "no_fix": {
       "zh-TW": "沒有定位資訊，可能收不到衛星訊號",
-      "en": "No location yet. The GPS signal may be blocked"
+      "en": "No location yet. The GPS signal may be blocked",
+      "ja": "測位情報なし。衛星信号を受信できていない可能性あり"
     },
     "gps_lost": {
       "zh-TW": "GPS 訊號中斷",
-      "en": "GPS signal lost"
+      "en": "GPS signal lost",
+      "ja": "GPS信号、ロスト"
     },
     "gps_recovered": {
       "zh-TW": "GPS 訊號恢復",
-      "en": "GPS signal back"
+      "en": "GPS signal back",
+      "ja": "GPS信号、回復"
     },
     "gps_disabled": {
       "zh-TW": "GPS 已關閉，請開啟才能繼續偵測",
-      "en": "GPS is off. Turn it on to keep detecting"
+      "en": "GPS is off. Turn it on to keep detecting",
+      "ja": "GPS、オフ。監視の継続にはGPSをオンにしてください"
     },
     "gps_enabled": {
       "zh-TW": "GPS 已開啟",
-      "en": "GPS is on"
+      "en": "GPS is on",
+      "ja": "GPS、オン"
     },
     "doze_begin": {
       "zh-TW": "手機進入休眠，偵測可能暫停",
-      "en": "The phone is going to sleep. Detection may pause"
+      "en": "The phone is going to sleep. Detection may pause",
+      "ja": "端末、スリープに移行。監視が停止する可能性あり"
     },
     "doze_end": {
       "zh-TW": "手機恢復運作",
-      "en": "The phone is awake again"
+      "en": "The phone is awake again",
+      "ja": "端末、復帰"
     },
     "stationary": {
       "zh-TW": "已經很久沒有移動，不需要的話可以關閉偵測",
-      "en": "You haven't moved for a while. You can stop detection if you don't need it"
+      "en": "You haven't moved for a while. You can stop detection if you don't need it",
+      "ja": "長時間、移動なし。不要であれば監視を終了してください"
     },
     "no_internet": {
       "zh-TW": "沒有網路",
-      "en": "No internet connection"
+      "en": "No internet connection",
+      "ja": "通信途絶"
     },
     "mode_car": {
       "zh-TW": "汽車模式",
-      "en": "Car mode"
+      "en": "Car mode",
+      "ja": "車種、四輪。了解"
     },
     "mode_scooter": {
       "zh-TW": "機車模式",
-      "en": "Scooter mode"
+      "en": "Scooter mode",
+      "ja": "車種、スクーター。了解"
     },
     "mode_heavy_motorcycle": {
       "zh-TW": "重機模式",
-      "en": "Heavy motorcycle mode"
+      "en": "Heavy motorcycle mode",
+      "ja": "車種、大型二輪。了解"
     },
     "elevation_filter_on": {
       "zh-TW": "高架上下的照相不提醒",
-      "en": "Cameras above or below you will be skipped"
+      "en": "Cameras above or below you will be skipped",
+      "ja": "高架の上下にある取締機は、通報しません"
     },
     "elevation_filter_off": {
       "zh-TW": "高架上下的照相都會提醒",
-      "en": "Cameras above and below you will be announced"
+      "en": "Cameras above and below you will be announced",
+      "ja": "高架の上下にある取締機も、通報します"
     },
     "voice_demo": {
       "zh-TW": "這是 Wayla 的聲音，接下來由我陪你上路",
-      "en": "This is Wayla. I will ride along with you"
+      "en": "This is Wayla. I will ride along with you",
+      "ja": "こちらナビゲーター。これより航法支援を開始します"
     },
     "type_user_point": {
       "zh-TW": "自建提醒點",
-      "en": "Your reminder point"
+      "en": "Your reminder point",
+      "ja": "登録ポイント"
     },
     "point_added": {
       "zh-TW": "已加入提醒點",
-      "en": "Reminder point added"
+      "en": "Reminder point added",
+      "ja": "ポイント登録、完了"
     },
     "point_add_failed": {
       "zh-TW": "加入失敗，請停車並確認已經定位",
-      "en": "Could not add the point. Stop and make sure your location is known"
+      "en": "Could not add the point. Stop and make sure your location is known",
+      "ja": "登録失敗。停車して、測位を確認してください"
     },
     "point_deleted": {
       "zh-TW": "已刪除提醒點",
-      "en": "Reminder point deleted"
+      "en": "Reminder point deleted",
+      "ja": "ポイント、削除"
     },
     "lock_on": {
       "zh-TW": "已開啟自動鎖定介面",
-      "en": "Automatic screen lock on"
+      "en": "Automatic screen lock on",
+      "ja": "画面自動ロック、有効"
     },
     "lock_off": {
       "zh-TW": "已取消自動鎖定介面",
-      "en": "Automatic screen lock off"
+      "en": "Automatic screen lock off",
+      "ja": "画面自動ロック、無効"
     },
     "lock_released": {
       "zh-TW": "已解除自動鎖定介面",
-      "en": "Screen unlocked"
+      "en": "Screen unlocked",
+      "ja": "画面ロック、解除"
     },
     "type_average_speed_start": {
       "zh-TW": "區間測速起點",
-      "en": "Start of an average speed zone"
+      "en": "Start of an average speed zone",
+      "ja": "区間速度取締、起点"
     },
     "average_speed_tunnel": {
       "zh-TW": "隧道內收不到 GPS，請保持穩定車速",
-      "en": "No GPS in the tunnel. Keep a steady speed"
+      "en": "No GPS in the tunnel. Keep a steady speed",
+      "ja": "トンネル内、GPS受信不可。一定の速度を維持してください"
     },
     "stop_reached": {
       "zh-TW": "已到達停靠點，繼續前往下一站",
-      "en": "Stop reached. On to the next one"
+      "en": "Stop reached. On to the next one",
+      "ja": "経由地に到着。次の目標へ向かいます"
     }
   },
   "phrases": {
@@ -606,6 +730,10 @@
         "en": [
           "{type}",
           "ahead_{distance}m"
+        ],
+        "ja": [
+          "ahead_{distance}m",
+          "{type}"
         ]
       }
     },
@@ -620,6 +748,11 @@
         "en": [
           "{type}",
           "ahead_{distance}m",
+          "limit_{limit}"
+        ],
+        "ja": [
+          "ahead_{distance}m",
+          "{type}",
           "limit_{limit}"
         ]
       }
@@ -636,6 +769,11 @@
           "{type}",
           "{context}",
           "ahead_{distance}m"
+        ],
+        "ja": [
+          "ahead_{distance}m",
+          "{context}",
+          "{type}"
         ]
       }
     },
@@ -653,6 +791,12 @@
           "{context}",
           "ahead_{distance}m",
           "limit_{limit}"
+        ],
+        "ja": [
+          "ahead_{distance}m",
+          "{context}",
+          "{type}",
+          "limit_{limit}"
         ]
       }
     },
@@ -663,6 +807,9 @@
           "passed"
         ],
         "en": [
+          "passed"
+        ],
+        "ja": [
           "passed"
         ]
       }
@@ -675,6 +822,9 @@
         ],
         "en": [
           "over_limit"
+        ],
+        "ja": [
+          "over_limit"
         ]
       }
     },
@@ -685,6 +835,9 @@
           "parking_zone"
         ],
         "en": [
+          "parking_zone"
+        ],
+        "ja": [
           "parking_zone"
         ]
       }
@@ -697,6 +850,9 @@
         ],
         "en": [
           "average_speed_enter"
+        ],
+        "ja": [
+          "average_speed_enter"
         ]
       }
     },
@@ -707,6 +863,9 @@
           "average_speed_exit"
         ],
         "en": [
+          "average_speed_exit"
+        ],
+        "ja": [
           "average_speed_exit"
         ]
       }
@@ -721,6 +880,10 @@
         "en": [
           "{maneuver}",
           "ahead_{distance}m"
+        ],
+        "ja": [
+          "ahead_{distance}m",
+          "{maneuver}"
         ]
       }
     },
@@ -731,6 +894,9 @@
           "{maneuver}"
         ],
         "en": [
+          "{maneuver}"
+        ],
+        "ja": [
           "{maneuver}"
         ]
       }
@@ -743,6 +909,9 @@
         ],
         "en": [
           "arrived"
+        ],
+        "ja": [
+          "arrived"
         ]
       }
     },
@@ -753,6 +922,9 @@
           "detect_start"
         ],
         "en": [
+          "detect_start"
+        ],
+        "ja": [
           "detect_start"
         ]
       }
@@ -765,6 +937,9 @@
         ],
         "en": [
           "detect_stop"
+        ],
+        "ja": [
+          "detect_stop"
         ]
       }
     },
@@ -775,6 +950,9 @@
           "no_fix"
         ],
         "en": [
+          "no_fix"
+        ],
+        "ja": [
           "no_fix"
         ]
       }
@@ -787,6 +965,9 @@
         ],
         "en": [
           "gps_lost"
+        ],
+        "ja": [
+          "gps_lost"
         ]
       }
     },
@@ -797,6 +978,9 @@
           "gps_recovered"
         ],
         "en": [
+          "gps_recovered"
+        ],
+        "ja": [
           "gps_recovered"
         ]
       }
@@ -809,6 +993,9 @@
         ],
         "en": [
           "gps_disabled"
+        ],
+        "ja": [
+          "gps_disabled"
         ]
       }
     },
@@ -819,6 +1006,9 @@
           "gps_enabled"
         ],
         "en": [
+          "gps_enabled"
+        ],
+        "ja": [
           "gps_enabled"
         ]
       }
@@ -831,6 +1021,9 @@
         ],
         "en": [
           "doze_begin"
+        ],
+        "ja": [
+          "doze_begin"
         ]
       }
     },
@@ -841,6 +1034,9 @@
           "doze_end"
         ],
         "en": [
+          "doze_end"
+        ],
+        "ja": [
           "doze_end"
         ]
       }
@@ -853,6 +1049,9 @@
         ],
         "en": [
           "stationary"
+        ],
+        "ja": [
+          "stationary"
         ]
       }
     },
@@ -863,6 +1062,9 @@
           "no_internet"
         ],
         "en": [
+          "no_internet"
+        ],
+        "ja": [
           "no_internet"
         ]
       }
@@ -875,6 +1077,9 @@
         ],
         "en": [
           "mode_car"
+        ],
+        "ja": [
+          "mode_car"
         ]
       }
     },
@@ -885,6 +1090,9 @@
           "mode_scooter"
         ],
         "en": [
+          "mode_scooter"
+        ],
+        "ja": [
           "mode_scooter"
         ]
       }
@@ -897,6 +1105,9 @@
         ],
         "en": [
           "mode_heavy_motorcycle"
+        ],
+        "ja": [
+          "mode_heavy_motorcycle"
         ]
       }
     },
@@ -907,6 +1118,9 @@
           "elevation_filter_on"
         ],
         "en": [
+          "elevation_filter_on"
+        ],
+        "ja": [
           "elevation_filter_on"
         ]
       }
@@ -919,6 +1133,9 @@
         ],
         "en": [
           "elevation_filter_off"
+        ],
+        "ja": [
+          "elevation_filter_off"
         ]
       }
     },
@@ -929,6 +1146,9 @@
           "voice_demo"
         ],
         "en": [
+          "voice_demo"
+        ],
+        "ja": [
           "voice_demo"
         ]
       }
@@ -941,6 +1161,9 @@
         ],
         "en": [
           "point_added"
+        ],
+        "ja": [
+          "point_added"
         ]
       }
     },
@@ -951,6 +1174,9 @@
           "point_add_failed"
         ],
         "en": [
+          "point_add_failed"
+        ],
+        "ja": [
           "point_add_failed"
         ]
       }
@@ -963,6 +1189,9 @@
         ],
         "en": [
           "point_deleted"
+        ],
+        "ja": [
+          "point_deleted"
         ]
       }
     },
@@ -973,6 +1202,9 @@
           "lock_on"
         ],
         "en": [
+          "lock_on"
+        ],
+        "ja": [
           "lock_on"
         ]
       }
@@ -985,6 +1217,9 @@
         ],
         "en": [
           "lock_off"
+        ],
+        "ja": [
+          "lock_off"
         ]
       }
     },
@@ -995,6 +1230,9 @@
           "lock_released"
         ],
         "en": [
+          "lock_released"
+        ],
+        "ja": [
           "lock_released"
         ]
       }
@@ -1007,6 +1245,9 @@
         ],
         "en": [
           "average_speed_tunnel"
+        ],
+        "ja": [
+          "average_speed_tunnel"
         ]
       }
     },
@@ -1017,6 +1258,9 @@
           "stop_reached"
         ],
         "en": [
+          "stop_reached"
+        ],
+        "ja": [
           "stop_reached"
         ]
       }

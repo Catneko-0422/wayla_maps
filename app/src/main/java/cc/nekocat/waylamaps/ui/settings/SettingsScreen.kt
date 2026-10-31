@@ -346,7 +346,10 @@ private fun CharacterCard(character: Character, selected: Boolean, onSelect: () 
                 modifier = Modifier.padding(top = 8.dp),
             )
             Text(
-                stringResource(R.string.character_phrases, character.voiceFragments[VOICE_LANGUAGE].orEmpty().size),
+                stringResource(
+                    R.string.character_phrases,
+                    character.voiceFragments[character.manifest.voiceLanguage ?: VOICE_LANGUAGE].orEmpty().size,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant,
             )
@@ -355,6 +358,7 @@ private fun CharacterCard(character: Character, selected: Boolean, onSelect: () 
                     if (character.source == CharacterSource.IMPORTED) R.string.character_source_imported else R.string.character_source_bundled,
                 ),
                 character.manifest.model?.let { stringResource(R.string.character_has_model) },
+                character.manifest.voiceLanguage?.takeIf { it == "ja" }?.let { stringResource(R.string.character_language_ja) },
             )
             Text(tags.joinToString("・"), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             if (character.source == CharacterSource.IMPORTED) {
@@ -421,7 +425,7 @@ private fun VoiceBoost.labelRes() = when (this) {
 
 private val CHARACTER_CARD_WIDTH = 168.dp
 
-/** Fragment counts are shown for the language the voice packs are made for. */
+/** Fragment counts are for this language unless the pack speaks another. */
 private const val VOICE_LANGUAGE = "zh-TW"
 
 @Composable

@@ -13,7 +13,8 @@ gpu-switch), whose key is read from the environment variable named in the config
 Without --character the bundled Wayla pack in app/src/main/assets/characters/wayla
 is written: only use voices you recorded or may publish there, the repo is public.
 With --character the pack goes to tools/voice/out/<id>/ (gitignored) and is zipped
-for importing on the phone.
+for importing on the phone. --pack-dir writes the voice into an existing pack instead,
+such as a licensed character kept in the gitignored app/src/local/.
 
 Usage:
     python3 tools/voice/generate_voice.py                 # generate what changed
@@ -21,6 +22,7 @@ Usage:
     python3 tools/voice/generate_voice.py --only limit_50 --force
     python3 tools/voice/generate_voice.py --prune         # also delete unused files
     python3 tools/voice/generate_voice.py --character stylet --name Stylet   # importable zip
+    python3 tools/voice/generate_voice.py --pack-dir app/src/local/assets/characters/manuka
 """
 
 import argparse
@@ -235,6 +237,7 @@ def main():
     parser.add_argument("--character", metavar="ID", help="write an importable pack to tools/voice/out/ID")
     parser.add_argument("--name", help="character name shown in the app (with --character)")
     parser.add_argument("--credit", help="credit line for the about screen (with --character)")
+    parser.add_argument("--pack-dir", type=Path, help="write voice/ into this existing pack directory")
     args = parser.parse_args()
 
     if not args.config.exists():
@@ -246,7 +249,11 @@ def main():
     if unknown:
         sys.exit(f"unknown fragment ids: {', '.join(sorted(unknown))}")
 
-    pack_dir = OUT_DIR / args.character if args.character else BUNDLED_PACK
+    if args.character and args.pack_dir:
+        sys.exit("--character and --pack-dir are exclusive")
+    if args.pack_dir and not (args.pack_dir / "character.json").exists():
+        sys.exit(f"{args.pack_dir} has no character.json")
+    pack_dir = args.pack_dir or (OUT_DIR / args.character if args.character else BUNDLED_PACK)
     stats = generate(config, fragments, pack_dir / "voice", fetcher(config), force=args.force, only=args.only,
                      dry_run=args.dry_run, prune=args.prune)
     if args.character and not args.dry_run:

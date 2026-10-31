@@ -162,4 +162,5 @@
     <string name="voice_boost_normal">Normal</string>
     <string name="voice_boost_loud">Loud</string>
     <string name="voice_boost_loudest">Loudest</string>
+    <string name="character_language_ja">Japanese</string>
 </resources>

@@ -31,6 +31,11 @@ python3 tools/voice/generate_voice.py --character stylet --name Stylet
 
 Phrases a pack lacks are spoken by the phone's TTS, so a partial pack works.
 
+A pack can speak another language than the phone: set `"voiceLanguage": "ja"` in its
+`character.json` and generate that language (it needs texts in `phrases.json`). A licensed
+character kept in the gitignored `app/src/local/` gets its voice in place with
+`--pack-dir app/src/local/assets/characters/<id>`.
+
 ## How it works
 
 - Input: the `fragments` of `app/src/main/assets/voice/phrases.json`, the phrase

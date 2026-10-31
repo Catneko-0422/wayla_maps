@@ -8,6 +8,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
@@ -28,14 +29,18 @@ class TtsSpeaker @Inject constructor(
 
     private enum class State { INITIALIZING, READY, FAILED }
 
-    private data class Request(val text: String, val onDone: () -> Unit, val isRetry: Boolean = false)
+    private data class Request(val text: String, val language: String?, val onDone: () -> Unit, val isRetry: Boolean = false)
 
     private var tts = TextToSpeech(context, ::onInit)
 
     /** The audio session to speak in, shared with the recorded prompts' loudness boost. */
     var audioSessionId: Int? = null
 
-    fun speak(text: String, onDone: () -> Unit) = submit(Request(text, onDone))
+    /** [language] is a language tag such as "ja" for text not in the phone's language. */
+    fun speak(text: String, language: String? = null, onDone: () -> Unit) = submit(Request(text, language, onDone))
+
+    /** The language the engine is set to, so it is only switched when a prompt needs another. */
+    private var currentLanguage: String? = null
 
     private fun submit(request: Request) {
         when (state) {
@@ -64,10 +69,8 @@ class TtsSpeaker @Inject constructor(
             return
         }
         tts.setAudioAttributes(PROMPT_AUDIO_ATTRIBUTES)
-        val locale = context.resources.configuration.locales[0]
-        if (tts.setLanguage(locale) < TextToSpeech.LANG_AVAILABLE) {
-            Log.w(TAG, "No TTS voice for $locale, using the engine default")
-        }
+        currentLanguage = null
+        useLanguage(null)
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) = Unit
             override fun onDone(utteranceId: String?) = finished(utteranceId)
@@ -81,7 +84,17 @@ class TtsSpeaker @Inject constructor(
         while (pending.isNotEmpty()) speakNow(pending.removeFirst())
     }
 
+    private fun useLanguage(language: String?) {
+        if (state == State.READY && language == currentLanguage) return
+        val locale = language?.let(Locale::forLanguageTag) ?: context.resources.configuration.locales[0]
+        if (tts.setLanguage(locale) < TextToSpeech.LANG_AVAILABLE) {
+            Log.w(TAG, "No TTS voice for $locale, using the engine default")
+        }
+        currentLanguage = language
+    }
+
     private fun speakNow(request: Request) {
+        useLanguage(request.language)
         val id = "prompt-${nextId++}"
         callbacks[id] = request.onDone
         val params = Bundle().apply { audioSessionId?.let { putInt(TextToSpeech.Engine.KEY_PARAM_SESSION_ID, it) } }

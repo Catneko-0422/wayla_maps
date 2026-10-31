@@ -157,4 +157,5 @@
     <string name="voice_boost_normal">標準</string>
     <string name="voice_boost_loud">大聲</string>
     <string name="voice_boost_loudest">最大</string>
+    <string name="character_language_ja">日語</string>
 </resources>

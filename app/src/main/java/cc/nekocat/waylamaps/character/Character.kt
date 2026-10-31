@@ -15,6 +15,11 @@ data class CharacterManifest(
     /** Shown on the about screen, e.g. "MANUKA ©ジンゴ". */
     val credit: String? = null,
     val model: ModelSpec? = null,
+    /**
+     * The language the pack speaks, e.g. "ja", whatever the phone's language; prompts use its
+     * phrase texts. Null speaks the phone's language.
+     */
+    val voiceLanguage: String? = null,
 ) {
     companion object {
         const val FILE_NAME = "character.json"
