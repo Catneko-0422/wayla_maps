@@ -25,6 +25,7 @@ import cc.nekocat.waylamaps.navigation.PlacesSearch
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.service.RideController
+import cc.nekocat.waylamaps.service.RidePreferences
 import cc.nekocat.waylamaps.ui.confirmationPhrase
 import cc.nekocat.waylamaps.ui.main.MainUiState
 import cc.nekocat.waylamaps.ui.main.toUiState
@@ -35,6 +36,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -62,6 +64,8 @@ data class MapUiState(
     val alerts: MainUiState = MainUiState(),
     val alertsEnabled: Boolean = false,
     val search: SearchState = SearchState(),
+    /** The control panel is locked while moving (auto-lock setting). */
+    val locked: Boolean = false,
 ) {
     val navigatorReady: Boolean get() = navigator is NavigatorState.Ready
     val guiding: Boolean get() = guidance is GuidanceState.Guiding
@@ -71,7 +75,7 @@ data class MapUiState(
 @HiltViewModel
 class MapViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    alertState: AlertSessionState,
+    private val alertState: AlertSessionState,
     private val navigation: NavigationController,
     private val session: NavigationSession,
     private val rideController: RideController,
@@ -79,8 +83,11 @@ class MapViewModel @Inject constructor(
     private val places: PlacesSearch,
     private val voice: VoiceFeedback,
     private val userPoints: UserPointRepository,
+    private val ridePreferences: RidePreferences,
 ) : ViewModel() {
     private val search = MutableStateFlow(SearchState())
+    private val autoLock = AutoLock()
+    private val locked = MutableStateFlow(false)
 
     /**
      * Text field contents as Compose state, updated synchronously. Routing it through the
@@ -93,11 +100,22 @@ class MapViewModel @Inject constructor(
         combine(navigation.state, session.state, travelMode.mode, ::Triple),
         combine(alertState.session, rideController.alertsEnabled, ::Pair),
         search,
-    ) { (navigator, guidance, mode), (alerts, alertsEnabled), search ->
-        MapUiState(navigator, guidance, mode, alerts.toUiState(), alertsEnabled, search)
+        locked,
+    ) { (navigator, guidance, mode), (alerts, alertsEnabled), search, locked ->
+        MapUiState(navigator, guidance, mode, alerts.toUiState(), alertsEnabled, search, locked)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MapUiState())
 
     init {
+        viewModelScope.launch {
+            while (true) {
+                delay(AUTO_LOCK_TICK_MS)
+                val session = alertState.session.value
+                val speed = session.speedKmh.takeIf { session.running && session.hasFix }
+                val change = autoLock.update(SystemClock.elapsedRealtime(), speed, ridePreferences.autoLock.value)
+                if (change == AutoLock.Change.UNLOCKED_STOPPED) voice.speak("lock_released")
+                locked.value = autoLock.locked
+            }
+        }
         // Returning users have already granted everything; start the navigator straight away.
         if (context.hasLocationPermission() && navigation.areTermsAccepted()) navigation.initialize()
 
@@ -121,6 +139,12 @@ class MapViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    /** A passenger's long press: stays unlocked until the vehicle has stopped once. */
+    fun unlockManually() {
+        autoLock.unlockManually()
+        locked.value = false
     }
 
     /** Shows the Navigation SDK terms on [activity] first if they are not accepted yet. */
@@ -204,6 +228,7 @@ class MapViewModel @Inject constructor(
         const val MIN_QUERY_LENGTH = 2
         const val MAX_SUGGESTIONS = 6
         const val MAX_FIX_AGE_MS = 30_000L
+        const val AUTO_LOCK_TICK_MS = 1_000L
         const val MAX_ADD_POINT_SPEED_KMH = 5.0
     }
 }

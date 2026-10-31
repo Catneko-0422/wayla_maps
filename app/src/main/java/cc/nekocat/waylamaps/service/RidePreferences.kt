@@ -26,7 +26,18 @@ class RidePreferences @Inject constructor(
         prefs.edit { putBoolean(KEY_MATCH_ELEVATION, enabled) }
     }
 
+    private val _autoLock = MutableStateFlow(prefs.getBoolean(KEY_AUTO_LOCK, false))
+
+    /** Lock the control panel while moving. */
+    val autoLock: StateFlow<Boolean> = _autoLock.asStateFlow()
+
+    fun setAutoLock(enabled: Boolean) {
+        _autoLock.value = enabled
+        prefs.edit { putBoolean(KEY_AUTO_LOCK, enabled) }
+    }
+
     private companion object {
         const val KEY_MATCH_ELEVATION = "match_elevation"
+        const val KEY_AUTO_LOCK = "auto_lock"
     }
 }

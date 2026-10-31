@@ -62,4 +62,7 @@
     <string name="settings_user_points_empty">還沒有自建提醒點。停車時可以在主畫面按「在這裡新增提醒點」。</string>
     <string name="user_point_label">提醒點 %1$d</string>
     <string name="action_delete">刪除</string>
+    <string name="settings_auto_lock">行駛中自動鎖定介面</string>
+    <string name="settings_auto_lock_summary">時速超過 10 公里 5 秒後鎖定，停車 10 秒後自動解鎖。乘客可以長按解鎖。</string>
+    <string name="locked_hint">已鎖定，長按 2 秒解鎖</string>
 </resources>

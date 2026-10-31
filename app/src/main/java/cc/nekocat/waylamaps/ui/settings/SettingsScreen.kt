@@ -41,6 +41,7 @@ import java.util.Locale
 fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val travelMode by viewModel.travelMode.collectAsStateWithLifecycle()
     val matchElevation by viewModel.matchElevation.collectAsStateWithLifecycle()
+    val autoLock by viewModel.autoLock.collectAsStateWithLifecycle()
     val userPoints by viewModel.userPoints.collectAsStateWithLifecycle()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -83,6 +84,12 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                     summary = stringResource(R.string.settings_match_elevation_summary),
                     checked = matchElevation,
                     onCheckedChange = viewModel::setMatchElevation,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_auto_lock),
+                    summary = stringResource(R.string.settings_auto_lock_summary),
+                    checked = autoLock,
+                    onCheckedChange = viewModel::setAutoLock,
                 )
             }
             item {

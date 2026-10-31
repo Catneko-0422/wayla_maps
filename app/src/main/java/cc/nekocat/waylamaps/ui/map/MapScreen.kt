@@ -2,6 +2,9 @@ package cc.nekocat.waylamaps.ui.map
 
 import android.app.Activity
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -31,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -65,6 +70,7 @@ import cc.nekocat.waylamaps.ui.main.Speed
 import cc.nekocat.waylamaps.ui.permissions.openAppSettings
 import cc.nekocat.waylamaps.ui.permissions.rememberLocationPermissionRequest
 import java.util.Locale
+import kotlinx.coroutines.withTimeoutOrNull
 
 private class PanelActions(
     val onEnableNavigation: (Activity?) -> Unit,
@@ -76,6 +82,7 @@ private class PanelActions(
     val onStart: (simulate: Boolean) -> Unit,
     val onStop: () -> Unit,
     val onAddPointHere: () -> Unit,
+    val onUnlock: () -> Unit,
     val onOpenAppSettings: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenLegal: () -> Unit,
@@ -105,6 +112,7 @@ fun MapScreen(onOpenSettings: () -> Unit, onOpenLegal: () -> Unit, viewModel: Ma
         onStart = viewModel::startNavigation,
         onStop = viewModel::stopNavigation,
         onAddPointHere = viewModel::addPointHere,
+        onUnlock = viewModel::unlockManually,
         onOpenAppSettings = { context.openAppSettings() },
         onOpenSettings = onOpenSettings,
         onOpenLegal = onOpenLegal,
@@ -160,6 +168,10 @@ private fun ControlPanel(
     modifier: Modifier = Modifier,
     large: Boolean = false,
 ) {
+    if (state.locked) {
+        LockedPanel(state, actions, modifier)
+        return
+    }
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
@@ -211,6 +223,43 @@ private fun ControlPanel(
             Row {
                 TextButton(onClick = actions.onOpenSettings) { Text(stringResource(R.string.settings_title)) }
                 TextButton(onClick = actions.onOpenLegal) { Text(stringResource(R.string.legal_title)) }
+            }
+        }
+    }
+}
+
+/**
+ * What remains while the auto-lock is on: large speed, the next alerts, ending navigation, and
+ * a press-and-hold area for a passenger to unlock.
+ */
+@Composable
+private fun LockedPanel(state: MapUiState, actions: PanelActions, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Speed(state.alerts.speedKmh, fontSize = 96.sp)
+        NextCamera(state.alerts)
+        val guidance = state.guidance
+        if (guidance is GuidanceState.Guiding) GuidingControls(guidance, actions.onStop)
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        awaitFirstDown()
+                        val released = withTimeoutOrNull(UNLOCK_HOLD_MS) { waitForUpOrCancellation() }
+                        if (released == null) actions.onUnlock()
+                    }
+                },
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(stringResource(R.string.locked_hint), style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
@@ -347,4 +396,5 @@ private fun formatDistance(meters: Int): String =
     if (meters < 1000) "$meters m" else String.format(Locale.ROOT, "%.1f km", meters / 1000.0)
 
 private val PANEL_WIDTH = 340.dp
+private const val UNLOCK_HOLD_MS = 2_000L
 private const val PORTRAIT_PANEL_FRACTION = 0.55f

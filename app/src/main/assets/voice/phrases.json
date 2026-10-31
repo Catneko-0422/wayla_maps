@@ -568,6 +568,18 @@
     "point_deleted": {
       "zh-TW": "已刪除提醒點",
       "en": "Reminder point deleted"
+    },
+    "lock_on": {
+      "zh-TW": "已開啟自動鎖定介面",
+      "en": "Automatic screen lock on"
+    },
+    "lock_off": {
+      "zh-TW": "已取消自動鎖定介面",
+      "en": "Automatic screen lock off"
+    },
+    "lock_released": {
+      "zh-TW": "已解除自動鎖定介面",
+      "en": "Screen unlocked"
     }
   },
   "phrases": {
@@ -938,6 +950,39 @@
         ],
         "en": [
           "point_deleted"
+        ]
+      }
+    },
+    "lock_on": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "lock_on"
+        ],
+        "en": [
+          "lock_on"
+        ]
+      }
+    },
+    "lock_off": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "lock_off"
+        ],
+        "en": [
+          "lock_off"
+        ]
+      }
+    },
+    "lock_released": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "lock_released"
+        ],
+        "en": [
+          "lock_released"
         ]
       }
     }

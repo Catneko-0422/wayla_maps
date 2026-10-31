@@ -67,4 +67,7 @@
     <string name="settings_user_points_empty">No reminder points yet. While stopped, use “Add a reminder point here” on the main screen.</string>
     <string name="user_point_label">Point %1$d</string>
     <string name="action_delete">Delete</string>
+    <string name="settings_auto_lock">Lock the screen while moving</string>
+    <string name="settings_auto_lock_summary">Locks after 5 seconds above 10 km/h and unlocks after 10 seconds stopped. A passenger can press and hold to unlock.</string>
+    <string name="locked_hint">Locked. Press and hold for 2 seconds to unlock</string>
 </resources>

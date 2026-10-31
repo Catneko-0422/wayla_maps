@@ -25,6 +25,7 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
     val travelMode = travelModePreference.mode
     val matchElevation = ridePreferences.matchElevation
+    val autoLock = ridePreferences.autoLock
     val userPoints: StateFlow<List<UserPoint>> =
         userPointRepository.all.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -37,6 +38,11 @@ class SettingsViewModel @Inject constructor(
     fun setMatchElevation(enabled: Boolean) {
         ridePreferences.setMatchElevation(enabled)
         voice.speak(if (enabled) "elevation_filter_on" else "elevation_filter_off")
+    }
+
+    fun setAutoLock(enabled: Boolean) {
+        ridePreferences.setAutoLock(enabled)
+        voice.speak(if (enabled) "lock_on" else "lock_off")
     }
 
     fun playVoiceDemo() = voice.speak("voice_demo")
