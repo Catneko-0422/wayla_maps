@@ -1,12 +1,17 @@
 package cc.nekocat.waylamaps.service
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.location.Location
+import android.location.LocationManager
 import android.os.Build
+import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -32,6 +37,7 @@ import cc.nekocat.waylamaps.data.SpeedCameraRepository
 import cc.nekocat.waylamaps.data.enforcement.EnforcementRepository
 import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.NavigationSession
+import cc.nekocat.waylamaps.navigation.RouteFailure
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
@@ -44,6 +50,8 @@ import cc.nekocat.waylamaps.voice.VoicePlayer
 import com.google.android.libraries.navigation.NavigationApi
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -91,6 +99,9 @@ class RideService : LifecycleService() {
     private val locations = Channel<Location>(Channel.CONFLATED)
     private var locationSource: LocationSource? = null
     private var started = false
+    private val statusMonitor = RideStatusMonitor()
+    private var gpsEnabled = true
+    private var systemReceiver: BroadcastReceiver? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -101,6 +112,7 @@ class RideService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        systemReceiver?.let { unregisterReceiver(it) }
         locationSource?.stop()
         if (started) runCatching { NavigationApi.getForegroundServiceManager(application).stopForeground(this) }
         voicePlayer.release()
@@ -132,6 +144,7 @@ class RideService : LifecycleService() {
         lifecycleScope.launch {
             locations.consumeAsFlow().collect { onLocation(it) }
         }
+        watchStatus()
         lifecycleScope.launch {
             navigation.route.collect {
                 routeMatcher.setRoute(it)
@@ -177,6 +190,7 @@ class RideService : LifecycleService() {
             speedMps = if (location.hasSpeed()) location.speed.toDouble() else null,
         )
         speedMps = fix.speedMps
+        statusMonitor.onFix(SystemClock.elapsedRealtime(), fix)?.let { speakStatus(it) }
         val guiding = navigation.state.value as? GuidanceState.Guiding
         val scooter = (guiding?.travelMode ?: travelMode.mode.value) == TravelMode.SCOOTER
         val currentRoad = guiding?.let { turnByTurn.currentRoad.value }
@@ -219,6 +233,74 @@ class RideService : LifecycleService() {
         parkingZones.update(fix, parking)?.let { voicePlayer.speak("parking_zone") }
     }
 
+    /** Says out loud what the rider would otherwise not notice: GPS trouble, sleep, standing still. */
+    private fun watchStatus() {
+        statusMonitor.start(SystemClock.elapsedRealtime())
+        gpsEnabled = getSystemService(LocationManager::class.java).isProviderEnabled(LocationManager.GPS_PROVIDER)
+        if (!gpsEnabled) voicePlayer.speak("gps_disabled")
+
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                when (intent.action) {
+                    LocationManager.PROVIDERS_CHANGED_ACTION -> {
+                        val enabled = getSystemService(LocationManager::class.java)
+                            .isProviderEnabled(LocationManager.GPS_PROVIDER)
+                        if (enabled != gpsEnabled) {
+                            gpsEnabled = enabled
+                            // Time without fixes while GPS was off is not a lost signal.
+                            statusMonitor.start(SystemClock.elapsedRealtime())
+                            voicePlayer.speak(if (enabled) "gps_enabled" else "gps_disabled")
+                        }
+                    }
+                    PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED -> {
+                        val idle = getSystemService(PowerManager::class.java).isDeviceIdleMode
+                        voicePlayer.speak(if (idle) "doze_begin" else "doze_end")
+                    }
+                }
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(LocationManager.PROVIDERS_CHANGED_ACTION)
+            addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)
+        }
+        ContextCompat.registerReceiver(this, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        systemReceiver = receiver
+
+        lifecycleScope.launch {
+            while (true) {
+                delay(STATUS_TICK_MS)
+                val alertsOnly = navigation.state.value !is GuidanceState.Guiding
+                // With GPS switched off, "disabled" has been said; "no fix" or "lost" would only repeat it.
+                if (!gpsEnabled) continue
+                statusMonitor.onTick(SystemClock.elapsedRealtime(), alertsOnly)?.let { speakStatus(it) }
+            }
+        }
+        lifecycleScope.launch {
+            // The current value is how the service was started: say so only for the alerts.
+            if (rideController.alertsEnabled.value) voicePlayer.speak("detect_start")
+            rideController.alertsEnabled.drop(1).collect { enabled ->
+                voicePlayer.speak(if (enabled) "detect_start" else "detect_stop")
+            }
+        }
+        lifecycleScope.launch {
+            navigation.state.collect { state ->
+                if (state is GuidanceState.Failed && state.reason == RouteFailure.NETWORK) voicePlayer.speak("no_internet")
+            }
+        }
+    }
+
+    private fun speakStatus(event: RideStatusEvent) {
+        Log.i(TAG, "Ride status: $event")
+        voicePlayer.speak(
+            when (event) {
+                RideStatusEvent.NO_FIX_YET -> "no_fix"
+                RideStatusEvent.SIGNAL_LOST -> "gps_lost"
+                RideStatusEvent.SIGNAL_RECOVERED -> "gps_recovered"
+                RideStatusEvent.STATIONARY_LONG -> "stationary"
+            },
+        )
+    }
+
     private fun announce(ahead: CameraAhead, roadKnown: Boolean) {
         announcedCameraIds += ahead.camera.id
         announcedCameraSpots.addLast(GeoPoint(ahead.camera.lat, ahead.camera.lng))
@@ -255,6 +337,7 @@ class RideService : LifecycleService() {
         private const val SAME_SPOT_M = 50.0
         private const val MAX_REMEMBERED_SPOTS = 20
         private const val PARKING_SEARCH_M = 200.0
+        private const val STATUS_TICK_MS = 1_000L
 
         /** Only from the foreground (a user action), as Android requires for foreground services. */
         fun start(context: Context) {

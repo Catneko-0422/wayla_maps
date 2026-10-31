@@ -483,6 +483,50 @@
     "arrived": {
       "zh-TW": "已抵達目的地",
       "en": "You have arrived"
+    },
+    "detect_start": {
+      "zh-TW": "偵測啟動",
+      "en": "Detection started"
+    },
+    "detect_stop": {
+      "zh-TW": "偵測停止",
+      "en": "Detection stopped"
+    },
+    "no_fix": {
+      "zh-TW": "沒有定位資訊，可能收不到衛星訊號",
+      "en": "No location yet. The GPS signal may be blocked"
+    },
+    "gps_lost": {
+      "zh-TW": "GPS 訊號中斷",
+      "en": "GPS signal lost"
+    },
+    "gps_recovered": {
+      "zh-TW": "GPS 訊號恢復",
+      "en": "GPS signal back"
+    },
+    "gps_disabled": {
+      "zh-TW": "GPS 已關閉，請開啟才能繼續偵測",
+      "en": "GPS is off. Turn it on to keep detecting"
+    },
+    "gps_enabled": {
+      "zh-TW": "GPS 已開啟",
+      "en": "GPS is on"
+    },
+    "doze_begin": {
+      "zh-TW": "手機進入休眠，偵測可能暫停",
+      "en": "The phone is going to sleep. Detection may pause"
+    },
+    "doze_end": {
+      "zh-TW": "手機恢復運作",
+      "en": "The phone is awake again"
+    },
+    "stationary": {
+      "zh-TW": "已經很久沒有移動，不需要的話可以關閉偵測",
+      "en": "You haven't moved for a while. You can stop detection if you don't need it"
+    },
+    "no_internet": {
+      "zh-TW": "沒有網路",
+      "en": "No internet connection"
     }
   },
   "phrases": {
@@ -633,6 +677,127 @@
         ],
         "en": [
           "arrived"
+        ]
+      }
+    },
+    "detect_start": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "detect_start"
+        ],
+        "en": [
+          "detect_start"
+        ]
+      }
+    },
+    "detect_stop": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "detect_stop"
+        ],
+        "en": [
+          "detect_stop"
+        ]
+      }
+    },
+    "no_fix": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "no_fix"
+        ],
+        "en": [
+          "no_fix"
+        ]
+      }
+    },
+    "gps_lost": {
+      "priority": "TRAFFIC",
+      "fragments": {
+        "zh-TW": [
+          "gps_lost"
+        ],
+        "en": [
+          "gps_lost"
+        ]
+      }
+    },
+    "gps_recovered": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "gps_recovered"
+        ],
+        "en": [
+          "gps_recovered"
+        ]
+      }
+    },
+    "gps_disabled": {
+      "priority": "TRAFFIC",
+      "fragments": {
+        "zh-TW": [
+          "gps_disabled"
+        ],
+        "en": [
+          "gps_disabled"
+        ]
+      }
+    },
+    "gps_enabled": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "gps_enabled"
+        ],
+        "en": [
+          "gps_enabled"
+        ]
+      }
+    },
+    "doze_begin": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "doze_begin"
+        ],
+        "en": [
+          "doze_begin"
+        ]
+      }
+    },
+    "doze_end": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "doze_end"
+        ],
+        "en": [
+          "doze_end"
+        ]
+      }
+    },
+    "stationary": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "stationary"
+        ],
+        "en": [
+          "stationary"
+        ]
+      }
+    },
+    "no_internet": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "no_internet"
+        ],
+        "en": [
+          "no_internet"
         ]
       }
     }
