@@ -7,6 +7,7 @@ import androidx.car.app.Screen
 import androidx.car.app.model.Action
 import androidx.car.app.model.ActionStrip
 import androidx.car.app.model.Alert
+import androidx.car.app.model.CarColor
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.CarText
 import androidx.car.app.model.DateTimeWithZone
@@ -159,7 +160,8 @@ class NavigationCarScreen(carContext: CarContext, private val deps: CarDependenc
         return strip.build()
     }
 
-    private fun icon(res: Int) = CarIcon.Builder(IconCompat.createWithResource(carContext, res)).build()
+    // The drawables are black; the host tints them to suit its day or night theme.
+    private fun icon(res: Int) = CarIcon.Builder(IconCompat.createWithResource(carContext, res)).setTint(CarColor.DEFAULT).build()
 
     private fun VoiceMode.iconRes() = when (this) {
         VoiceMode.ALL -> R.drawable.ic_volume_up

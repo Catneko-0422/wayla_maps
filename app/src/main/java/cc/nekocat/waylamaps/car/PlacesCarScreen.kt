@@ -3,6 +3,7 @@ package cc.nekocat.waylamaps.car
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
+import androidx.car.app.model.CarColor
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.Header
 import androidx.car.app.model.ItemList
@@ -57,7 +58,8 @@ class PlacesCarScreen(carContext: CarContext, private val deps: CarDependencies)
         return builder.build()
     }
 
-    private fun icon(res: Int) = CarIcon.Builder(IconCompat.createWithResource(carContext, res)).build()
+    // The drawables are black; the host tints them to suit its day or night theme.
+    private fun icon(res: Int) = CarIcon.Builder(IconCompat.createWithResource(carContext, res)).setTint(CarColor.DEFAULT).build()
 
     private companion object {
         /** A list template shows six rows at most while driving; home and work take two. */
