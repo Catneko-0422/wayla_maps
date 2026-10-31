@@ -164,7 +164,7 @@ def main():
         "id": "manuka",
         "name": "MANUKA",
         "credit": "MANUKA ©ジンゴ (VN3 license, personal use)",
-        "model": {"file": "model.glb", "morphs": FACE_KEYS, "focusHeight": 0.9, "cameraDistance": 1.2},
+        "model": {"file": "model.glb", "morphs": FACE_KEYS, "focusHeight": 1.08, "cameraDistance": 0.6},
     }
     (out_dir / "character.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"OPTIMIZED triangles={tris} glb={(out_dir / 'model.glb').stat().st_size} bytes")

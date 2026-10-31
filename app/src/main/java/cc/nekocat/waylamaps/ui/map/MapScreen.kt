@@ -131,7 +131,9 @@ fun MapScreen(
     )
     // One map instance moved between the two layouts, so rotating keeps the route on screen.
     val currentTheme by rememberUpdatedState(themeMode)
-    val map = remember { movableContentOf { NavigationMap(currentTheme, Modifier.fillMaxSize()) } }
+    // The turn card covers the map's top edge while guiding, so the compass shows only otherwise.
+    val currentGuiding by rememberUpdatedState(state.guiding)
+    val map = remember { movableContentOf { NavigationMap(currentTheme, !currentGuiding, Modifier.fillMaxSize()) } }
     val characterModel by viewModel.characterModel.collectAsStateWithLifecycle()
     val speech by viewModel.speech.collectAsStateWithLifecycle()
     val characterName by viewModel.selectedCharacterName.collectAsStateWithLifecycle()
@@ -158,13 +160,14 @@ fun MapScreen(
                     )
                     Box(Modifier.weight(1f).fillMaxHeight()) {
                         map()
-                        // The character floats over the map, bottom right, clear of the SDK's
-                        // turn card (top), trip summary (bottom left) and buttons (right edge).
+                        // The character's upper body rises from the bottom right corner, cut off by
+                        // the screen edge over the empty right half of the SDK's trip summary. It
+                        // stays below the turn card even when lane guidance makes the card taller.
                         characterModel?.let { model ->
                             FloatingCharacter(
                                 model,
                                 speech,
-                                Modifier.align(Alignment.BottomEnd).padding(end = 72.dp),
+                                Modifier.align(Alignment.BottomEnd).padding(end = 16.dp),
                             )
                         }
                     }
@@ -280,7 +283,7 @@ private fun LockedPanel(state: MapUiState, actions: PanelActions, modifier: Modi
             if (state.guidance is GuidanceState.Guiding) {
                 Button(
                     onClick = actions.onStop,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    colors = endTripColors(),
                     modifier = Modifier
                         .weight(1f)
                         .height(72.dp),
@@ -424,7 +427,7 @@ private fun GuidingControls(guidance: GuidanceState.Guiding, onStop: () -> Unit)
     }
     Button(
         onClick = onStop,
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+        colors = endTripColors(),
         modifier = Modifier
             .fillMaxWidth()
             .height(72.dp),
@@ -448,7 +451,8 @@ private fun formatDistance(meters: Int): String =
 private fun FloatingCharacter(model: CharacterModel, speech: Speech?, modifier: Modifier) {
     Row(modifier, verticalAlignment = Alignment.Bottom) {
         speech?.let {
-            SpeechBubble(model.name, it.text, Modifier.widthIn(max = 240.dp).padding(bottom = 48.dp))
+            // Above the trip summary, beside the character's face.
+            SpeechBubble(model.name, it.text, Modifier.widthIn(max = 240.dp).padding(bottom = TRIP_SUMMARY_HEIGHT))
         }
         key(model.id) {
             CharacterView(model.bytes, model.spec, speech, Modifier.size(CHARACTER_WIDTH, CHARACTER_HEIGHT))
@@ -466,8 +470,20 @@ private fun SpeechBubble(name: String, text: String, modifier: Modifier = Modifi
     }
 }
 
-private val PANEL_WIDTH = 340.dp
-private val CHARACTER_WIDTH = 180.dp
-private val CHARACTER_HEIGHT = 240.dp
+/** Black on light, white on dark: strong but inside the black, white and blue palette. */
+@Composable
+private fun endTripColors() = ButtonDefaults.buttonColors(
+    containerColor = MaterialTheme.colorScheme.onSurface,
+    contentColor = MaterialTheme.colorScheme.surface,
+)
+
+private val PANEL_WIDTH = 290.dp
+
+/** Height of the Navigation SDK's trip summary (time, distance, arrival) along the map's bottom. */
+private val TRIP_SUMMARY_HEIGHT = 96.dp
+private val CHARACTER_WIDTH = 240.dp
+
+/** Below the turn card even with lane guidance (about 155 dp of a 385 dp landscape map). */
+private val CHARACTER_HEIGHT = 210.dp
 private const val UNLOCK_HOLD_MS = 2_000L
 private const val PORTRAIT_PANEL_FRACTION = 0.55f
