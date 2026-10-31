@@ -34,6 +34,7 @@
     <string name="waiting_for_gps">Waiting for GPS…</string>
     <string name="no_camera_nearby">No speed camera ahead</string>
     <string name="next_camera_distance">Speed camera in %1$d m</string>
+    <string name="next_enforcement_distance">Enforcement intersection in %1$d m</string>
     <string name="next_camera_limit">Limit %1$d</string>
     <string name="location_permission_needed">Precise location is needed to warn about speed cameras ahead.</string>
     <string name="open_settings">Open settings</string>

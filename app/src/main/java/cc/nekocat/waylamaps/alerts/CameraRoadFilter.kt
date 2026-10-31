@@ -1,7 +1,8 @@
 package cc.nekocat.waylamaps.alerts
 
 /**
- * Drops cameras on a different road level from the rider, using the dataset's address text.
+ * Drops cameras and enforcement points on a different road level from the rider, using the
+ * dataset's address text.
  *
  * Elevated roads often run right above surface roads (市民大道 and its 高架), so position and
  * heading alone cannot tell them apart.
@@ -20,8 +21,7 @@ object CameraRoadFilter {
      * @param currentRoad the road being travelled, when navigation knows it: a camera counts only
      *   when it is elevated exactly when that road is.
      */
-    fun isRelevant(camera: SpeedCamera, scooter: Boolean, currentRoad: String?): Boolean {
-        val address = camera.address
+    fun isRelevant(address: String, scooter: Boolean, currentRoad: String?): Boolean {
         if (scooter && isClosedToScooters(address)) return false
         if (currentRoad != null && (ELEVATED in address) != (ELEVATED in currentRoad)) return false
         return true

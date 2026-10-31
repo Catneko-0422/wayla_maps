@@ -37,7 +37,10 @@ fun Speed(speedKmh: Int?, modifier: Modifier = Modifier, fontSize: TextUnit = 12
     }
 }
 
-/** Next speed camera ahead, or why there is none. Hidden while alerts are off. */
+/**
+ * Next speed camera ahead, or why there is none, and the next enforcement intersection.
+ * Hidden while alerts are off.
+ */
 @Composable
 fun NextCamera(state: MainUiState, modifier: Modifier = Modifier) {
     if (!state.running) return
@@ -69,6 +72,15 @@ fun NextCamera(state: MainUiState, modifier: Modifier = Modifier) {
                             style = MaterialTheme.typography.titleLarge,
                         )
                     }
+                }
+            }
+            if (!state.waitingForGps) {
+                state.nextEnforcementMeters?.let {
+                    Text(
+                        text = stringResource(R.string.next_enforcement_distance, it),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
                 }
             }
         }

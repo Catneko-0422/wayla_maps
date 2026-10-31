@@ -29,6 +29,7 @@
     <string name="waiting_for_gps">正在等待 GPS 定位…</string>
     <string name="no_camera_nearby">前方沒有測速照相</string>
     <string name="next_camera_distance">前方 %1$d 公尺測速照相</string>
+    <string name="next_enforcement_distance">前方 %1$d 公尺科技執法路口</string>
     <string name="next_camera_limit">限速 %1$d</string>
     <string name="location_permission_needed">需要「精確位置」權限，才能提醒前方的測速照相。</string>
     <string name="open_settings">開啟設定</string>

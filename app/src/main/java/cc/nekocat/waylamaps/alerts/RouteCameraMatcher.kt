@@ -4,7 +4,8 @@ import kotlin.math.cos
 import kotlin.math.sqrt
 
 /**
- * Finds speed cameras on the route ahead while navigating, measuring distance along the route.
+ * Finds speed cameras (or other [AlertPoint]s) on the route ahead while navigating, measuring
+ * distance along the route. Use one instance per kind of point.
  *
  * A camera counts when it lies within [maxOffsetM] of the route polyline, ahead of the current
  * position along the route, and (if its direction is known) enforces the direction the route
@@ -42,18 +43,18 @@ class RouteCameraMatcher(
         progressM = null
     }
 
-    fun update(fix: Fix, candidates: List<SpeedCamera>): CameraAheadDetector.Result {
+    fun <T : AlertPoint> update(fix: Fix, candidates: List<T>): CameraAheadDetector.Result<T> {
         // Forget cameras that dropped out of the search area, so a later pass can announce them again.
         val candidateIds = candidates.mapTo(HashSet()) { it.id }
         announced.retainAll(candidateIds)
 
-        val position = locate(fix) ?: return CameraAheadDetector.Result(next = null, announce = null)
+        val position = locate(fix) ?: return CameraAheadDetector.Result<T>(next = null, announce = null)
         progressM = position.alongM
 
         val next = candidates
             .mapNotNull { camera -> measure(camera, position.alongM) }
             .minByOrNull { it.distanceM }
-        val announce = next?.takeIf { it.distanceM <= alertDistanceM && announced.add(it.camera.id) }
+        val announce = next?.takeIf { it.distanceM <= alertDistanceM && announced.add(it.point.id) }
         return CameraAheadDetector.Result(next, announce)
     }
 
@@ -70,7 +71,7 @@ class RouteCameraMatcher(
             ?.takeIf { it.offsetM <= maxPositionOffsetM }
     }
 
-    private fun measure(camera: SpeedCamera, positionAlongM: Double): CameraAhead? {
+    private fun <T : AlertPoint> measure(camera: T, positionAlongM: Double): Ahead<T>? {
         val onRoute = nearest(camera.lat, camera.lng, fromM = positionAlongM, toM = positionAlongM + lookAheadM)
             ?.takeIf { it.offsetM <= maxOffsetM && it.alongM > positionAlongM }
             ?: return null
@@ -78,7 +79,7 @@ class RouteCameraMatcher(
         if (enforced != null && Geo.angleBetween(enforced.toDouble(), onRoute.segmentBearingDeg) > directionToleranceDeg) {
             return null
         }
-        return CameraAhead(camera, onRoute.alongM - positionAlongM)
+        return Ahead(camera, onRoute.alongM - positionAlongM)
     }
 
     private data class Projection(val alongM: Double, val offsetM: Double, val segmentBearingDeg: Double)

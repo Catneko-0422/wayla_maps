@@ -13,6 +13,8 @@ data class AlertSession(
     val hasFix: Boolean = false,
     val speedKmh: Int? = null,
     val next: CameraAhead? = null,
+    /** Nearest enforcement intersection ahead; shown but only announced while navigating. */
+    val nextEnforcement: Ahead<EnforcementPoint>? = null,
 )
 
 /** Shares the speed camera service's state with the UI. */

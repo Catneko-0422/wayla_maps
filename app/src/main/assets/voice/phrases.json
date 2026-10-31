@@ -28,6 +28,7 @@
     "ahead_1000m": { "zh-TW": "前方一公里", "en": "in 1 kilometer" },
 
     "speed_camera": { "zh-TW": "測速照相", "en": "Speed camera" },
+    "enforcement_intersection": { "zh-TW": "科技執法路口", "en": "Traffic enforcement intersection" },
 
     "limit_25": { "zh-TW": "限速二十五", "en": "limit 25" },
     "limit_30": { "zh-TW": "限速三十", "en": "limit 30" },
@@ -82,6 +83,13 @@
       "fragments": {
         "zh-TW": ["ahead_{distance}m", "speed_camera", "limit_{limit}"],
         "en": ["speed_camera", "ahead_{distance}m", "limit_{limit}"]
+      }
+    },
+    "enforcement_ahead": {
+      "priority": "SPEED_CAMERA",
+      "fragments": {
+        "zh-TW": ["ahead_{distance}m", "enforcement_intersection"],
+        "en": ["enforcement_intersection", "ahead_{distance}m"]
       }
     },
     "average_speed_enter": {

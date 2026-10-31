@@ -12,14 +12,20 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import cc.nekocat.waylamaps.alerts.Ahead
 import cc.nekocat.waylamaps.alerts.AlertSession
 import cc.nekocat.waylamaps.alerts.AlertSessionState
 import cc.nekocat.waylamaps.alerts.CameraAhead
 import cc.nekocat.waylamaps.alerts.CameraAheadDetector
 import cc.nekocat.waylamaps.alerts.CameraRoadFilter
+import cc.nekocat.waylamaps.alerts.EnforcementPoint
 import cc.nekocat.waylamaps.alerts.Fix
+import cc.nekocat.waylamaps.alerts.Geo
+import cc.nekocat.waylamaps.alerts.GeoPoint
 import cc.nekocat.waylamaps.alerts.RouteCameraMatcher
+import cc.nekocat.waylamaps.alerts.camera
 import cc.nekocat.waylamaps.data.SpeedCameraRepository
+import cc.nekocat.waylamaps.data.enforcement.EnforcementRepository
 import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.NavigationSession
 import cc.nekocat.waylamaps.navigation.TravelMode
@@ -53,6 +59,7 @@ import kotlin.math.roundToInt
 @AndroidEntryPoint
 class RideService : LifecycleService() {
     @Inject lateinit var repository: SpeedCameraRepository
+    @Inject lateinit var enforcementRepository: EnforcementRepository
     @Inject lateinit var sessionState: AlertSessionState
     @Inject lateinit var voicePlayer: VoicePlayer
     @Inject lateinit var phraseCatalog: PhraseCatalog
@@ -64,6 +71,11 @@ class RideService : LifecycleService() {
 
     private val detector = CameraAheadDetector()
     private val routeMatcher = RouteCameraMatcher()
+    private val enforcementDetector = CameraAheadDetector()
+    private val enforcementRouteMatcher = RouteCameraMatcher()
+
+    /** Where speed cameras were announced this ride, so an enforcement point there is not repeated. */
+    private val announcedCameraSpots = ArrayDeque<GeoPoint>()
     private val turnPlanner by lazy {
         TurnPromptPlanner(phraseCatalog.slots.getValue("distance").map { it.toInt() })
     }
@@ -113,7 +125,10 @@ class RideService : LifecycleService() {
             locations.consumeAsFlow().collect { onLocation(it) }
         }
         lifecycleScope.launch {
-            navigation.route.collect { routeMatcher.setRoute(it) }
+            navigation.route.collect {
+                routeMatcher.setRoute(it)
+                enforcementRouteMatcher.setRoute(it)
+            }
         }
         lifecycleScope.launch {
             turnByTurn.updates.filterNotNull().collect { update ->
@@ -157,12 +172,16 @@ class RideService : LifecycleService() {
         val guiding = navigation.state.value as? GuidanceState.Guiding
         val scooter = (guiding?.travelMode ?: travelMode.mode.value) == TravelMode.SCOOTER
         val currentRoad = guiding?.let { turnByTurn.currentRoad.value }
-        val candidates = repository.camerasNear(fix.lat, fix.lng, SEARCH_RADIUS_M)
-            .filter { CameraRoadFilter.isRelevant(it, scooter, currentRoad) }
-        val result = if (guiding != null && routeMatcher.hasRoute) {
-            routeMatcher.update(fix, candidates)
+        val onRoute = guiding != null && routeMatcher.hasRoute
+        val cameras = repository.camerasNear(fix.lat, fix.lng, SEARCH_RADIUS_M)
+            .filter { CameraRoadFilter.isRelevant(it.address, scooter, currentRoad) }
+        val result = if (onRoute) routeMatcher.update(fix, cameras) else detector.update(fix, cameras)
+        val points = enforcementRepository.pointsNear(fix.lat, fix.lng, SEARCH_RADIUS_M)
+            .filter { CameraRoadFilter.isRelevant(it.location, scooter, currentRoad) }
+        val enforcement = if (onRoute) {
+            enforcementRouteMatcher.update(fix, points)
         } else {
-            detector.update(fix, candidates)
+            enforcementDetector.update(fix, points)
         }
 
         sessionState.update {
@@ -170,12 +189,17 @@ class RideService : LifecycleService() {
                 hasFix = true,
                 speedKmh = fix.speedMps?.let { mps -> (mps * 3.6).roundToInt() },
                 next = result.next,
+                nextEnforcement = enforcement.next,
             )
         }
         result.announce?.let { announce(it) }
+        // Enforcement points are spoken only while navigating; otherwise they are just shown.
+        if (guiding != null) enforcement.announce?.let { announceEnforcement(it) }
     }
 
     private fun announce(ahead: CameraAhead) {
+        announcedCameraSpots.addLast(GeoPoint(ahead.camera.lat, ahead.camera.lng))
+        if (announcedCameraSpots.size > MAX_REMEMBERED_SPOTS) announcedCameraSpots.removeFirst()
         val distance = CameraAheadDetector.spokenDistanceMeters(ahead.distanceM)
         val limit = ahead.camera.limitKmh
         // A limit without a recorded fragment (new data) still gets the distance announced.
@@ -184,6 +208,13 @@ class RideService : LifecycleService() {
         } else {
             voicePlayer.speak("speed_camera_ahead", mapOf("distance" to distance))
         }
+    }
+
+    private fun announceEnforcement(ahead: Ahead<EnforcementPoint>) {
+        val point = ahead.point
+        if (announcedCameraSpots.any { Geo.distanceMeters(it.lat, it.lng, point.lat, point.lng) <= SAME_SPOT_M }) return
+        val distance = CameraAheadDetector.spokenDistanceMeters(ahead.distanceM)
+        voicePlayer.speak("enforcement_ahead", mapOf("distance" to distance))
     }
 
     private fun speakTurn(prompt: TurnPrompt) {
@@ -200,6 +231,10 @@ class RideService : LifecycleService() {
         private const val TAG = "RideService"
         private const val ACTION_STOP = "cc.nekocat.waylamaps.action.STOP_RIDE"
         private const val SEARCH_RADIUS_M = 1_000.0
+
+        /** An enforcement point this close to an announced speed camera is the same spot. */
+        private const val SAME_SPOT_M = 50.0
+        private const val MAX_REMEMBERED_SPOTS = 20
 
         /** Only from the foreground (a user action), as Android requires for foreground services. */
         fun start(context: Context) {

@@ -13,14 +13,13 @@ enum class EnforcementKind {
 
 /** A traffic enforcement (科技執法) point from a county police dataset. */
 data class EnforcementPoint(
-    val id: Long,
-    val lat: Double,
-    val lng: Double,
+    override val id: Long,
+    override val lat: Double,
+    override val lng: Double,
     val location: String,
     /** 取締項目 as published, e.g. "闖紅燈、不停讓行人". */
     val items: String,
-    /** Enforced travel direction in degrees (0 = north); null means both ways or unknown. */
-    val bearingDeg: Int?,
+    override val bearingDeg: Int?,
     val limitKmh: Int?,
     val kind: EnforcementKind,
-)
+) : AlertPoint

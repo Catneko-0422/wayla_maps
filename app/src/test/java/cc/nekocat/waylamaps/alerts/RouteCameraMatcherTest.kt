@@ -90,6 +90,19 @@ class RouteCameraMatcherTest {
     }
 
     @Test
+    fun matchesEnforcementPointsTheSameWay() {
+        val onRoute = at(0.0, 300.0).let {
+            EnforcementPoint(7, it.lat, it.lng, "路口", "闖紅燈", bearingDeg = 0, limitKmh = null, kind = EnforcementKind.INTERSECTION)
+        }
+        val crossStreet = at(-80.0, 300.0).let { onRoute.copy(id = 8, lat = it.lat, lng = it.lng) }
+
+        val result = matcher.update(fix(0.0, 100.0), listOf(onRoute, crossStreet))
+
+        assertEquals(7L, result.announce?.point?.id)
+        assertEquals(200.0, result.announce!!.distanceM, 2.0)
+    }
+
+    @Test
     fun reportsNothingWhenOffTheRoute() {
         val result = matcher.update(fix(300.0, 100.0), listOf(camera(1, 0.0, 300.0)))
 
