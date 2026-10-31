@@ -31,6 +31,7 @@ import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.NavigatorState
 import cc.nekocat.waylamaps.navigation.TurnUpdate
 import cc.nekocat.waylamaps.voice.Priority
+import cc.nekocat.waylamaps.voice.VoiceMode
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
@@ -48,6 +49,7 @@ class NavigationCarScreen(carContext: CarContext, private val deps: CarDependenc
     private var icon: Bitmap? = null
     private var alerts: AlertSession = deps.alerts.session.value
     private var alertsEnabled = deps.rideController.alertsEnabled.value
+    private var voiceMode = deps.ridePreferences.voiceMode.value
     private var alertId = 0
 
     private val navigationManager = carContext.getCarService(NavigationManager::class.java)
@@ -72,6 +74,12 @@ class NavigationCarScreen(carContext: CarContext, private val deps: CarDependenc
                 val guiding = guidance is GuidanceState.Guiding
                 if (guiding && !wasGuiding) navigationManager.navigationStarted()
                 if (!guiding && wasGuiding) navigationManager.navigationEnded()
+                invalidate()
+            }
+        }
+        lifecycleScope.launch {
+            deps.ridePreferences.voiceMode.collect {
+                voiceMode = it
                 invalidate()
             }
         }
@@ -115,6 +123,13 @@ class NavigationCarScreen(carContext: CarContext, private val deps: CarDependenc
     private fun actions(): ActionStrip {
         val strip = ActionStrip.Builder()
         if (guidance is GuidanceState.Guiding) {
+            // Same setting as the phone's voice button: everything, turns and cameras, or muted.
+            strip.addAction(
+                Action.Builder()
+                    .setIcon(icon(voiceMode.iconRes()))
+                    .setOnClickListener { deps.ridePreferences.setVoiceMode(voiceMode.next()) }
+                    .build(),
+            )
             strip.addAction(
                 Action.Builder()
                     .setTitle(carContext.getString(R.string.navigation_stop))
@@ -124,7 +139,13 @@ class NavigationCarScreen(carContext: CarContext, private val deps: CarDependenc
         } else {
             strip.addAction(
                 Action.Builder()
-                    .setTitle(carContext.getString(R.string.car_search))
+                    .setTitle(carContext.getString(R.string.car_places))
+                    .setOnClickListener { screenManager.push(PlacesCarScreen(carContext, deps)) }
+                    .build(),
+            )
+            strip.addAction(
+                Action.Builder()
+                    .setIcon(icon(R.drawable.ic_search))
                     .setOnClickListener { screenManager.push(SearchCarScreen(carContext, deps)) }
                     .build(),
             )
@@ -136,6 +157,14 @@ class NavigationCarScreen(carContext: CarContext, private val deps: CarDependenc
             )
         }
         return strip.build()
+    }
+
+    private fun icon(res: Int) = CarIcon.Builder(IconCompat.createWithResource(carContext, res)).build()
+
+    private fun VoiceMode.iconRes() = when (this) {
+        VoiceMode.ALL -> R.drawable.ic_volume_up
+        VoiceMode.ESSENTIAL -> R.drawable.ic_volume_down
+        VoiceMode.MUTED -> R.drawable.ic_volume_off
     }
 
     private fun routingInfo(update: TurnUpdate, bitmap: Bitmap): RoutingInfo {

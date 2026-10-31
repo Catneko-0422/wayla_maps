@@ -77,6 +77,7 @@ class SearchCarScreen(carContext: CarContext, private val deps: CarDependencies)
 
     private fun start(place: PlaceSuggestion) {
         deps.places.endSession()
+        deps.savedPlaces.addRecent(place)
         deps.navigation.start(place)
         screenManager.pop()
     }

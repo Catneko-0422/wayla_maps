@@ -1,6 +1,7 @@
 package cc.nekocat.waylamaps.car
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.pm.ApplicationInfo
 import androidx.car.app.CarAppService
 import androidx.car.app.Screen
@@ -13,8 +14,10 @@ import cc.nekocat.waylamaps.alerts.AlertSessionState
 import cc.nekocat.waylamaps.navigation.NavigationController
 import cc.nekocat.waylamaps.navigation.NavigationSession
 import cc.nekocat.waylamaps.navigation.PlacesSearch
+import cc.nekocat.waylamaps.navigation.SavedPlaces
 import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
 import cc.nekocat.waylamaps.service.RideController
+import cc.nekocat.waylamaps.service.RidePreferences
 import cc.nekocat.waylamaps.voice.SpeechState
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -28,6 +31,8 @@ class CarDependencies(
     val alerts: AlertSessionState,
     val rideController: RideController,
     val speech: SpeechState,
+    val savedPlaces: SavedPlaces,
+    val ridePreferences: RidePreferences,
 )
 
 /** Android Auto entry point. Navigation, prompts and alerts are shared with the phone. */
@@ -40,6 +45,8 @@ class WaylaCarAppService : CarAppService() {
     @Inject lateinit var alerts: AlertSessionState
     @Inject lateinit var rideController: RideController
     @Inject lateinit var speech: SpeechState
+    @Inject lateinit var savedPlaces: SavedPlaces
+    @Inject lateinit var ridePreferences: RidePreferences
 
     override fun createHostValidator(): HostValidator =
         if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
@@ -52,15 +59,24 @@ class WaylaCarAppService : CarAppService() {
         }
 
     override fun onCreateSession(): Session =
-        WaylaCarSession(CarDependencies(controller, navigation, turnByTurn, places, alerts, rideController, speech))
+        WaylaCarSession(
+            CarDependencies(controller, navigation, turnByTurn, places, alerts, rideController, speech, savedPlaces, ridePreferences),
+        )
 }
 
 class WaylaCarSession(private val deps: CarDependencies) : Session() {
+    private var surface: CarMapSurface? = null
+
+    override fun onCarConfigurationChanged(newConfiguration: Configuration) {
+        surface?.applyDayNight()
+    }
+
     override fun onCreateScreen(intent: Intent): Screen {
-        val surface = CarMapSurface(carContext)
-        carContext.getCarService(androidx.car.app.AppManager::class.java).setSurfaceCallback(surface)
+        val mapSurface = CarMapSurface(carContext)
+        surface = mapSurface
+        carContext.getCarService(androidx.car.app.AppManager::class.java).setSurfaceCallback(mapSurface)
         lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onDestroy(owner: LifecycleOwner) = surface.release()
+            override fun onDestroy(owner: LifecycleOwner) = mapSurface.release()
         })
         return NavigationCarScreen(carContext, deps)
     }

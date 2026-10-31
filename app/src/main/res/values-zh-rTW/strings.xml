@@ -139,4 +139,6 @@
     <string name="data_update_done">已是最新資料</string>
     <string name="data_update_failed">更新失敗，稍後會自動重試。</string>
     <string name="settings_version">版本 %1$s</string>
+    <string name="car_places">目的地</string>
+    <string name="car_no_places">還沒有常用地點。可以搜尋，或在手機上設定住家和公司。</string>
 </resources>

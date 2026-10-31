@@ -144,4 +144,6 @@
     <string name="data_update_done">Up to date</string>
     <string name="data_update_failed">Update failed; it will retry later.</string>
     <string name="settings_version">Version %1$s</string>
+    <string name="car_places">Destinations</string>
+    <string name="car_no_places">No saved places yet. Search, or set home and work on the phone.</string>
 </resources>
