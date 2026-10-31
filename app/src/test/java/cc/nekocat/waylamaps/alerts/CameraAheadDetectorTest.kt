@@ -81,13 +81,14 @@ class CameraAheadDetectorTest {
     }
 
     @Test
-    fun announcesOnlyOnce() {
+    fun announcesEachCountdownStepOnce() {
         val detector = CameraAheadDetector()
         val cameras = listOf(camera(1, 400.0))
 
-        assertNotNull(detector.update(north(110.0), cameras).announce)
+        assertEquals(AlertCountdown.Step(300, first = true), detector.update(north(110.0), cameras).step)
         assertNull(detector.update(north(150.0), cameras).announce)
-        assertNull(detector.update(north(300.0), cameras).announce)
+        assertEquals(AlertCountdown.Step(100, first = false), detector.update(north(300.0), cameras).step)
+        assertNull(detector.update(north(320.0), cameras).announce)
     }
 
     @Test

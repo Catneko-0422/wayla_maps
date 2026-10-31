@@ -15,7 +15,6 @@ import kotlin.math.sqrt
  * Not thread-safe: feed it from a single coroutine.
  */
 class RouteCameraMatcher(
-    private val alertDistanceM: Double = 300.0,
     private val lookAheadM: Double = 1000.0,
     private val maxOffsetM: Double = 25.0,
     private val directionToleranceDeg: Double = 45.0,
@@ -31,7 +30,8 @@ class RouteCameraMatcher(
     /** Distance along the route at each point. */
     private var cumulative: DoubleArray = DoubleArray(0)
     private var progressM: Double? = null
-    private val announced = mutableSetOf<Long>()
+    private val countdown = AlertCountdown()
+    private val announced get() = countdown.ids
 
     /** Announced points not passed yet, by their distance along the route. */
     private val awaitingPass = mutableMapOf<Long, Double>()
@@ -66,9 +66,10 @@ class RouteCameraMatcher(
         val next = candidates
             .mapNotNull { camera -> measure(camera, position.alongM) }
             .minByOrNull { it.distanceM }
-        val announce = next?.takeIf { it.distanceM <= alertDistanceM && announced.add(it.point.id) }
+        val step = next?.let { countdown.check(it.point.id, it.distanceM) }
+        val announce = next?.takeIf { step != null }
         announce?.let { awaitingPass[it.point.id] = position.alongM + it.distanceM }
-        return CameraAheadDetector.Result(next, announce, passed)
+        return CameraAheadDetector.Result(next, announce, passed, step)
     }
 
     /** Places the fix on the route, preferring the stretch just ahead of the last progress. */

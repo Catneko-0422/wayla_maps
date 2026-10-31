@@ -9,7 +9,6 @@ import kotlin.math.roundToInt
  * Not thread-safe: feed it fixes from a single coroutine.
  */
 class CameraAheadDetector(
-    private val alertDistanceM: Double = 300.0,
     private val lookAheadM: Double = 1000.0,
     /** Below this speed the GPS course is noise, so the last good heading is kept. */
     private val minHeadingSpeedMps: Double = 10.0 / 3.6,
@@ -27,14 +26,17 @@ class CameraAheadDetector(
     data class Result<T : AlertPoint>(
         /** Nearest point ahead within [lookAheadM], for display. */
         val next: Ahead<T>?,
-        /** Set when [next] has just come within [alertDistanceM] and was not announced yet. */
+        /** Set when [next] has just reached a step of its countdown (see [AlertCountdown]). */
         val announce: Ahead<T>?,
         /** An announced point that is now [passMarginM] behind, reported once. */
         val passed: T? = null,
+        /** The countdown step [announce] reached. */
+        val step: AlertCountdown.Step? = null,
     )
 
     private var heading: Double? = null
-    private val announced = mutableSetOf<Long>()
+    private val countdown = AlertCountdown()
+    private val announced get() = countdown.ids
     private val awaitingPass = mutableSetOf<Long>()
 
     fun <T : AlertPoint> update(fix: Fix, candidates: List<T>): Result<T> {
@@ -62,9 +64,10 @@ class CameraAheadDetector(
             .minByOrNull { it.distanceM }
             ?.let { Ahead(it.point, it.distanceM) }
 
-        val announce = next?.takeIf { it.distanceM <= alertDistanceM && announced.add(it.point.id) }
+        val step = next?.let { countdown.check(it.point.id, it.distanceM) }
+        val announce = next?.takeIf { step != null }
         announce?.let { awaitingPass += it.point.id }
-        return Result(next, announce, passed)
+        return Result(next, announce, passed, step)
     }
 
     private fun forgetPassedPoints(measured: List<Measured<*>>) {

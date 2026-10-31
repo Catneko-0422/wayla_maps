@@ -33,6 +33,7 @@ import cc.nekocat.waylamaps.alerts.Geo
 import cc.nekocat.waylamaps.alerts.GeoPoint
 import cc.nekocat.waylamaps.alerts.NearbyOnceNotifier
 import cc.nekocat.waylamaps.alerts.OverLimitWarner
+import cc.nekocat.waylamaps.alerts.AlertCountdown
 import cc.nekocat.waylamaps.alerts.AlertDescription
 import cc.nekocat.waylamaps.alerts.RouteCameraMatcher
 import cc.nekocat.waylamaps.alerts.speedBetween
@@ -251,11 +252,12 @@ class RideService : LifecycleService() {
             )
         }
         val roadKnown = currentRoad != null
-        result.announce?.let { announce(it, roadKnown) }
+        result.announce?.let { announce(it, result.step, roadKnown) }
         // Enforcement points are spoken only while navigating; otherwise they are just shown.
-        if (guiding != null) enforcement.announce?.let { announceEnforcement(it, roadKnown) }
+        if (guiding != null) enforcement.announce?.let { announceEnforcement(it, enforcement.step, roadKnown) }
         ownResult.announce?.let {
-            voicePlayer.speak(AlertPhrases.ahead(AlertDescription("type_user_point"), it.distanceM, null, limitSlots))
+            val description = AlertDescription("type_user_point")
+            voicePlayer.speak(AlertPhrases.ahead(description, ownResult.step, it.distanceM, null, limitSlots))
         }
         if (result.passed != null || ownResult.passed != null || (guiding != null && enforcement.passed != null)) {
             voicePlayer.speak("alert_passed")
@@ -339,22 +341,25 @@ class RideService : LifecycleService() {
         )
     }
 
-    private fun announce(ahead: CameraAhead, roadKnown: Boolean) {
-        announcedCameraIds += ahead.camera.id
-        announcedCameraSpots.addLast(GeoPoint(ahead.camera.lat, ahead.camera.lng))
-        if (announcedCameraSpots.size > MAX_REMEMBERED_SPOTS) announcedCameraSpots.removeFirst()
+    private fun announce(ahead: CameraAhead, step: AlertCountdown.Step?, roadKnown: Boolean) {
+        val first = step?.first ?: true
+        if (first) {
+            announcedCameraIds += ahead.camera.id
+            announcedCameraSpots.addLast(GeoPoint(ahead.camera.lat, ahead.camera.lng))
+            if (announcedCameraSpots.size > MAX_REMEMBERED_SPOTS) announcedCameraSpots.removeFirst()
+        }
         val description = CameraDescriber.describe(ahead.camera, roadKnown)
-        voicePlayer.speak(AlertPhrases.ahead(description, ahead.distanceM, ahead.camera.limitKmh, limitSlots))
-        if (AverageSpeedZones.isZone(ahead.camera) && "隧道" in ahead.camera.address) {
+        voicePlayer.speak(AlertPhrases.ahead(description, step, ahead.distanceM, ahead.camera.limitKmh, limitSlots))
+        if (first && AverageSpeedZones.isZone(ahead.camera) && "隧道" in ahead.camera.address) {
             voicePlayer.speak("average_speed_tunnel")
         }
     }
 
-    private fun announceEnforcement(ahead: Ahead<EnforcementPoint>, roadKnown: Boolean) {
+    private fun announceEnforcement(ahead: Ahead<EnforcementPoint>, step: AlertCountdown.Step?, roadKnown: Boolean) {
         val point = ahead.point
         if (announcedCameraSpots.any { Geo.distanceMeters(it.lat, it.lng, point.lat, point.lng) <= SAME_SPOT_M }) return
         val description = CameraDescriber.describe(point, roadKnown)
-        voicePlayer.speak(AlertPhrases.ahead(description, ahead.distanceM, point.limitKmh, limitSlots))
+        voicePlayer.speak(AlertPhrases.ahead(description, step, ahead.distanceM, point.limitKmh, limitSlots))
     }
 
     private val limitSlots by lazy { phraseCatalog.slots["limit"].orEmpty() }
