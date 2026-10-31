@@ -7,6 +7,7 @@ import androidx.work.WorkManager
 import cc.nekocat.waylamaps.data.OpenDataUpdateWorker
 import cc.nekocat.waylamaps.data.SpeedCameraImporter
 import cc.nekocat.waylamaps.data.enforcement.EnforcementImporter
+import cc.nekocat.waylamaps.voice.VoiceBoost
 import cc.nekocat.waylamaps.voice.VoiceMode
 import androidx.lifecycle.ViewModel
 import cc.nekocat.waylamaps.character.Character
@@ -53,6 +54,7 @@ class SettingsViewModel @Inject constructor(
     val importing: StateFlow<Boolean> = _importing.asStateFlow()
 
     val voiceMode = ridePreferences.voiceMode
+    val voiceBoost = ridePreferences.voiceBoost
 
     /** What the installed open data covers, for the data section. */
     data class DataSummary(val cameras: Int, val cameraVersion: String?, val enforcementPoints: Int)
@@ -119,6 +121,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setVoiceMode(mode: VoiceMode) = ridePreferences.setVoiceMode(mode)
+
+    /** Plays a sample at the new level, so the rider hears the difference. */
+    fun setVoiceBoost(boost: VoiceBoost) {
+        ridePreferences.setVoiceBoost(boost)
+        voice.speak("voice_demo")
+    }
 
     fun updateDataNow() {
         if (_update.value == UpdateState.RUNNING) return

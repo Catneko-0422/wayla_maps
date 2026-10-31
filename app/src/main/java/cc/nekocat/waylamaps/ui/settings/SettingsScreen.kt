@@ -64,6 +64,7 @@ import cc.nekocat.waylamaps.character.CharacterSource
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.service.ThemeMode
 import cc.nekocat.waylamaps.ui.labelRes
+import cc.nekocat.waylamaps.voice.VoiceBoost
 import cc.nekocat.waylamaps.voice.VoiceMode
 import java.time.Instant
 import java.time.ZoneId
@@ -82,6 +83,7 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLegal: () -> Unit, viewModel: Setti
     val autoLock by viewModel.autoLock.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
     val voiceMode by viewModel.voiceMode.collectAsStateWithLifecycle()
+    val voiceBoost by viewModel.voiceBoost.collectAsStateWithLifecycle()
     val userPoints by viewModel.userPoints.collectAsStateWithLifecycle()
     val characters by viewModel.characters.collectAsStateWithLifecycle()
     val selectedCharacter by viewModel.selectedCharacter.collectAsStateWithLifecycle()
@@ -152,6 +154,9 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLegal: () -> Unit, viewModel: Setti
                     Label(stringResource(R.string.settings_voice_mode))
                     Choice(VoiceMode.entries, voiceMode, { stringResource(it.shortLabelRes()) }, viewModel::setVoiceMode)
                     if (voiceMode == VoiceMode.ESSENTIAL) Summary(stringResource(R.string.voice_mode_essential_summary))
+                    Label(stringResource(R.string.settings_voice_boost))
+                    Choice(VoiceBoost.entries, voiceBoost, { stringResource(it.labelRes()) }, viewModel::setVoiceBoost)
+                    Summary(stringResource(R.string.settings_voice_boost_summary))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -406,6 +411,12 @@ private fun VoiceMode.shortLabelRes() = when (this) {
     VoiceMode.ALL -> R.string.voice_mode_short_all
     VoiceMode.ESSENTIAL -> R.string.voice_mode_short_essential
     VoiceMode.MUTED -> R.string.voice_mode_short_muted
+}
+
+private fun VoiceBoost.labelRes() = when (this) {
+    VoiceBoost.NORMAL -> R.string.voice_boost_normal
+    VoiceBoost.LOUD -> R.string.voice_boost_loud
+    VoiceBoost.LOUDEST -> R.string.voice_boost_loudest
 }
 
 private val CHARACTER_CARD_WIDTH = 168.dp

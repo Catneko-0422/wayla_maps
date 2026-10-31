@@ -1,6 +1,8 @@
 package cc.nekocat.waylamaps.voice
 
 import android.content.Context
+import android.media.AudioManager
+import android.media.audiofx.LoudnessEnhancer
 import android.os.SystemClock
 import android.util.Log
 import cc.nekocat.waylamaps.character.CharacterRepository
@@ -10,6 +12,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.annotation.OptIn
 import androidx.media3.exoplayer.ExoPlayer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ServiceScoped
@@ -67,6 +71,36 @@ class VoicePlayer @Inject constructor(
             })
         }
 
+    // One audio session for recorded prompts and TTS, so a single enhancer boosts both.
+    private val audioSessionId = context.getSystemService(AudioManager::class.java).generateAudioSessionId()
+    private val enhancer: LoudnessEnhancer? = try {
+        LoudnessEnhancer(audioSessionId)
+    } catch (e: RuntimeException) {
+        Log.w(TAG, "No loudness boost on this device", e)
+        null
+    }
+
+    init {
+        attachAudioSession()
+        tts.audioSessionId = audioSessionId
+    }
+
+    // A stable call since ExoPlayer 2; Media3 still marks it unstable.
+    @OptIn(UnstableApi::class)
+    private fun attachAudioSession() = player.setAudioSessionId(audioSessionId)
+
+    /** Reads the boost setting before each prompt, so a change applies to the next one. */
+    private fun applyBoost() {
+        val enhancer = enhancer ?: return
+        val gain = ridePreferences.voiceBoost.value.gainMillibels
+        try {
+            enhancer.setTargetGain(gain)
+            enhancer.enabled = gain > 0
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "Loudness boost failed", e)
+        }
+    }
+
     fun speak(phraseId: String, args: Map<String, Any> = emptyMap()) {
         submit(Prompt(phraseId, args, catalog.priorityOf(phraseId)))
     }
@@ -92,11 +126,13 @@ class VoicePlayer @Inject constructor(
     fun release() {
         scheduler.clear()
         player.release()
+        enhancer?.release()
         tts.shutdown()
         audioFocus.release()
     }
 
     override fun play(prompt: Prompt) {
+        applyBoost()
         if (prompt.text != null) {
             Log.i(TAG, "Playing ${prompt.phraseId} with TTS: ${prompt.text}")
             audioFocus.acquire()

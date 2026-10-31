@@ -1,6 +1,7 @@
 package cc.nekocat.waylamaps.service
 
 import android.content.Context
+import cc.nekocat.waylamaps.voice.VoiceBoost
 import cc.nekocat.waylamaps.voice.VoiceMode
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -63,10 +64,23 @@ class RidePreferences @Inject constructor(
         prefs.edit { putString(KEY_VOICE_MODE, mode.name) }
     }
 
+    private val _voiceBoost = MutableStateFlow(
+        prefs.getString(KEY_VOICE_BOOST, null)?.let { runCatching { VoiceBoost.valueOf(it) }.getOrNull() } ?: VoiceBoost.LOUD,
+    )
+
+    /** How much louder than the media volume prompts play. */
+    val voiceBoost: StateFlow<VoiceBoost> = _voiceBoost.asStateFlow()
+
+    fun setVoiceBoost(boost: VoiceBoost) {
+        _voiceBoost.value = boost
+        prefs.edit { putString(KEY_VOICE_BOOST, boost.name) }
+    }
+
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_MATCH_ELEVATION = "match_elevation"
         const val KEY_AUTO_LOCK = "auto_lock"
         const val KEY_VOICE_MODE = "voice_mode"
+        const val KEY_VOICE_BOOST = "voice_boost"
     }
 }

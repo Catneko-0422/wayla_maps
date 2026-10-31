@@ -141,4 +141,9 @@
     <string name="settings_version">版本 %1$s</string>
     <string name="car_places">目的地</string>
     <string name="car_no_places">還沒有常用地點。可以搜尋，或在手機上設定住家和公司。</string>
+    <string name="settings_voice_boost">語音音量</string>
+    <string name="settings_voice_boost_summary">在手機媒體音量之上再放大，蓋過風切聲和車內噪音。媒體音量也要調高。</string>
+    <string name="voice_boost_normal">標準</string>
+    <string name="voice_boost_loud">大聲</string>
+    <string name="voice_boost_loudest">最大</string>
 </resources>

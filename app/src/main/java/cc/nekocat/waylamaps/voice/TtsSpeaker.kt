@@ -1,6 +1,7 @@
 package cc.nekocat.waylamaps.voice
 
 import android.content.Context
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
@@ -30,6 +31,9 @@ class TtsSpeaker @Inject constructor(
     private data class Request(val text: String, val onDone: () -> Unit, val isRetry: Boolean = false)
 
     private var tts = TextToSpeech(context, ::onInit)
+
+    /** The audio session to speak in, shared with the recorded prompts' loudness boost. */
+    var audioSessionId: Int? = null
 
     fun speak(text: String, onDone: () -> Unit) = submit(Request(text, onDone))
 
@@ -80,7 +84,8 @@ class TtsSpeaker @Inject constructor(
     private fun speakNow(request: Request) {
         val id = "prompt-${nextId++}"
         callbacks[id] = request.onDone
-        if (tts.speak(request.text, TextToSpeech.QUEUE_FLUSH, null, id) == TextToSpeech.SUCCESS) return
+        val params = Bundle().apply { audioSessionId?.let { putInt(TextToSpeech.Engine.KEY_PARAM_SESSION_ID, it) } }
+        if (tts.speak(request.text, TextToSpeech.QUEUE_FLUSH, params, id) == TextToSpeech.SUCCESS) return
 
         callbacks.remove(id)
         if (request.isRetry) {
