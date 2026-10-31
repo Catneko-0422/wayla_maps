@@ -21,19 +21,23 @@ class TtsSpeaker @Inject constructor(
 ) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val callbacks = ConcurrentHashMap<String, () -> Unit>()
-    private val pending = ArrayDeque<Pair<String, () -> Unit>>()
+    private val pending = ArrayDeque<Request>()
     private var state = State.INITIALIZING
     private var nextId = 0
 
     private enum class State { INITIALIZING, READY, FAILED }
 
-    private val tts = TextToSpeech(context, ::onInit)
+    private data class Request(val text: String, val onDone: () -> Unit, val isRetry: Boolean = false)
 
-    fun speak(text: String, onDone: () -> Unit) {
+    private var tts = TextToSpeech(context, ::onInit)
+
+    fun speak(text: String, onDone: () -> Unit) = submit(Request(text, onDone))
+
+    private fun submit(request: Request) {
         when (state) {
-            State.INITIALIZING -> pending.addLast(text to onDone)
-            State.READY -> speakNow(text, onDone)
-            State.FAILED -> onDone()
+            State.INITIALIZING -> pending.addLast(request)
+            State.READY -> speakNow(request)
+            State.FAILED -> request.onDone()
         }
     }
 
@@ -52,7 +56,7 @@ class TtsSpeaker @Inject constructor(
         if (status != TextToSpeech.SUCCESS) {
             Log.e(TAG, "TextToSpeech init failed: $status")
             state = State.FAILED
-            while (pending.isNotEmpty()) pending.removeFirst().second()
+            while (pending.isNotEmpty()) pending.removeFirst().onDone()
             return
         }
         tts.setAudioAttributes(PROMPT_AUDIO_ATTRIBUTES)
@@ -70,13 +74,26 @@ class TtsSpeaker @Inject constructor(
             override fun onError(utteranceId: String?, errorCode: Int) = finished(utteranceId)
         })
         state = State.READY
-        while (pending.isNotEmpty()) pending.removeFirst().let { (text, onDone) -> speakNow(text, onDone) }
+        while (pending.isNotEmpty()) speakNow(pending.removeFirst())
     }
 
-    private fun speakNow(text: String, onDone: () -> Unit) {
+    private fun speakNow(request: Request) {
         val id = "prompt-${nextId++}"
-        callbacks[id] = onDone
-        if (tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, id) != TextToSpeech.SUCCESS) finished(id)
+        callbacks[id] = request.onDone
+        if (tts.speak(request.text, TextToSpeech.QUEUE_FLUSH, null, id) == TextToSpeech.SUCCESS) return
+
+        callbacks.remove(id)
+        if (request.isRetry) {
+            Log.e(TAG, "TTS failed again after reconnecting, giving up on: ${request.text}")
+            mainHandler.post(request.onDone)
+            return
+        }
+        // The engine process died (killed, updated); this TextToSpeech never reconnects by itself.
+        Log.w(TAG, "TTS speak failed, reconnecting to the engine")
+        tts.shutdown()
+        state = State.INITIALIZING
+        pending.addFirst(request.copy(isRetry = true))
+        tts = TextToSpeech(context, ::onInit)
     }
 
     private fun finished(utteranceId: String?) {
