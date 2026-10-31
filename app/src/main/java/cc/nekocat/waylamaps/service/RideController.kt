@@ -12,17 +12,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import cc.nekocat.waylamaps.voice.SpeechState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Keeps [RideService] running exactly while it is needed: when speed camera alerts are switched
- * on, or while navigating (alerts and turn prompts always run during guidance).
+ * Keeps [RideService] running while it is needed: when speed camera alerts are switched on, or
+ * while navigating (alerts and turn prompts always run during guidance), and until it has
+ * finished speaking.
  */
 @Singleton
 class RideController @Inject constructor(
     private val application: Application,
     private val navigation: NavigationSession,
+    private val speech: SpeechState,
 ) {
     private val _alertsEnabled = MutableStateFlow(false)
     val alertsEnabled: StateFlow<Boolean> = _alertsEnabled.asStateFlow()
@@ -36,7 +43,17 @@ class RideController @Inject constructor(
                 alerts || guidance is GuidanceState.Guiding || guidance is GuidanceState.Arrived
             }
                 .distinctUntilChanged()
-                .collect { needed -> if (needed) RideService.start(application) else RideService.stop(application) }
+                .collectLatest { needed ->
+                    if (needed) {
+                        RideService.start(application)
+                        return@collectLatest
+                    }
+                    // Let the service say its last sentence ("alerts off") before it goes. Switching
+                    // back on meanwhile cancels this wait and the service simply keeps running.
+                    delay(PROMPT_START_MS)
+                    withTimeoutOrNull(MAX_FAREWELL_MS) { speech.current.first { it == null } }
+                    RideService.stop(application)
+                }
         }
     }
 
@@ -49,5 +66,11 @@ class RideController @Inject constructor(
     fun stopAll() {
         _alertsEnabled.value = false
         if (navigation.state.value !is GuidanceState.Idle) navigation.stop()
+    }
+
+    private companion object {
+        /** Time for the service to queue its prompt after the switch. */
+        const val PROMPT_START_MS = 300L
+        const val MAX_FAREWELL_MS = 6_000L
     }
 }
