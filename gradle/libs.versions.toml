@@ -16,6 +16,7 @@ serialization = "1.12.0"
 navigationSdk = "8.0.0"
 places = "6.0.2"
 filament = "1.77.3"
+carApp = "1.7.0"
 desugarJdkLibs = "2.1.5"
 secretsPlugin = "2.0.1"
 junit = "4.13.2"
@@ -54,6 +55,8 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 
 google-navigation = { group = "com.google.android.libraries.navigation", name = "navigation", version.ref = "navigationSdk" }
 google-places = { group = "com.google.android.libraries.places", name = "places", version.ref = "places" }
+androidx-car-app = { group = "androidx.car.app", name = "app", version.ref = "carApp" }
+androidx-car-app-projected = { group = "androidx.car.app", name = "app-projected", version.ref = "carApp" }
 filament-android = { group = "com.google.android.filament", name = "filament-android", version.ref = "filament" }
 filament-gltfio = { group = "com.google.android.filament", name = "gltfio-android", version.ref = "filament" }
 filament-utils = { group = "com.google.android.filament", name = "filament-utils-android", version.ref = "filament" }

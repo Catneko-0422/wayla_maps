@@ -143,6 +143,10 @@ dependencies {
     implementation(libs.google.places) {
         exclude(group = "com.google.android.gms", module = "play-services-maps")
     }
+    // Android Auto.
+    implementation(libs.androidx.car.app)
+    implementation(libs.androidx.car.app.projected)
+
     // 3D character view (glTF models).
     implementation(libs.filament.android)
     implementation(libs.filament.gltfio)

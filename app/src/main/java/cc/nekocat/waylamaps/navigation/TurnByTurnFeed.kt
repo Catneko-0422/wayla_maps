@@ -1,5 +1,6 @@
 package cc.nekocat.waylamaps.navigation
 
+import android.graphics.Bitmap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,9 @@ data class TurnUpdate(
     /** The road the upcoming maneuver turns onto. */
     val roadName: String?,
     val instructionText: String?,
+    /** To the final destination, for the trip estimate. */
+    val remainingMeters: Int? = null,
+    val remainingSeconds: Int? = null,
 )
 
 /** Latest turn-by-turn data, fed by [NavInfoReceiverService] and read by the ride service. */
@@ -35,6 +39,15 @@ class TurnByTurnFeed @Inject constructor() {
      */
     val currentRoad: StateFlow<String?> = _currentRoad.asStateFlow()
 
+    private val _icon = MutableStateFlow<Bitmap?>(null)
+
+    /** The SDK's picture of the current maneuver, for the Android Auto turn card. */
+    val icon: StateFlow<Bitmap?> = _icon.asStateFlow()
+
+    fun publishIcon(bitmap: Bitmap?) {
+        _icon.value = bitmap
+    }
+
     fun publish(update: TurnUpdate) {
         val previous = _updates.value
         val previousStep = previous?.stepNumber
@@ -45,6 +58,7 @@ class TurnByTurnFeed @Inject constructor() {
 
     fun clear() {
         _updates.value = null
+        _icon.value = null
         _currentRoad.value = null
     }
 }

@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import cc.nekocat.waylamaps.alerts.GeoPoint
+import com.google.android.libraries.navigation.NavigationUpdatesOptions
 import com.google.android.libraries.navigation.Navigator
 import com.google.android.libraries.navigation.RoutingOptions
 import com.google.android.libraries.navigation.SimulationOptions
@@ -117,10 +118,16 @@ class NavigationSession @Inject constructor(
         }
         navigator.addArrivalListener(arrivalListener)
         navigator.addRouteChangedListener(routeChangedListener)
+        // Maneuver pictures are generated for the Android Auto turn card.
+        val options = NavigationUpdatesOptions.Builder()
+            .setNumNextStepsToPreview(NEXT_STEPS_TO_PREVIEW)
+            .setGeneratedStepImagesType(NavigationUpdatesOptions.GeneratedStepImagesType.BITMAP)
+            .setDisplayMetrics(application.resources.displayMetrics)
+            .build()
         val registered = navigator.registerServiceForNavUpdates(
             application.packageName,
             NavInfoReceiverService::class.java.name,
-            NEXT_STEPS_TO_PREVIEW,
+            options,
         )
         if (!registered) Log.e(TAG, "Turn-by-turn feed unavailable; turns will not be announced")
         navigator.startGuidance()

@@ -26,7 +26,10 @@ class NavInfoReceiverService : Service() {
     private val messenger = Messenger(
         Handler(Looper.getMainLooper()) { message: Message ->
             if (message.what != TurnByTurnManager.MSG_NAV_INFO) return@Handler false
-            turnByTurn.readNavInfoFromBundle(message.data)?.let { feed.publish(it.toTurnUpdate()) }
+            turnByTurn.readNavInfoFromBundle(message.data)?.let { info ->
+                feed.publishIcon(info.currentStep?.maneuverBitmap)
+                feed.publish(info.toTurnUpdate())
+            }
             true
         },
     )
@@ -49,5 +52,7 @@ private fun NavInfo.toTurnUpdate(): TurnUpdate {
         distanceToStepM = distanceToCurrentStepMeters,
         roadName = step?.fullRoadName,
         instructionText = step?.fullInstructionText,
+        remainingMeters = distanceToFinalDestinationMeters,
+        remainingSeconds = timeToFinalDestinationSeconds,
     )
 }

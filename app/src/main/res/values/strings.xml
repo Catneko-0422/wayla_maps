@@ -87,4 +87,9 @@
     <string name="character_import_rejected">The pack was refused: it is too large or has unsafe paths.</string>
     <string name="character_import_failed">The file could not be read.</string>
     <string name="legal_characters_section">Characters</string>
+    <string name="car_needs_phone">Open Wayla Maps on the phone once, accept the navigation terms and allow precise location.</string>
+    <string name="car_search">Search</string>
+    <string name="car_alerts_on">Alerts on</string>
+    <string name="car_alerts_off">Alerts off</string>
+    <string name="car_idle">Search for a destination to start</string>
 </resources>

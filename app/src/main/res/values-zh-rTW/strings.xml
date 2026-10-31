@@ -82,4 +82,9 @@
     <string name="character_import_rejected">已拒絕匯入：檔案太大，或含有不安全的路徑。</string>
     <string name="character_import_failed">無法讀取這個檔案。</string>
     <string name="legal_characters_section">角色</string>
+    <string name="car_needs_phone">請先在手機上開啟 Wayla Maps，同意導航條款並允許精確位置。</string>
+    <string name="car_search">搜尋</string>
+    <string name="car_alerts_on">提醒：開</string>
+    <string name="car_alerts_off">提醒：關</string>
+    <string name="car_idle">搜尋目的地開始導航</string>
 </resources>
