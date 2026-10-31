@@ -138,8 +138,11 @@ fun MapScreen(
     // Set by the layout below: landscape guidance draws its own cards over a full-screen map.
     var immersive by remember { mutableStateOf(false) }
     val currentImmersive by rememberUpdatedState(immersive)
-    val currentInset by rememberUpdatedState(if (immersive && characterModel != null) IMMERSIVE_CHARACTER_WIDTH else 0.dp)
-    val currentRightInset by rememberUpdatedState(if (immersive) GUIDANCE_CARDS_CLEARANCE else 0.dp)
+    val currentInset by rememberUpdatedState(if (immersive && characterModel != null) LEFT_INSET else 0.dp)
+    // The left padding puts the Google logo at the bottom just past the character's shoulder; the
+    // right padding, a little larger, keeps the vehicle mid-screen, right of the logo and left of
+    // the trip pill in the bottom right corner.
+    val currentRightInset by rememberUpdatedState(if (immersive && characterModel != null) RIGHT_INSET else 0.dp)
     val map = remember {
         movableContentOf {
             NavigationMap(
@@ -211,10 +214,16 @@ fun MapScreen(
                     ) {
                         turn?.let { TurnCard(it, turnIcon) }
                         SpeedAlertCard(state.alerts)
-                        // Up here rather than along the bottom, which stays free for the vehicle
-                        // and the Google logo (which follows the map padding and must stay visible).
-                        TripPill(turn, actions.onStop)
                     }
+                    // Bottom right, inside the map's right padding, so it never covers the
+                    // vehicle; the Google logo sits bottom left, beside the character.
+                    TripPill(
+                        turn,
+                        actions.onStop,
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(12.dp),
+                    )
                 }
                 landscape -> Row(Modifier.fillMaxSize()) {
                     ControlPanel(
@@ -559,9 +568,8 @@ private val PANEL_WIDTH = 290.dp
 
 /** The character's column in landscape guidance, over the map's left side. */
 private val IMMERSIVE_CHARACTER_WIDTH = 330.dp
-
-/** Room kept for the turn, speed and trip cards along the right edge in landscape guidance. */
-private val GUIDANCE_CARDS_CLEARANCE = 200.dp
+private val LEFT_INSET = 280.dp
+private val RIGHT_INSET = 330.dp
 private val BUBBLE_MAX_WIDTH = 170.dp
 
 /** Height of the Navigation SDK's trip summary (time, distance, arrival) along the map's bottom. */
