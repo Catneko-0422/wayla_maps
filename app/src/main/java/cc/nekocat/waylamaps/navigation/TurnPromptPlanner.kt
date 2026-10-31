@@ -17,73 +17,97 @@ sealed interface TurnPrompt {
 /**
  * Decides when to call out turns, from the turn-by-turn feed and the current speed.
  *
- * Each step gets at most two prompts:
- * - an advance notice once the step is within a speed-dependent distance (1 km at 80 km/h and
- *   above, 500 m at 50 km/h and above, otherwise 200 m), rounded to the nearest recorded distance;
- * - the maneuver alone once it is about [finalLeadTimeS] seconds away (at least [minFinalDistanceM]).
- *
- * The advance notice is skipped when the step is already almost at the final prompt, so two
- * close turns do not pile up prompts. A step is identified by number, maneuver and road, so a
- * traffic-driven route update that keeps the same next step does not repeat it.
+ * Each step gets up to three prompts, like other navigation apps:
+ * - a far notice on fast roads only (1 km at 80 km/h and above, 500 m at 50 km/h and above), so
+ *   there is time to change lanes; in town it would only be noise;
+ * - the main notice at 100 m, or [nearLeadTimeS] seconds ahead when that is farther: "in 100
+ *   meters, turn right";
+ * - the maneuver alone just before the turn, about [finalLeadTimeS] seconds ahead (at least
+ *   [minFinalDistanceM]).
+ * Distances are spoken as the nearest recorded distance. A notice is skipped when the next one
+ * is about to follow anyway, so close turns do not pile up prompts. A step is identified by
+ * number, maneuver and road, so a traffic-driven route update that keeps the same next step does
+ * not repeat it.
  *
  * Not thread-safe: call from a single coroutine.
  */
 class TurnPromptPlanner(
     /** Distances with recorded `ahead_<n>m` fragments. */
     private val distanceSlots: List<Int>,
-    private val minFinalDistanceM: Double = 30.0,
-    private val finalLeadTimeS: Double = 6.0,
-    /** An advance notice must come at least this much before the final prompt. */
-    private val minPreviewGapM: Double = 50.0,
+    private val nearDistanceM: Double = 100.0,
+    private val nearLeadTimeS: Double = 7.0,
+    private val minFinalDistanceM: Double = 25.0,
+    private val finalLeadTimeS: Double = 2.5,
+    /** A notice must come at least this far before the next one, or it is left out. */
+    private val minNoticeGapM: Double = 30.0,
+    /** The far notice also needs this much room before the main one. */
+    private val minFarGapM: Double = 150.0,
 ) {
     private data class StepKey(val stepNumber: Int, val maneuver: Int, val roadName: String?)
 
-    private var previewed: StepKey? = null
-    private var finalized: StepKey? = null
+    private enum class Stage { FAR, NEAR, NOW }
+
+    private var step: StepKey? = null
+    private val done = mutableSetOf<Stage>()
 
     init {
         require(distanceSlots.isNotEmpty()) { "No distance slots" }
     }
 
     fun reset() {
-        previewed = null
-        finalized = null
+        step = null
+        done.clear()
     }
 
     fun next(update: TurnUpdate, speedMps: Double?): TurnPrompt? {
         if (update.state != TurnNavState.ENROUTE) return null
-        val step = update.stepNumber ?: return null
+        val number = update.stepNumber ?: return null
         val distance = update.distanceToStepM?.toDouble() ?: return null
         val speech = ManeuverMapper.speechFor(update.maneuver, update.roundaboutExit)
         if (speech == ManeuverSpeech.Silent) return null
 
-        val key = StepKey(step, update.maneuver, update.roadName)
+        val key = StepKey(number, update.maneuver, update.roadName)
+        if (key != step) {
+            step = key
+            done.clear()
+        }
         val speed = speedMps ?: 0.0
         val finalDistance = max(minFinalDistanceM, speed * finalLeadTimeS)
+        val nearDistance = max(nearDistanceM, speed * nearLeadTimeS)
 
         if (distance <= finalDistance) {
-            if (finalized == key) return null
-            finalized = key
-            previewed = key
+            if (Stage.NOW in done) return null
+            done += Stage.entries
             return when (speech) {
                 is ManeuverSpeech.Fragment -> if (speech.atManeuver) TurnPrompt.Now(speech.id) else null
                 ManeuverSpeech.Unmapped -> update.instructionText?.takeIf { it.isNotBlank() }?.let(TurnPrompt::Instruction)
                 ManeuverSpeech.Silent -> null
             }
         }
-
-        if (previewed == key || distance > previewDistanceM(speed) || distance < finalDistance + minPreviewGapM) return null
-        previewed = key
         // Unmapped maneuvers get their instruction text once, at the turn, rather than twice.
-        return (speech as? ManeuverSpeech.Fragment)?.let { TurnPrompt.Ahead(it.id, nearestSlot(distance)) }
+        val fragment = (speech as? ManeuverSpeech.Fragment)?.id ?: return null
+
+        if (distance <= nearDistance) {
+            if (Stage.NEAR in done) return null
+            done += Stage.FAR
+            done += Stage.NEAR
+            if (distance < finalDistance + minNoticeGapM) return null
+            return TurnPrompt.Ahead(fragment, nearestSlot(distance))
+        }
+
+        val farDistance = farDistanceM(speed) ?: return null
+        if (Stage.FAR in done || distance > farDistance) return null
+        done += Stage.FAR
+        if (distance < nearDistance + minFarGapM) return null
+        return TurnPrompt.Ahead(fragment, nearestSlot(distance))
     }
 
-    private fun previewDistanceM(speedMps: Double): Double {
+    private fun farDistanceM(speedMps: Double): Double? {
         val kmh = speedMps * 3.6
         return when {
             kmh >= 80 -> 1_000.0
             kmh >= 50 -> 500.0
-            else -> 200.0
+            else -> null
         }
     }
 
