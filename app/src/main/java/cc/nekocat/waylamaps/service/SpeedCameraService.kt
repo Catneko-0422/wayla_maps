@@ -28,7 +28,8 @@ import cc.nekocat.waylamaps.alerts.CameraAheadDetector
 import cc.nekocat.waylamaps.alerts.Fix
 import cc.nekocat.waylamaps.data.SpeedCameraRepository
 import cc.nekocat.waylamaps.ui.MainActivity
-import cc.nekocat.waylamaps.voice.Announcer
+import cc.nekocat.waylamaps.voice.PhraseCatalog
+import cc.nekocat.waylamaps.voice.VoicePlayer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.consumeAsFlow
@@ -41,7 +42,8 @@ import kotlin.math.roundToInt
 class SpeedCameraService : LifecycleService() {
     @Inject lateinit var repository: SpeedCameraRepository
     @Inject lateinit var sessionState: AlertSessionState
-    @Inject lateinit var announcer: Announcer
+    @Inject lateinit var voicePlayer: VoicePlayer
+    @Inject lateinit var phraseCatalog: PhraseCatalog
 
     private val detector = CameraAheadDetector()
     private val locations = Channel<Location>(Channel.CONFLATED)
@@ -59,7 +61,7 @@ class SpeedCameraService : LifecycleService() {
 
     override fun onDestroy() {
         getSystemService(LocationManager::class.java).removeUpdates(locationListener)
-        announcer.shutdown()
+        voicePlayer.release()
         sessionState.update { AlertSession() }
         super.onDestroy()
     }
@@ -112,16 +114,17 @@ class SpeedCameraService : LifecycleService() {
                 next = result.next,
             )
         }
-        result.announce?.let { announcer.announce(phraseFor(it)) }
+        result.announce?.let { announce(it) }
     }
 
-    private fun phraseFor(ahead: CameraAhead): String {
-        val meters = CameraAheadDetector.spokenDistanceMeters(ahead.distanceM)
+    private fun announce(ahead: CameraAhead) {
+        val distance = CameraAheadDetector.spokenDistanceMeters(ahead.distanceM)
         val limit = ahead.camera.limitKmh
-        return if (limit != null) {
-            getString(R.string.alert_speed_camera_with_limit, meters, limit)
+        // A limit without a recorded fragment (new data) still gets the distance announced.
+        if (limit != null && limit in phraseCatalog.slots["limit"].orEmpty()) {
+            voicePlayer.speak("speed_camera_ahead_limit", mapOf("distance" to distance, "limit" to limit))
         } else {
-            getString(R.string.alert_speed_camera, meters)
+            voicePlayer.speak("speed_camera_ahead", mapOf("distance" to distance))
         }
     }
 

@@ -1,17 +1,19 @@
 package cc.nekocat.waylamaps.voice.di
 
-import cc.nekocat.waylamaps.voice.Announcer
-import cc.nekocat.waylamaps.voice.TtsAnnouncer
-import dagger.Binds
+import android.content.Context
+import cc.nekocat.waylamaps.voice.PhraseCatalog
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ServiceComponent
-import dagger.hilt.android.scopes.ServiceScoped
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 @Module
-@InstallIn(ServiceComponent::class)
-abstract class VoiceModule {
-    @Binds
-    @ServiceScoped
-    abstract fun bindAnnouncer(impl: TtsAnnouncer): Announcer
+@InstallIn(SingletonComponent::class)
+object VoiceModule {
+    @Provides
+    @Singleton
+    fun providePhraseCatalog(@ApplicationContext context: Context): PhraseCatalog =
+        context.assets.open(PhraseCatalog.ASSET_PATH).bufferedReader().use { PhraseCatalog.parse(it.readText()) }
 }
