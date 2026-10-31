@@ -31,6 +31,7 @@ import cc.nekocat.waylamaps.navigation.SavedPlaces
 import cc.nekocat.waylamaps.navigation.SavedPlacesData
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.navigation.TravelModePreference
+import cc.nekocat.waylamaps.navigation.Trip
 import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
 import cc.nekocat.waylamaps.navigation.TurnUpdate
 import cc.nekocat.waylamaps.service.RideController
@@ -71,7 +72,12 @@ class CharacterModel(val id: String, val name: String, val bytes: ByteArray, val
 data class SearchState(
     val suggestions: List<PlaceSuggestion> = emptyList(),
     val failed: Boolean = false,
+    /** The destination whose route is shown; null while searching. */
     val selected: PlaceSuggestion? = null,
+    /** The planned ride, kept while searching for a stop to add to it. */
+    val trip: Trip? = null,
+    /** The search is for a stop on [trip], not a new destination. */
+    val addingStop: Boolean = false,
 )
 
 data class MapUiState(
@@ -197,20 +203,49 @@ class MapViewModel @Inject constructor(
 
     fun onQueryChange(text: String) {
         query = text
-        if (search.value.selected != null) search.update { it.copy(selected = null) }
+        // Typing over a chosen destination starts a new search; the trip goes with it.
+        if (search.value.selected != null) search.update { SearchState() }
     }
 
-    /** Picks a destination and shows the route to it, like tapping a search result in Google Maps. */
+    /**
+     * Picks a destination and shows the route to it, like tapping a search result in Google Maps.
+     * While adding a stop, [suggestion] becomes the trip's next stop instead.
+     */
     fun select(suggestion: PlaceSuggestion) {
         places.endSession()
-        query = suggestion.name
-        search.value = SearchState(selected = suggestion)
         savedPlaces.addRecent(suggestion)
-        session.preview(suggestion)
+        val current = search.value
+        val trip = current.trip?.takeIf { current.addingStop }?.withStop(suggestion) ?: Trip(suggestion)
+        showTrip(trip)
+    }
+
+    /** Searches for a stop to add before the destination; the route stays on the map meanwhile. */
+    fun startAddingStop() {
+        val trip = search.value.trip ?: return
+        if (!trip.canAddStop) return
+        query = ""
+        search.value = SearchState(trip = trip, addingStop = true)
+    }
+
+    fun removeStop(index: Int) = search.value.trip?.let { showTrip(it.withoutStop(index)) }
+
+    fun moveStop(index: Int, by: Int) = search.value.trip?.let { showTrip(it.movingStop(index, by)) }
+
+    private fun showTrip(trip: Trip) {
+        query = trip.destination.name
+        search.value = SearchState(selected = trip.destination, trip = trip)
+        session.preview(trip)
     }
 
     fun clearSearch() {
         places.endSession()
+        // Leaving the stop search goes back to the trip, not to an empty map.
+        val current = search.value
+        if (current.addingStop && current.trip != null) {
+            query = current.trip.destination.name
+            search.value = SearchState(selected = current.trip.destination, trip = current.trip)
+            return
+        }
         query = ""
         search.value = SearchState()
         if (session.state.value !is GuidanceState.Guiding) session.stop()
@@ -221,14 +256,14 @@ class MapViewModel @Inject constructor(
         travelMode.set(mode)
         voice.speak(mode.confirmationPhrase())
         // A previewed route is for the old vehicle; route again.
-        search.value.selected?.let { if (session.state.value !is GuidanceState.Guiding) session.preview(it) }
+        search.value.trip?.let { if (session.state.value !is GuidanceState.Guiding) session.preview(it) }
     }
 
     fun startNavigation(simulate: Boolean) {
         if (session.state.value is GuidanceState.Previewing) {
             session.confirm(simulate)
         } else {
-            search.value.selected?.let { session.start(it, simulate) }
+            search.value.trip?.let { session.start(it, simulate) }
         }
     }
 

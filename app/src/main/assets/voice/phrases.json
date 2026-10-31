@@ -589,6 +589,10 @@
     "average_speed_tunnel": {
       "zh-TW": "隧道內收不到 GPS，請保持穩定車速",
       "en": "No GPS in the tunnel. Keep a steady speed"
+    },
+    "stop_reached": {
+      "zh-TW": "已到達停靠點，繼續前往下一站",
+      "en": "Stop reached. On to the next one"
     }
   },
   "phrases": {
@@ -1003,6 +1007,17 @@
         ],
         "en": [
           "average_speed_tunnel"
+        ]
+      }
+    },
+    "stop_reached": {
+      "priority": "TURN",
+      "fragments": {
+        "zh-TW": [
+          "stop_reached"
+        ],
+        "en": [
+          "stop_reached"
         ]
       }
     }

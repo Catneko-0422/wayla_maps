@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.nekocat.waylamaps.BuildConfig
 import cc.nekocat.waylamaps.R
+import androidx.compose.foundation.layout.Box
+import cc.nekocat.waylamaps.navigation.Trip
 import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.PlaceSuggestion
 import cc.nekocat.waylamaps.navigation.RouteFailure
@@ -73,21 +75,24 @@ class BrowseActions(
     val onAlertsChange: (Boolean) -> Unit,
     val onAddPointHere: () -> Unit,
     val onOpenSettings: () -> Unit,
+    val onAddStop: () -> Unit,
+    val onRemoveStop: (index: Int) -> Unit,
+    val onMoveStop: (index: Int, by: Int) -> Unit,
 )
 
 /** A rounded search field with a settings button, floating over the map. */
 @Composable
-fun SearchBar(query: String, actions: BrowseActions, modifier: Modifier = Modifier) {
+fun SearchBar(query: String, actions: BrowseActions, modifier: Modifier = Modifier, addingStop: Boolean = false) {
     Surface(shape = RoundedCornerShape(28.dp), shadowElevation = 6.dp, modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextField(
                 value = query,
                 onValueChange = actions.onQueryChange,
                 singleLine = true,
-                placeholder = { Text(stringResource(R.string.search_hint)) },
+                placeholder = { Text(stringResource(if (addingStop) R.string.stop_search_hint else R.string.search_hint)) },
                 leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
                 trailingIcon = {
-                    if (query.isNotEmpty()) {
+                    if (query.isNotEmpty() || addingStop) {
                         IconButton(onClick = actions.onClearSearch) {
                             Icon(painterResource(R.drawable.ic_close), stringResource(R.string.action_clear))
                         }
@@ -145,10 +150,28 @@ fun RideStatusRow(state: MapUiState, onAlertsChange: (Boolean) -> Unit) {
 @Composable
 fun DestinationContent(state: MapUiState, saved: SavedPlacesData, query: String, actions: BrowseActions) {
     val selected = state.search.selected
+    if (state.search.addingStop) AddingStopHeader(actions)
     when {
         selected != null -> RouteContent(state, selected, saved, actions)
         query.isBlank() -> SavedPlacesList(saved, actions)
         else -> SuggestionList(state, actions)
+    }
+}
+
+/** While searching for a stop: what the search is for, and a way back to the trip. */
+@Composable
+private fun AddingStopHeader(actions: BrowseActions) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(painterResource(R.drawable.ic_add), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Text(
+            stringResource(R.string.stop_adding),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 8.dp),
+        )
+        TextButton(onClick = actions.onClearSearch) { Text(stringResource(R.string.action_cancel)) }
     }
 }
 
@@ -253,6 +276,8 @@ private fun RouteContent(state: MapUiState, destination: PlaceSuggestion, saved:
         }
     }
 
+    state.search.trip?.let { trip -> StopsList(trip, guidance as? GuidanceState.Previewing, actions) }
+
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         TravelMode.entries.forEachIndexed { index, mode ->
             SegmentedButton(
@@ -321,6 +346,82 @@ private fun RouteContent(state: MapUiState, destination: PlaceSuggestion, saved:
             Text(
                 stringResource(if (isWork) R.string.place_unset_work else R.string.place_set_work),
                 modifier = Modifier.padding(start = 6.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The trip in order (here, each stop, the destination) with the time to each stop, and buttons to
+ * reorder or drop stops and to add one. Only shown before guidance, so there is no typing on the
+ * move.
+ */
+@Composable
+private fun StopsList(trip: Trip, preview: GuidanceState.Previewing?, actions: BrowseActions) {
+    if (trip.stops.isNotEmpty()) {
+        Column {
+            StopLine(R.drawable.ic_navigation, stringResource(R.string.stop_from_here), null)
+            trip.stops.forEachIndexed { index, stop ->
+                val eta = preview?.waypointSeconds?.getOrNull(index)?.let { formatDuration(it) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) {
+                        StopLine(R.drawable.ic_place, stringResource(R.string.stop_label, index + 1, stop.name), eta)
+                    }
+                    // Reordering needs two stops; with one, the name gets the room.
+                    if (trip.stops.size > 1) {
+                        IconButton(onClick = { actions.onMoveStop(index, -1) }, enabled = index > 0) {
+                            Icon(painterResource(R.drawable.ic_arrow_upward), stringResource(R.string.stop_move_up))
+                        }
+                        IconButton(onClick = { actions.onMoveStop(index, 1) }, enabled = index < trip.stops.lastIndex) {
+                            Icon(painterResource(R.drawable.ic_arrow_downward), stringResource(R.string.stop_move_down))
+                        }
+                    }
+                    IconButton(onClick = { actions.onRemoveStop(index) }) {
+                        Icon(painterResource(R.drawable.ic_close), stringResource(R.string.stop_remove))
+                    }
+                }
+            }
+            StopLine(
+                R.drawable.ic_place,
+                trip.destination.name,
+                preview?.waypointSeconds?.lastOrNull()?.let { formatDuration(it) },
+                destination = true,
+            )
+        }
+    }
+    if (trip.canAddStop) {
+        TextButton(onClick = actions.onAddStop, modifier = Modifier.heightIn(min = 48.dp)) {
+            Icon(painterResource(R.drawable.ic_add), contentDescription = null, modifier = Modifier.size(20.dp))
+            Text(stringResource(R.string.stop_add), modifier = Modifier.padding(start = 6.dp))
+        }
+    }
+}
+
+@Composable
+private fun StopLine(@DrawableRes icon: Int, text: String, eta: String?, destination: Boolean = false) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 40.dp)) {
+        Icon(
+            painterResource(icon),
+            contentDescription = null,
+            tint = if (destination) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (destination) FontWeight.Bold else FontWeight.Normal,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .padding(start = 10.dp),
+        )
+        eta?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp),
             )
         }
     }

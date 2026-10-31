@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.nekocat.waylamaps.R
+import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.TurnUpdate
 import cc.nekocat.waylamaps.ui.main.MainUiState
 import cc.nekocat.waylamaps.ui.theme.WaylaPalette
@@ -224,7 +225,14 @@ private const val VOICE_LABEL_MS = 2_000L
 
 /** Arrival time, distance and time left, with the button that ends the trip. */
 @Composable
-fun TripPill(turn: TurnUpdate?, onStop: () -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
+fun TripPill(
+    turn: TurnUpdate?,
+    onStop: () -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    /** While stops remain, the pill names the next one; times are still to the destination. */
+    nextStop: GuidanceState.Guiding? = null,
+) {
     Surface(shape = CARD_SHAPE, shadowElevation = 6.dp, modifier = modifier) {
         Row(
             Modifier.padding(start = 18.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
@@ -240,7 +248,18 @@ fun TripPill(turn: TurnUpdate?, onStop: () -> Unit, modifier: Modifier = Modifie
                 meters?.let { add(formatDistance(it)) }
                 seconds?.let { add(formatDuration(it)) }
             }
-            Box(Modifier.widthIn(min = if (compact) 0.dp else 120.dp)) {
+            Column(Modifier.widthIn(min = if (compact) 0.dp else 120.dp)) {
+                nextStop?.takeIf { it.stopsLeft > 0 }?.let { guiding ->
+                    Text(
+                        stringResource(R.string.stop_next, guiding.next.name) + "・" +
+                            stringResource(R.string.stop_left, guiding.stopsLeft),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = if (compact) 160.dp else 360.dp),
+                    )
+                }
                 if (compact) {
                     // Arrival time on top, distance and time left below, to fit beside the character.
                     Column {

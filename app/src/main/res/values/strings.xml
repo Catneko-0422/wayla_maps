@@ -146,6 +146,17 @@
     <string name="settings_version">Version %1$s</string>
     <string name="car_places">Destinations</string>
     <string name="car_no_places">No saved places yet. Search, or set home and work on the phone.</string>
+    <string name="stop_add">Add a stop</string>
+    <string name="stop_adding">Add a stop on the way</string>
+    <string name="stop_search_hint">Search for a stop</string>
+    <string name="stop_from_here">Your location</string>
+    <string name="stop_label">Stop %1$d: %2$s</string>
+    <string name="stop_move_up">Earlier</string>
+    <string name="stop_move_down">Later</string>
+    <string name="stop_remove">Remove stop</string>
+    <string name="stop_next">Next: %1$s</string>
+    <string name="stop_left">%1$d stops left</string>
+    <string name="action_cancel">Cancel</string>
     <string name="settings_voice_boost">Voice volume</string>
     <string name="settings_voice_boost_summary">On top of the phone\'s media volume, for wind noise and loud cars. Turn the media volume up too.</string>
     <string name="voice_boost_normal">Normal</string>

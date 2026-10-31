@@ -175,6 +175,10 @@ class RideService : LifecycleService() {
             navigation.state.collect { state ->
                 if (state !is GuidanceState.Guiding) turnPlanner.reset()
                 if (state is GuidanceState.Arrived && previous is GuidanceState.Guiding) voicePlayer.speak("arrived")
+                val before = previous
+                if (state is GuidanceState.Guiding && before is GuidanceState.Guiding && state.reached > before.reached) {
+                    voicePlayer.speak("stop_reached")
+                }
                 previous = state
             }
         }

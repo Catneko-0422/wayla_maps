@@ -122,6 +122,9 @@ fun MapScreen(
         onAlertsChange = { on -> if (on) enableAlerts() else viewModel.setAlertsEnabled(false) },
         onAddPointHere = viewModel::addPointHere,
         onOpenSettings = onOpenSettings,
+        onAddStop = viewModel::startAddingStop,
+        onRemoveStop = viewModel::removeStop,
+        onMoveStop = viewModel::moveStop,
     )
     val characterModel by viewModel.characterModel.collectAsStateWithLifecycle()
     val turn by viewModel.turn.collectAsStateWithLifecycle()
@@ -207,7 +210,8 @@ fun MapScreen(
                 guiding -> MapFrame(SIDE_INSET, SIDE_INSET, TRIP_PILL_CLEARANCE, topDown = !landscape, logoOnRight = true)
                 landscape -> MapFrame(left = LANDSCAPE_PANEL_WIDTH + PANEL_MARGIN * 2)
                 // As in portrait guidance: the character on the left, the logo bottom right.
-                else -> MapFrame(bottom = sheetCover + SHEET_MAP_GAP, logoOnRight = true)
+                // The top inset keeps a previewed route out from under the search bar.
+                else -> MapFrame(bottom = sheetCover + SHEET_MAP_GAP, top = SEARCH_BAR_CLEARANCE, logoOnRight = true)
             }
             LaunchedEffect(wanted) { frame = wanted }
 
@@ -261,7 +265,7 @@ fun MapScreen(
                             Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            SearchBar(query, actions)
+                            SearchBar(query, actions, addingStop = state.search.addingStop)
                             Column(
                                 Modifier
                                     .weight(1f)
@@ -276,10 +280,12 @@ fun MapScreen(
                 else -> {
                     val sheetState = rememberBottomSheetScaffoldState()
                     // Results and the route preview need room; an idle sheet stays small.
-                    val wantsRoom = query.isNotBlank() || state.search.selected != null
+                    val wantsRoom = query.isNotBlank() || state.search.selected != null || state.search.addingStop
                     // Read here: inside sheetContent the implicit receiver hides maxHeight.
                     val sheetMaxHeight = maxHeight * SHEET_MAX_FRACTION
-                    LaunchedEffect(wantsRoom) {
+                    // Also on new content (a stop search, its results), which a dragged-down sheet would hide.
+                    val sheetContent = Triple(wantsRoom, state.search.addingStop, state.search.suggestions.isNotEmpty())
+                    LaunchedEffect(sheetContent) {
                         if (wantsRoom) sheetState.bottomSheetState.expand() else sheetState.bottomSheetState.partialExpand()
                     }
                     val density = LocalDensity.current
@@ -338,7 +344,12 @@ fun MapScreen(
                                 }
                             }
                             // Clear of the compass in the top right corner.
-                            SearchBar(query, actions, Modifier.padding(start = 12.dp, top = 12.dp, end = 72.dp))
+                            SearchBar(
+                                query,
+                                actions,
+                                Modifier.padding(start = 12.dp, top = 12.dp, end = 72.dp),
+                                addingStop = state.search.addingStop,
+                            )
                         }
                     }
                 }
@@ -362,11 +373,12 @@ private fun BrowseBody(
         LockedPanel(state, null, onUnlock, Modifier.fillMaxWidth())
         return
     }
-    // A chosen destination needs the room for its route and the start button.
-    if (state.search.selected == null) RideStatusRow(state, actions.onAlertsChange)
+    // A chosen destination or a stop search needs the room for itself.
+    val planning = state.search.selected != null || state.search.addingStop
+    if (!planning) RideStatusRow(state, actions.onAlertsChange)
     if (locationDenied) LocationDeniedNotice { context.openAppSettings() }
     DestinationContent(state, saved, query, actions)
-    if (state.search.selected == null) PanelFooter(actions)
+    if (!planning) PanelFooter(actions)
 }
 
 @Composable
@@ -422,6 +434,7 @@ private fun GuidanceLayout(
     controls: @Composable (vertical: Boolean, modifier: Modifier) -> Unit,
     map: @Composable () -> Unit,
 ) {
+    val guiding = state.guidance as? GuidanceState.Guiding
     Box(Modifier.fillMaxSize()) {
         map()
         // Landscape: the character stands on the left, the full height of the screen, with what
@@ -483,7 +496,7 @@ private fun GuidanceLayout(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 controls(false, Modifier)
-                TripPill(turn, onStop)
+                TripPill(turn, onStop, nextStop = guiding)
             }
         } else {
             // Halfway down the right edge, between the cards and the logo above the trip pill.
@@ -496,6 +509,7 @@ private fun GuidanceLayout(
                     .padding(12.dp),
                 // Two lines, narrow enough to sit beside the character.
                 compact = characterModel != null,
+                nextStop = guiding,
             )
         }
     }
@@ -595,6 +609,7 @@ private val FOLLOW_BUTTON_PADDING = PaddingValues(top = 72.dp, end = 12.dp)
 private val PANEL_MARGIN = 12.dp
 private val SHEET_PEEK_HEIGHT = 128.dp
 private val SHEET_MAP_GAP = 8.dp
+private val SEARCH_BAR_CLEARANCE = 76.dp
 private const val SHEET_SETTLE_MS = 250L
 private const val SHEET_MAX_FRACTION = 0.7f
 
