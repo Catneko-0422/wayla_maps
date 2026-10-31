@@ -6,8 +6,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** A sentence being spoken right now, for the character's speech bubble and mouth. */
-data class Speech(val text: String, val priority: Priority, val startedAtMs: Long)
+/**
+ * A sentence being spoken right now, for the character's speech bubble, mouth and reaction.
+ * [phraseId] says what it is about, e.g. "arrived"; free text uses its own key.
+ */
+data class Speech(val text: String, val priority: Priority, val startedAtMs: Long, val phraseId: String? = null)
 
 /** What any voice player is saying, shared with the UI. */
 @Singleton

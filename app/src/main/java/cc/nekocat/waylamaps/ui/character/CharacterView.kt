@@ -22,13 +22,10 @@ import cc.nekocat.waylamaps.character.ModelSpec
 import cc.nekocat.waylamaps.voice.Speech
 import com.google.android.filament.Engine
 import com.google.android.filament.utils.Utils
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
- * A character's 3D model on a transparent background, blinking, swaying a little and moving
- * its mouth while [speech] is being said. Renders at most [FRAME_RATE] frames per second and
+ * A character's 3D model on a transparent background, blinking, moving its mouth while
+ * [speech] is being said, and reacting to it with a mood and a gesture (see CharacterDirector). Renders at most [FRAME_RATE] frames per second and
  * only while the screen is resumed.
  */
 @Composable
@@ -56,8 +53,8 @@ fun CharacterView(model: ByteArray, spec: ModelSpec, speech: Speech?, modifier: 
 
     DisposableEffect(viewer, lifecycle) {
         val current = viewer ?: return@DisposableEffect onDispose { }
-        val face = FaceAnimator()
-        val morphs = current.morphTargets(spec)
+        val rig = CharacterRig(current, spec)
+        val director = CharacterDirector()
         var lastFrame = 0L
         val callback = object : Choreographer.FrameCallback {
             override fun doFrame(frameTimeNanos: Long) {
@@ -67,8 +64,7 @@ fun CharacterView(model: ByteArray, spec: ModelSpec, speech: Speech?, modifier: 
                 lastFrame = frameTimeNanos
                 // Same clock as Speech.startedAtMs.
                 val nowMs = SystemClock.elapsedRealtime()
-                current.applyFace(morphs, face.weights(nowMs, currentSpeech?.startedAtMs))
-                current.sway(nowMs)
+                rig.update(nowMs, director.update(nowMs, currentSpeech))
                 current.render(frameTimeNanos)
             }
         }
@@ -87,55 +83,6 @@ fun CharacterView(model: ByteArray, spec: ModelSpec, speech: Speech?, modifier: 
     }
 
     AndroidView(factory = { textureView }, modifier = modifier)
-}
-
-/** Renderable entity and morph target index for each face morph the model has. */
-private class MorphTargets(val entity: Int, val count: Int, val indices: Map<FaceAnimator.Morph, Int>)
-
-private fun CharacterRenderer.morphTargets(spec: ModelSpec): MorphTargets? {
-    val asset = asset ?: return null
-    val names = mapOf(
-        FaceAnimator.Morph.BLINK to spec.morphs.blink,
-        FaceAnimator.Morph.A to spec.morphs.a,
-        FaceAnimator.Morph.I to spec.morphs.i,
-        FaceAnimator.Morph.U to spec.morphs.u,
-        FaceAnimator.Morph.E to spec.morphs.e,
-        FaceAnimator.Morph.O to spec.morphs.o,
-    )
-    for (entity in asset.renderableEntities) {
-        val targets = asset.getMorphTargetNames(entity)
-        if (targets.isEmpty()) continue
-        val indices = names.mapNotNull { (morph, name) -> name?.let { targets.indexOf(it) }?.takeIf { it >= 0 }?.let { morph to it } }.toMap()
-        if (indices.isNotEmpty()) return MorphTargets(entity, targets.size, indices)
-    }
-    return null
-}
-
-private fun CharacterRenderer.applyFace(targets: MorphTargets?, weights: Map<FaceAnimator.Morph, Float>) {
-    if (targets == null || !alive) return
-    val values = FloatArray(targets.count)
-    for ((morph, index) in targets.indices) values[index] = weights[morph] ?: 0f
-    val rm = engine.renderableManager
-    rm.setMorphWeights(rm.getInstance(targets.entity), values, 0)
-}
-
-/** A slow sway and breathing bob of the whole model. */
-private fun CharacterRenderer.sway(nowMs: Long) {
-    val asset = asset ?: return
-    val t = nowMs / 1000.0
-    val angle = 0.04 * sin(2 * PI * t / 6)
-    val bob = (0.004 * sin(2 * PI * t / 4)).toFloat()
-    val c = cos(angle).toFloat()
-    val s = sin(angle).toFloat()
-    // Column-major rotation about Y plus a small vertical offset.
-    val matrix = floatArrayOf(
-        c, 0f, -s, 0f,
-        0f, 1f, 0f, 0f,
-        s, 0f, c, 0f,
-        0f, bob, 0f, 1f,
-    )
-    val tm = engine.transformManager
-    tm.setTransform(tm.getInstance(asset.root), matrix)
 }
 
 /** Whether a Vulkan engine can be created here; tried once per process. */

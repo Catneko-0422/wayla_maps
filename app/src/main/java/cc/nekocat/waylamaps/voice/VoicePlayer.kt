@@ -210,7 +210,7 @@ class VoicePlayer @Inject constructor(
 
     private fun announce(prompt: Prompt, text: String) {
         speechState.finished(speech)
-        speech = Speech(text, prompt.priority, SystemClock.elapsedRealtime()).also { speechState.started(it) }
+        speech = Speech(text, prompt.priority, SystemClock.elapsedRealtime(), prompt.phraseId).also { speechState.started(it) }
     }
 
     private fun finish(prompt: Prompt) {

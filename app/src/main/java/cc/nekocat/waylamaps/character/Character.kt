@@ -49,6 +49,10 @@ data class ModelSpec(
     val focusHeight: Float = 1.2f,
     /** Distance of the camera from the target, in meters. */
     val cameraDistance: Float = 1.1f,
+    /** Morph weights for each mood, e.g. "happy" to {"mouth_smile": 1}; see CharacterMood. */
+    val expressions: Map<String, Map<String, Float>> = emptyMap(),
+    /** glTF animation name for each motion, e.g. "idle", "salute"; see CharacterMotion. */
+    val motions: Map<String, String> = emptyMap(),
 )
 
 @Serializable
