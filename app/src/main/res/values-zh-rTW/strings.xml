@@ -57,4 +57,9 @@
     <string name="settings_match_elevation">高架上下的照相不提醒</string>
     <string name="settings_match_elevation_summary">在高架下行駛時不提醒高架上的照相，在高架上時也不提醒下面的照相。</string>
     <string name="settings_voice_demo">試聽語音</string>
+    <string name="add_point_here">在這裡新增提醒點</string>
+    <string name="settings_user_points">自建提醒點</string>
+    <string name="settings_user_points_empty">還沒有自建提醒點。停車時可以在主畫面按「在這裡新增提醒點」。</string>
+    <string name="user_point_label">提醒點 %1$d</string>
+    <string name="action_delete">刪除</string>
 </resources>

@@ -62,4 +62,9 @@
     <string name="settings_match_elevation">Skip cameras above or below me</string>
     <string name="settings_match_elevation_summary">Cameras on an elevated road are not announced while you ride under it, and the other way round.</string>
     <string name="settings_voice_demo">Play voice sample</string>
+    <string name="add_point_here">Add a reminder point here</string>
+    <string name="settings_user_points">Your reminder points</string>
+    <string name="settings_user_points_empty">No reminder points yet. While stopped, use “Add a reminder point here” on the main screen.</string>
+    <string name="user_point_label">Point %1$d</string>
+    <string name="action_delete">Delete</string>
 </resources>

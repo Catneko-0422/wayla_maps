@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import cc.nekocat.waylamaps.data.db.EnforcementPointDao
 import cc.nekocat.waylamaps.data.db.SpeedCameraDao
+import cc.nekocat.waylamaps.data.db.UserPointDao
 import cc.nekocat.waylamaps.data.db.WaylaDatabase
 import dagger.Module
 import dagger.Provides
@@ -25,4 +26,7 @@ object DataModule {
 
     @Provides
     fun provideEnforcementPointDao(db: WaylaDatabase): EnforcementPointDao = db.enforcementPointDao()
+
+    @Provides
+    fun provideUserPointDao(db: WaylaDatabase): UserPointDao = db.userPointDao()
 }

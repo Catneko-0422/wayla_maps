@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
@@ -26,14 +28,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cc.nekocat.waylamaps.R
+import cc.nekocat.waylamaps.alerts.UserPoint
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.ui.labelRes
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /** Ride settings. Opened only while not navigating; nothing here needs typing. */
 @Composable
 fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val travelMode by viewModel.travelMode.collectAsStateWithLifecycle()
     val matchElevation by viewModel.matchElevation.collectAsStateWithLifecycle()
+    val userPoints by viewModel.userPoints.collectAsStateWithLifecycle()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         LazyColumn(
@@ -81,9 +89,33 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 OutlinedButton(onClick = viewModel::playVoiceDemo, modifier = Modifier.padding(top = 16.dp)) {
                     Text(stringResource(R.string.settings_voice_demo))
                 }
+                SectionTitle(stringResource(R.string.settings_user_points))
+                if (userPoints.isEmpty()) {
+                    Text(
+                        stringResource(R.string.settings_user_points_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            items(userPoints, key = { it.id }) { point ->
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.user_point_label, point.id)) },
+                    supportingContent = { Text(describe(point)) },
+                    trailingContent = {
+                        TextButton(onClick = { viewModel.deletePoint(point) }) { Text(stringResource(R.string.action_delete)) }
+                    },
+                )
             }
         }
     }
+}
+
+private val POINT_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
+private fun describe(point: UserPoint): String {
+    val time = Instant.ofEpochMilli(point.createdAt).atZone(ZoneId.systemDefault()).format(POINT_TIME)
+    return String.format(Locale.ROOT, "%s · %.5f, %.5f", time, point.lat, point.lng)
 }
 
 @Composable

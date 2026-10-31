@@ -3,8 +3,10 @@ package cc.nekocat.waylamaps.ui.map
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.location.Location
 import android.location.LocationManager
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,6 +15,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cc.nekocat.waylamaps.alerts.AlertSessionState
+import cc.nekocat.waylamaps.data.UserPointRepository
 import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.NavigationController
 import cc.nekocat.waylamaps.navigation.NavigationSession
@@ -75,6 +78,7 @@ class MapViewModel @Inject constructor(
     private val travelMode: TravelModePreference,
     private val places: PlacesSearch,
     private val voice: VoiceFeedback,
+    private val userPoints: UserPointRepository,
 ) : ViewModel() {
     private val search = MutableStateFlow(SearchState())
 
@@ -158,8 +162,29 @@ class MapViewModel @Inject constructor(
     /** Callers make sure location permission is granted before enabling. */
     fun setAlertsEnabled(enabled: Boolean) = rideController.setAlertsEnabled(enabled)
 
+    /**
+     * Saves a reminder point at the current position. Only while standing still with a recent
+     * fix, so a point is never added on the move or at a stale position.
+     */
+    fun addPointHere() {
+        val location = lastKnownLocation()
+        val ageMs = location?.let { (SystemClock.elapsedRealtimeNanos() - it.elapsedRealtimeNanos) / 1_000_000 }
+        val moving = location != null && location.hasSpeed() && location.speed * 3.6 > MAX_ADD_POINT_SPEED_KMH
+        if (location == null || ageMs == null || ageMs > MAX_FIX_AGE_MS || moving) {
+            voice.speak("point_add_failed")
+            return
+        }
+        viewModelScope.launch {
+            userPoints.add(location.latitude, location.longitude, System.currentTimeMillis())
+            voice.speak("point_added")
+        }
+    }
+
+    private fun lastKnownPosition(): LatLng? = lastKnownLocation()?.let { LatLng(it.latitude, it.longitude) }
+
+    /** The most recent last-known location from any provider. */
     @SuppressLint("MissingPermission")
-    private fun lastKnownPosition(): LatLng? {
+    private fun lastKnownLocation(): Location? {
         if (!context.hasLocationPermission()) return null
         val manager = context.getSystemService(LocationManager::class.java)
         val providers = buildList {
@@ -169,8 +194,8 @@ class MapViewModel @Inject constructor(
         }
         return providers
             .filter { manager.allProviders.contains(it) }
-            .firstNotNullOfOrNull { manager.getLastKnownLocation(it) }
-            ?.let { LatLng(it.latitude, it.longitude) }
+            .mapNotNull { manager.getLastKnownLocation(it) }
+            .maxByOrNull { it.elapsedRealtimeNanos }
     }
 
     private companion object {
@@ -178,5 +203,7 @@ class MapViewModel @Inject constructor(
         const val SEARCH_DEBOUNCE_MS = 350L
         const val MIN_QUERY_LENGTH = 2
         const val MAX_SUGGESTIONS = 6
+        const val MAX_FIX_AGE_MS = 30_000L
+        const val MAX_ADD_POINT_SPEED_KMH = 5.0
     }
 }

@@ -60,7 +60,8 @@
       "type_pedestrian",
       "type_turn",
       "type_noise",
-      "type_following_distance"
+      "type_following_distance",
+      "type_user_point"
     ],
     "context": [
       "ctx_freeway_1",
@@ -551,6 +552,22 @@
     "voice_demo": {
       "zh-TW": "這是 Wayla 的聲音，接下來由我陪你上路",
       "en": "This is Wayla. I will ride along with you"
+    },
+    "type_user_point": {
+      "zh-TW": "自建提醒點",
+      "en": "Your reminder point"
+    },
+    "point_added": {
+      "zh-TW": "已加入提醒點",
+      "en": "Reminder point added"
+    },
+    "point_add_failed": {
+      "zh-TW": "加入失敗，請停車並確認已經定位",
+      "en": "Could not add the point. Stop and make sure your location is known"
+    },
+    "point_deleted": {
+      "zh-TW": "已刪除提醒點",
+      "en": "Reminder point deleted"
     }
   },
   "phrases": {
@@ -888,6 +905,39 @@
         ],
         "en": [
           "voice_demo"
+        ]
+      }
+    },
+    "point_added": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "point_added"
+        ],
+        "en": [
+          "point_added"
+        ]
+      }
+    },
+    "point_add_failed": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "point_add_failed"
+        ],
+        "en": [
+          "point_add_failed"
+        ]
+      }
+    },
+    "point_deleted": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "point_deleted"
+        ],
+        "en": [
+          "point_deleted"
         ]
       }
     }

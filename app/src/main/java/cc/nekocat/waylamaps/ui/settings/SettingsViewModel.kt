@@ -1,12 +1,19 @@
 package cc.nekocat.waylamaps.ui.settings
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import cc.nekocat.waylamaps.alerts.UserPoint
+import cc.nekocat.waylamaps.data.UserPointRepository
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.service.RidePreferences
 import cc.nekocat.waylamaps.ui.confirmationPhrase
 import cc.nekocat.waylamaps.voice.VoiceFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -14,9 +21,12 @@ class SettingsViewModel @Inject constructor(
     private val travelModePreference: TravelModePreference,
     private val ridePreferences: RidePreferences,
     private val voice: VoiceFeedback,
+    private val userPointRepository: UserPointRepository,
 ) : ViewModel() {
     val travelMode = travelModePreference.mode
     val matchElevation = ridePreferences.matchElevation
+    val userPoints: StateFlow<List<UserPoint>> =
+        userPointRepository.all.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun setTravelMode(mode: TravelMode) {
         if (mode == travelMode.value) return
@@ -30,4 +40,11 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun playVoiceDemo() = voice.speak("voice_demo")
+
+    fun deletePoint(point: UserPoint) {
+        viewModelScope.launch {
+            userPointRepository.delete(point.id)
+            voice.speak("point_deleted")
+        }
+    }
 }

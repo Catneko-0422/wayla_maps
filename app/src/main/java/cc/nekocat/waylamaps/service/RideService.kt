@@ -31,9 +31,11 @@ import cc.nekocat.waylamaps.alerts.Geo
 import cc.nekocat.waylamaps.alerts.GeoPoint
 import cc.nekocat.waylamaps.alerts.NearbyOnceNotifier
 import cc.nekocat.waylamaps.alerts.OverLimitWarner
+import cc.nekocat.waylamaps.alerts.AlertDescription
 import cc.nekocat.waylamaps.alerts.RouteCameraMatcher
 import cc.nekocat.waylamaps.alerts.camera
 import cc.nekocat.waylamaps.data.SpeedCameraRepository
+import cc.nekocat.waylamaps.data.UserPointRepository
 import cc.nekocat.waylamaps.data.enforcement.EnforcementRepository
 import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.NavigationSession
@@ -72,6 +74,7 @@ import kotlin.math.roundToInt
 class RideService : LifecycleService() {
     @Inject lateinit var repository: SpeedCameraRepository
     @Inject lateinit var enforcementRepository: EnforcementRepository
+    @Inject lateinit var userPoints: UserPointRepository
     @Inject lateinit var sessionState: AlertSessionState
     @Inject lateinit var voicePlayer: VoicePlayer
     @Inject lateinit var phraseCatalog: PhraseCatalog
@@ -86,6 +89,8 @@ class RideService : LifecycleService() {
     private val routeMatcher = RouteCameraMatcher()
     private val enforcementDetector = CameraAheadDetector()
     private val enforcementRouteMatcher = RouteCameraMatcher()
+    private val userPointDetector = CameraAheadDetector()
+    private val userPointRouteMatcher = RouteCameraMatcher()
     private val overLimit = OverLimitWarner()
     private val parkingZones = NearbyOnceNotifier()
     private val announcedCameraIds = mutableSetOf<Long>()
@@ -149,6 +154,7 @@ class RideService : LifecycleService() {
             navigation.route.collect {
                 routeMatcher.setRoute(it)
                 enforcementRouteMatcher.setRoute(it)
+                userPointRouteMatcher.setRoute(it)
             }
         }
         lifecycleScope.launch {
@@ -207,6 +213,10 @@ class RideService : LifecycleService() {
             enforcementDetector.update(fix, points)
         }
 
+        // The rider's own points: always spoken, whatever the vehicle or road level.
+        val own = userPoints.pointsNear(fix.lat, fix.lng, SEARCH_RADIUS_M)
+        val ownResult = if (onRoute) userPointRouteMatcher.update(fix, own) else userPointDetector.update(fix, own)
+
         val speedKmh = fix.speedMps?.let { it * 3.6 }
         sessionState.update {
             it.copy(
@@ -220,7 +230,10 @@ class RideService : LifecycleService() {
         result.announce?.let { announce(it, roadKnown) }
         // Enforcement points are spoken only while navigating; otherwise they are just shown.
         if (guiding != null) enforcement.announce?.let { announceEnforcement(it, roadKnown) }
-        if (result.passed != null || (guiding != null && enforcement.passed != null)) {
+        ownResult.announce?.let {
+            voicePlayer.speak(AlertPhrases.ahead(AlertDescription("type_user_point"), it.distanceM, null, limitSlots))
+        }
+        if (result.passed != null || ownResult.passed != null || (guiding != null && enforcement.passed != null)) {
             voicePlayer.speak("alert_passed")
         }
         result.next?.let { next ->

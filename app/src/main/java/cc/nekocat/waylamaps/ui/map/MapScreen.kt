@@ -75,6 +75,7 @@ private class PanelActions(
     val onTravelMode: (TravelMode) -> Unit,
     val onStart: (simulate: Boolean) -> Unit,
     val onStop: () -> Unit,
+    val onAddPointHere: () -> Unit,
     val onOpenAppSettings: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenLegal: () -> Unit,
@@ -103,6 +104,7 @@ fun MapScreen(onOpenSettings: () -> Unit, onOpenLegal: () -> Unit, viewModel: Ma
         onTravelMode = viewModel::setTravelMode,
         onStart = viewModel::startNavigation,
         onStop = viewModel::stopNavigation,
+        onAddPointHere = viewModel::addPointHere,
         onOpenAppSettings = { context.openAppSettings() },
         onOpenSettings = onOpenSettings,
         onOpenLegal = onOpenLegal,
@@ -196,6 +198,10 @@ private fun ControlPanel(
         }
 
         if (!state.guiding) {
+            // Only offered when not navigating; the view model also refuses while moving.
+            OutlinedButton(onClick = actions.onAddPointHere, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.add_point_here))
+            }
             HorizontalDivider()
             Text(
                 text = stringResource(R.string.data_attribution),
