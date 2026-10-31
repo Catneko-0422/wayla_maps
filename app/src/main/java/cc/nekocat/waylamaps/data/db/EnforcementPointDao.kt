@@ -22,6 +22,9 @@ interface EnforcementPointDao {
     @Query("SELECT COUNT(*) FROM enforcement_points WHERE source = :source")
     suspend fun count(source: String): Int
 
+    @Query("SELECT COUNT(*) FROM enforcement_points")
+    suspend fun countAll(): Int
+
     @Query("DELETE FROM enforcement_points WHERE source = :source")
     suspend fun deleteSource(source: String)
 

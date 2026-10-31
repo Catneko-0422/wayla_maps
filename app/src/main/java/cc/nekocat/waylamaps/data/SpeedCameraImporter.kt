@@ -86,6 +86,11 @@ class SpeedCameraImporter @Inject constructor(
         putString(KEY_SOURCE_SHA256, sourceSha256)
     }
 
+    /** The installed data's version (an ISO date), or null before the first import. */
+    fun installedVersion(): String? = prefs.getString(KEY_VERSION, null)
+
+    suspend fun count(): Int = dao.count()
+
     private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }
 
     private companion object {

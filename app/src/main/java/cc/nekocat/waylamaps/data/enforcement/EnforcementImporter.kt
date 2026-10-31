@@ -36,6 +36,8 @@ class EnforcementImporter @Inject constructor(
 ) {
     enum class UpdateResult { UPDATED, UNCHANGED, REJECTED, FAILED }
 
+    suspend fun count(): Int = dao.countAll()
+
     private val mutex = Mutex()
     private val prefs by lazy { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
 

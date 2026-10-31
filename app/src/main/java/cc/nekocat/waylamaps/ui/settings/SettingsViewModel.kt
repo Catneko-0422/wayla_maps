@@ -1,6 +1,13 @@
 package cc.nekocat.waylamaps.ui.settings
 
+import android.app.Application
 import android.net.Uri
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import cc.nekocat.waylamaps.data.OpenDataUpdateWorker
+import cc.nekocat.waylamaps.data.SpeedCameraImporter
+import cc.nekocat.waylamaps.data.enforcement.EnforcementImporter
+import cc.nekocat.waylamaps.voice.VoiceMode
 import androidx.lifecycle.ViewModel
 import cc.nekocat.waylamaps.character.Character
 import cc.nekocat.waylamaps.character.CharacterPackImporter
@@ -30,14 +37,37 @@ class SettingsViewModel @Inject constructor(
     private val voice: VoiceFeedback,
     private val userPointRepository: UserPointRepository,
     private val characterRepository: CharacterRepository,
+    private val application: Application,
+    private val speedCameras: SpeedCameraImporter,
+    private val enforcement: EnforcementImporter,
 ) : ViewModel() {
     val characters = characterRepository.characters
     val selectedCharacter = characterRepository.selected
 
     private val _importMessage = MutableStateFlow<CharacterPackImporter.Result?>(null)
 
-    /** Outcome of the last pack import, shown under the import button. */
+    /** Outcome of the last pack import, shown in a dialog until dismissed. */
     val importMessage: StateFlow<CharacterPackImporter.Result?> = _importMessage.asStateFlow()
+
+    private val _importing = MutableStateFlow(false)
+    val importing: StateFlow<Boolean> = _importing.asStateFlow()
+
+    val voiceMode = ridePreferences.voiceMode
+
+    /** What the installed open data covers, for the data section. */
+    data class DataSummary(val cameras: Int, val cameraVersion: String?, val enforcementPoints: Int)
+
+    enum class UpdateState { IDLE, RUNNING, DONE, FAILED }
+
+    private val _data = MutableStateFlow<DataSummary?>(null)
+    val data: StateFlow<DataSummary?> = _data.asStateFlow()
+
+    private val _update = MutableStateFlow(UpdateState.IDLE)
+    val update: StateFlow<UpdateState> = _update.asStateFlow()
+
+    init {
+        refreshData()
+    }
 
     val travelMode = travelModePreference.mode
     val matchElevation = ridePreferences.matchElevation
@@ -74,7 +104,46 @@ class SettingsViewModel @Inject constructor(
     fun deleteCharacter(character: Character) = characterRepository.delete(character)
 
     fun importCharacter(uri: Uri) {
-        viewModelScope.launch { _importMessage.value = characterRepository.import(uri) }
+        viewModelScope.launch {
+            _importing.value = true
+            try {
+                _importMessage.value = characterRepository.import(uri)
+            } finally {
+                _importing.value = false
+            }
+        }
+    }
+
+    fun dismissImportMessage() {
+        _importMessage.value = null
+    }
+
+    fun setVoiceMode(mode: VoiceMode) = ridePreferences.setVoiceMode(mode)
+
+    fun updateDataNow() {
+        if (_update.value == UpdateState.RUNNING) return
+        val id = OpenDataUpdateWorker.runNow(application)
+        _update.value = UpdateState.RUNNING
+        viewModelScope.launch {
+            WorkManager.getInstance(application).getWorkInfoByIdFlow(id).collect { info ->
+                when (info?.state) {
+                    WorkInfo.State.SUCCEEDED -> {
+                        _update.value = UpdateState.DONE
+                        refreshData()
+                    }
+                    // A retry means the download failed; WorkManager tries again later.
+                    WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> _update.value = UpdateState.FAILED
+                    WorkInfo.State.ENQUEUED -> if (info.runAttemptCount > 0) _update.value = UpdateState.FAILED
+                    else -> Unit
+                }
+            }
+        }
+    }
+
+    private fun refreshData() {
+        viewModelScope.launch {
+            _data.value = DataSummary(speedCameras.count(), speedCameras.installedVersion(), enforcement.count())
+        }
     }
 
     fun deletePoint(point: UserPoint) {

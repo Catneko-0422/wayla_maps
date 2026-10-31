@@ -6,7 +6,9 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -14,6 +16,7 @@ import cc.nekocat.waylamaps.data.enforcement.EnforcementImporter
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.io.IOException
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /** Weekly refresh of the speed cameras and the county enforcement points from open data. */
@@ -39,9 +42,19 @@ class OpenDataUpdateWorker @AssistedInject constructor(
     companion object {
         private const val TAG = "OpenDataUpdate"
         private const val WORK_NAME = "open-data-update"
+        private const val NOW_WORK_NAME = "open-data-update-now"
 
         /** Replaced by [WORK_NAME]; its worker class no longer exists. */
         private const val OLD_WORK_NAME = "speed-camera-update"
+
+        /** Updates now, from the settings screen; returns the work id to watch. */
+        fun runNow(context: Context): UUID {
+            val request = OneTimeWorkRequestBuilder<OpenDataUpdateWorker>()
+                .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(NOW_WORK_NAME, ExistingWorkPolicy.REPLACE, request)
+            return request.id
+        }
 
         fun schedule(context: Context) {
             val workManager = WorkManager.getInstance(context)
