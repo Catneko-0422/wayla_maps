@@ -1,0 +1,33 @@
+# Copy to config.toml (gitignored) and fill in. Settings for a GPT-SoVITS api_v2.py server.
+
+server_url = "http://127.0.0.1:9880"
+
+# Languages to generate. English prompts fall back to system TTS until "en" is added here.
+languages = ["zh-TW"]
+
+timeout_seconds = 120
+
+# Merged into every POST /tts request. See api_v2.py for the full list.
+[params]
+top_k = 5
+top_p = 1.0
+temperature = 1.0
+speed_factor = 1.0
+text_split_method = "cut0"   # fragments are short; do not split them further
+
+# Leading/trailing silence is cut so concatenated fragments do not drag.
+[trim]
+threshold = 0.02   # fraction of full scale below which audio counts as silence
+keep_ms = 60       # silence kept on each side
+
+[voice."zh-TW"]
+text_lang = "zh"
+ref_audio_path = "/path/on/the/server/reference.wav"   # path as the server sees it
+prompt_text = "參考音檔裡說的話"
+prompt_lang = "zh"
+
+# [voice.en]
+# text_lang = "en"
+# ref_audio_path = "/path/on/the/server/reference_en.wav"
+# prompt_text = "What the reference clip says."
+# prompt_lang = "en"

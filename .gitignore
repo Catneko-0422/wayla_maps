@@ -11,3 +11,7 @@ build/
 
 # Raw downloads used by tools/ (regenerate with the scripts)
 /tools/data/
+
+# Local GPT-SoVITS server settings
+/tools/voice/config.toml
+__pycache__/
