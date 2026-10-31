@@ -138,11 +138,13 @@ fun MapScreen(
     // Set by the layout below: landscape guidance draws its own cards over a full-screen map.
     var immersive by remember { mutableStateOf(false) }
     val currentImmersive by rememberUpdatedState(immersive)
-    val currentInset by rememberUpdatedState(if (immersive && characterModel != null) LEFT_INSET else 0.dp)
-    // The left padding puts the Google logo at the bottom just past the character's shoulder; the
-    // right padding, a little larger, keeps the vehicle mid-screen, right of the logo and left of
-    // the trip pill in the bottom right corner.
-    val currentRightInset by rememberUpdatedState(if (immersive && characterModel != null) RIGHT_INSET else 0.dp)
+    // Equal padding on both sides keeps the vehicle in the middle of the screen, right of the
+    // character; the small margin and the bottom padding put the Google logo just above the
+    // trip pill's end button in the bottom right corner.
+    val currentInset by rememberUpdatedState(if (immersive) SIDE_INSET else 0.dp)
+    // The map is laid out right to left so the logo sits in the padded area's bottom right corner.
+    val currentRightInset by rememberUpdatedState(if (immersive) SIDE_INSET else 0.dp)
+    val currentBottomInset by rememberUpdatedState(if (immersive) TRIP_PILL_CLEARANCE else 0.dp)
     val map = remember {
         movableContentOf {
             NavigationMap(
@@ -152,6 +154,8 @@ fun MapScreen(
                 sdkCards = !currentImmersive,
                 leftInset = currentInset,
                 rightInset = currentRightInset,
+                bottomInset = currentBottomInset,
+                logoOnRight = currentImmersive,
             )
         }
     }
@@ -568,8 +572,10 @@ private val PANEL_WIDTH = 290.dp
 
 /** The character's column in landscape guidance, over the map's left side. */
 private val IMMERSIVE_CHARACTER_WIDTH = 330.dp
-private val LEFT_INSET = 280.dp
-private val RIGHT_INSET = 330.dp
+private val SIDE_INSET = 16.dp
+
+/** The trip pill's height plus margins, so the logo sits right above it. */
+private val TRIP_PILL_CLEARANCE = 92.dp
 private val BUBBLE_MAX_WIDTH = 170.dp
 
 /** Height of the Navigation SDK's trip summary (time, distance, arrival) along the map's bottom. */

@@ -1,5 +1,6 @@
 package cc.nekocat.waylamaps.ui.map
 
+import android.view.View
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,6 +60,11 @@ fun NavigationMap(
     rightInset: Dp = 0.dp,
     /** The same for the bottom edge (the app's trip pill). */
     bottomInset: Dp = 0.dp,
+    /**
+     * Lays the map out right to left, which moves the Google logo to the bottom right corner of
+     * the padded area. The map content is not mirrored.
+     */
+    logoOnRight: Boolean = false,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -123,9 +129,15 @@ fun NavigationMap(
         view.setEtaCardEnabled(sdkCards)
     }
     val density = LocalDensity.current
-    LaunchedEffect(googleMap, leftInset, rightInset, bottomInset) {
+    LaunchedEffect(logoOnRight) {
+        view.layoutDirection = if (logoOnRight) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
+    }
+    LaunchedEffect(googleMap, leftInset, rightInset, bottomInset, logoOnRight) {
         with(density) {
-            googleMap?.setPadding(leftInset.roundToPx(), 0, rightInset.roundToPx(), bottomInset.roundToPx())
+            // Right to left, the map reads its padding as start and end, so the sides swap.
+            val left = (if (logoOnRight) rightInset else leftInset).roundToPx()
+            val right = (if (logoOnRight) leftInset else rightInset).roundToPx()
+            googleMap?.setPadding(left, 0, right, bottomInset.roundToPx())
         }
     }
 
