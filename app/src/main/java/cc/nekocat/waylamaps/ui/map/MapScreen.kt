@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,12 +66,14 @@ import cc.nekocat.waylamaps.navigation.PlaceSuggestion
 import cc.nekocat.waylamaps.navigation.RouteFailure
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.service.ThemeMode
+import cc.nekocat.waylamaps.ui.character.CharacterView
 import cc.nekocat.waylamaps.ui.labelRes
 import cc.nekocat.waylamaps.ui.main.NavigationSetupCard
 import cc.nekocat.waylamaps.ui.main.NextCamera
 import cc.nekocat.waylamaps.ui.main.Speed
 import cc.nekocat.waylamaps.ui.permissions.openAppSettings
 import cc.nekocat.waylamaps.ui.permissions.rememberLocationPermissionRequest
+import cc.nekocat.waylamaps.voice.Speech
 import java.util.Locale
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -127,6 +130,9 @@ fun MapScreen(
     // One map instance moved between the two layouts, so rotating keeps the route on screen.
     val currentTheme by rememberUpdatedState(themeMode)
     val map = remember { movableContentOf { NavigationMap(currentTheme, Modifier.fillMaxSize()) } }
+    val characterModel by viewModel.characterModel.collectAsStateWithLifecycle()
+    val speech by viewModel.speech.collectAsStateWithLifecycle()
+    val characterName by viewModel.selectedCharacterName.collectAsStateWithLifecycle()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         BoxWithConstraints(
@@ -148,10 +154,17 @@ fun MapScreen(
                             .width(PANEL_WIDTH)
                             .fillMaxHeight(),
                     )
+                    characterModel?.let { model ->
+                        CharacterColumn(model, speech, Modifier.width(CHARACTER_WIDTH).fillMaxHeight())
+                    }
                     Box(Modifier.weight(1f).fillMaxHeight()) { map() }
                 }
                 else -> Column(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f).fillMaxWidth()) { map() }
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        map()
+                        // Portrait has no room for the 3D character; the sentence appears over the map.
+                        speech?.let { SpeechBubble(characterName, it.text, Modifier.align(Alignment.BottomCenter).padding(12.dp)) }
+                    }
                     ControlPanel(
                         state,
                         query,
@@ -403,6 +416,29 @@ private fun RouteFailure.messageRes() = when (this) {
 private fun formatDistance(meters: Int): String =
     if (meters < 1000) "$meters m" else String.format(Locale.ROOT, "%.1f km", meters / 1000.0)
 
+@Composable
+private fun CharacterColumn(model: CharacterModel, speech: Speech?, modifier: Modifier) {
+    Column(modifier.padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        key(model.id) {
+            CharacterView(model.bytes, model.spec, speech, Modifier.fillMaxWidth().weight(1f))
+        }
+        Box(Modifier.fillMaxWidth().heightIn(min = 96.dp).padding(horizontal = 8.dp)) {
+            speech?.let { SpeechBubble(model.name, it.text, Modifier.fillMaxWidth()) }
+        }
+    }
+}
+
+@Composable
+private fun SpeechBubble(name: String, text: String, modifier: Modifier = Modifier) {
+    Card(modifier) {
+        Column(Modifier.padding(12.dp)) {
+            Text(name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(text, style = MaterialTheme.typography.titleMedium, maxLines = 3)
+        }
+    }
+}
+
 private val PANEL_WIDTH = 340.dp
+private val CHARACTER_WIDTH = 240.dp
 private const val UNLOCK_HOLD_MS = 2_000L
 private const val PORTRAIT_PANEL_FRACTION = 0.55f

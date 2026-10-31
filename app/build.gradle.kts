@@ -143,6 +143,10 @@ dependencies {
     implementation(libs.google.places) {
         exclude(group = "com.google.android.gms", module = "play-services-maps")
     }
+    // 3D character view (glTF models).
+    implementation(libs.filament.android)
+    implementation(libs.filament.gltfio)
+    implementation(libs.filament.utils)
     coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
 
     testImplementation(libs.junit)

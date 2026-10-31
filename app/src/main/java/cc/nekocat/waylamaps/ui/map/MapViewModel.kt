@@ -15,6 +15,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cc.nekocat.waylamaps.alerts.AlertSessionState
+import cc.nekocat.waylamaps.character.CharacterRepository
+import cc.nekocat.waylamaps.character.ModelSpec
 import cc.nekocat.waylamaps.data.UserPointRepository
 import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.NavigationController
@@ -30,11 +32,15 @@ import cc.nekocat.waylamaps.ui.confirmationPhrase
 import cc.nekocat.waylamaps.ui.main.MainUiState
 import cc.nekocat.waylamaps.ui.main.toUiState
 import cc.nekocat.waylamaps.ui.permissions.hasLocationPermission
+import cc.nekocat.waylamaps.voice.Speech
+import cc.nekocat.waylamaps.voice.SpeechState
 import cc.nekocat.waylamaps.voice.VoiceFeedback
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +54,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlinx.coroutines.withContext
+
+/** A character's model bytes, ready for the 3D view. */
+class CharacterModel(val id: String, val name: String, val bytes: ByteArray, val spec: ModelSpec)
 
 /** Search results. The query text itself is [MapViewModel.query], kept outside any flow. */
 data class SearchState(
@@ -84,7 +93,24 @@ class MapViewModel @Inject constructor(
     private val voice: VoiceFeedback,
     private val userPoints: UserPointRepository,
     private val ridePreferences: RidePreferences,
+    characters: CharacterRepository,
+    speechState: SpeechState,
 ) : ViewModel() {
+    /** The selected character's model, loaded off the main thread; null for voice-only characters. */
+    val characterModel: StateFlow<CharacterModel?> = characters.selected
+        .map { character ->
+            val spec = character.manifest.model ?: return@map null
+            withContext(Dispatchers.IO) { characters.openModel(character) }
+                ?.let { CharacterModel(character.id, character.manifest.name, it, spec) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val selectedCharacterName: StateFlow<String> = characters.selected
+        .map { it.manifest.name }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), characters.selected.value.manifest.name)
+
+    val speech: StateFlow<Speech?> = speechState.current
+
     private val search = MutableStateFlow(SearchState())
     private val autoLock = AutoLock()
     private val locked = MutableStateFlow(false)
