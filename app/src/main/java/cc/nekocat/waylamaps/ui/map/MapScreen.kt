@@ -173,39 +173,44 @@ fun MapScreen(
             val landscape = maxWidth > maxHeight
             val portraitPanelMaxHeight = maxHeight * PORTRAIT_PANEL_FRACTION
             val guidance = state.guidance
-            val immersiveNow = state.navigatorReady && landscape && guidance is GuidanceState.Guiding
+            val immersiveNow = state.navigatorReady && guidance is GuidanceState.Guiding
             LaunchedEffect(immersiveNow) { immersive = immersiveNow }
             when {
                 !state.navigatorReady -> ControlPanel(state, query, locationDenied, actions, Modifier.fillMaxSize(), large = true)
                 immersiveNow -> Box(Modifier.fillMaxSize()) {
                     map()
-                    // The character stands on the left, the full height of the screen, with what
-                    // she says as a caption over her; the map's camera is offset past her.
+                    // Landscape: the character stands on the left, the full height of the screen,
+                    // with what she says as a caption over her. Portrait: her upper body sits in
+                    // the bottom left corner above the trip pill, with the caption beside her.
                     characterModel?.let { model ->
-                        Box(Modifier.width(IMMERSIVE_CHARACTER_WIDTH).fillMaxHeight()) {
+                        val characterModifier = if (landscape) {
+                            Modifier.width(IMMERSIVE_CHARACTER_WIDTH).fillMaxHeight()
+                        } else {
+                            Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(bottom = TRIP_PILL_CLEARANCE)
+                                .size(PORTRAIT_CHARACTER_WIDTH, PORTRAIT_CHARACTER_HEIGHT)
+                        }
+                        Box(characterModifier) {
                             key(model.id) {
                                 CharacterView(model.bytes, model.spec, speech, Modifier.fillMaxSize())
                             }
-                            speech?.let {
-                                SpeechBubble(
-                                    model.name,
-                                    it.text,
-                                    Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .padding(12.dp),
-                                )
+                            if (landscape) {
+                                speech?.let {
+                                    SpeechBubble(model.name, it.text, Modifier.align(Alignment.BottomCenter).padding(12.dp))
+                                }
                             }
                         }
                     }
-                    if (characterModel == null) {
+                    if (characterModel == null && landscape) {
                         speech?.let {
                             SpeechBubble(
                                 characterName,
                                 it.text,
                                 Modifier
                                     .align(Alignment.BottomStart)
-                                    .widthIn(max = BUBBLE_MAX_WIDTH)
-                                    .padding(start = 12.dp, bottom = 72.dp),
+                                    .padding(start = 12.dp, bottom = 12.dp)
+                                    .widthIn(max = BUBBLE_MAX_WIDTH),
                             )
                         }
                     }
@@ -218,9 +223,17 @@ fun MapScreen(
                     ) {
                         turn?.let { TurnCard(it, turnIcon) }
                         SpeedAlertCard(state.alerts)
+                        // Portrait has the vehicle in the lower half, so the caption goes up here.
+                        if (!landscape) {
+                            speech?.let {
+                                SpeechBubble(
+                                    characterModel?.name ?: characterName,
+                                    it.text,
+                                    Modifier.widthIn(max = PORTRAIT_BUBBLE_MAX_WIDTH),
+                                )
+                            }
+                        }
                     }
-                    // Bottom right, inside the map's right padding, so it never covers the
-                    // vehicle; the Google logo sits bottom left, beside the character.
                     TripPill(
                         turn,
                         actions.onStop,
@@ -573,6 +586,9 @@ private val PANEL_WIDTH = 290.dp
 /** The character's column in landscape guidance, over the map's left side. */
 private val IMMERSIVE_CHARACTER_WIDTH = 330.dp
 private val SIDE_INSET = 16.dp
+private val PORTRAIT_CHARACTER_WIDTH = 160.dp
+private val PORTRAIT_CHARACTER_HEIGHT = 220.dp
+private val PORTRAIT_BUBBLE_MAX_WIDTH = 300.dp
 
 /** The trip pill's height plus margins, so the logo sits right above it. */
 private val TRIP_PILL_CLEARANCE = 92.dp
