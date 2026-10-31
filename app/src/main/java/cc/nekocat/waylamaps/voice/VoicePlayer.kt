@@ -1,6 +1,9 @@
 package cc.nekocat.waylamaps.voice
 
 import android.content.Context
+import java.io.IOException
+import java.io.File
+import android.net.Uri
 import android.media.AudioManager
 import android.media.audiofx.LoudnessEnhancer
 import android.os.SystemClock
@@ -155,7 +158,9 @@ class VoicePlayer @Inject constructor(
         if (resolved.fragmentIds.all { character.hasVoice(language, it) }) {
             Log.i(TAG, "Playing ${prompt.phraseId} from ${character.id} audio: ${resolved.fragmentIds}")
             audioPrompt = prompt to resolved.text
-            player.setMediaItems(resolved.fragmentIds.map { MediaItem.fromUri(character.voiceUri(language, it)) })
+            val uris = resolved.fragmentIds.map { character.voiceUri(language, it) }
+            val joined = if (uris.size > 1) joinClips(uris) else null
+            player.setMediaItems(if (joined != null) listOf(MediaItem.fromUri(joined)) else uris.map(MediaItem::fromUri))
             player.prepare()
             player.play()
         } else {
@@ -173,6 +178,30 @@ class VoicePlayer @Inject constructor(
     }
 
     override fun onIdle() = audioFocus.release()
+
+    private var nextJoinedFile = 0
+
+    /**
+     * The fragments as one WAV in the cache (see [WavJoiner]), or null to play them as a
+     * playlist. Two files take turns, so the one still playing is never overwritten.
+     */
+    private fun joinClips(uris: List<String>): Uri? = try {
+        val clips = uris.map { uri ->
+            if (uri.startsWith(ASSET_URI)) {
+                context.assets.open(uri.removePrefix(ASSET_URI)).use { it.readBytes() }
+            } else {
+                File(requireNotNull(Uri.parse(uri).path)).readBytes()
+            }
+        }
+        WavJoiner.join(clips, FRAGMENT_GAP_MS)?.let { bytes ->
+            val file = File(context.cacheDir, "prompt-${nextJoinedFile++ % 2}.wav")
+            file.writeBytes(bytes)
+            Uri.fromFile(file)
+        }
+    } catch (e: IOException) {
+        Log.w(TAG, "Could not join voice fragments, playing them one by one", e)
+        null
+    }
 
     /** [language] is a phrase table language; null speaks in the phone's language. */
     private fun speakWithTts(prompt: Prompt, text: String, language: String? = null) {
@@ -193,5 +222,9 @@ class VoicePlayer @Inject constructor(
 
     private companion object {
         const val TAG = "VoicePlayer"
+        const val ASSET_URI = "asset:///"
+
+        /** The pause between joined fragments, about a comma's worth. */
+        const val FRAGMENT_GAP_MS = 90
     }
 }
