@@ -1,3 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="alert_speed_camera_with_limit">前方 %1$d 公尺測速照相，限速 %2$d</string>
+    <string name="alert_speed_camera">前方 %1$d 公尺測速照相</string>
+
+    <string name="notification_channel_alerts">測速照相提醒</string>
+    <string name="notification_alerts_running">測速照相提醒執行中</string>
+    <string name="action_stop">停止</string>
 </resources>
