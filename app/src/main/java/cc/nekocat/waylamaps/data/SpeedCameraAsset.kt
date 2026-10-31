@@ -1,6 +1,7 @@
 package cc.nekocat.waylamaps.data
 
 import cc.nekocat.waylamaps.data.db.SpeedCameraEntity
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -10,6 +11,8 @@ data class SpeedCameraAsset(
     val version: String,
     val source: String,
     val license: String,
+    /** SHA-256 of the raw CSV the asset was generated from. */
+    @SerialName("source_sha256") val sourceSha256: String? = null,
     val cameras: List<Camera>,
 ) {
     @Serializable

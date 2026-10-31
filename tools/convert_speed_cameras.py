@@ -12,6 +12,7 @@ Usage:
 import argparse
 import csv
 import datetime
+import hashlib
 import json
 import re
 import sys
@@ -156,7 +157,14 @@ def main():
     cameras, rejected = convert(rows)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    asset = {"version": args.version, "source": SOURCE, "license": LICENSE, "cameras": cameras}
+    asset = {
+        "version": args.version,
+        "source": SOURCE,
+        "license": LICENSE,
+        # Lets the app skip re-importing when its weekly download matches this CSV.
+        "source_sha256": hashlib.sha256(raw.read_bytes()).hexdigest(),
+        "cameras": cameras,
+    }
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(asset, f, ensure_ascii=False, separators=(",", ":"))
         f.write("\n")

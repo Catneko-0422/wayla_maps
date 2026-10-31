@@ -15,6 +15,16 @@ cd tools && python3 -m unittest test_convert_speed_cameras
 The raw CSV is saved to `tools/data/` (gitignored). Bump nothing by hand: the
 asset `version` defaults to today's date, so a regenerated asset is re-imported.
 
+The app also refreshes the data by itself: `SpeedCameraUpdateWorker` downloads the
+same CSV weekly and parses it with `SpeedCameraCsvParser`, a Kotlin port of this
+script. **Change both together.** `SpeedCameraCsvParserTest` repeats the Python test
+cases and, when `tools/data/speed_cameras_raw.csv` exists, checks that the Kotlin
+parser produces exactly the bundled asset.
+
+The asset stores `source_sha256` of the CSV it was built from, so the app skips a
+download identical to what it already has. Versions are ISO dates; whichever of the
+bundled asset and the last download is newer stays in the database.
+
 ### Source and license
 
 - 內政部警政署「測速執法設置點」, <https://data.gov.tw/dataset/7320>
