@@ -97,6 +97,16 @@ def rotate(armature, bone, axis, degrees):
     bpy.context.view_layer.update()
 
 
+def twist(armature, bone, degrees):
+    """Turns a pose bone about its own length, e.g. a forearm turning the palm over."""
+    pose_bone = armature.pose.bones[bone]
+    head = pose_bone.matrix.translation.copy()
+    axis = (pose_bone.matrix.to_3x3() @ Vector((0, 1, 0))).normalized()
+    rotation = Matrix.Rotation(math.radians(degrees), 4, axis)
+    pose_bone.matrix = Matrix.Translation(head) @ rotation @ Matrix.Translation(-head) @ pose_bone.matrix
+    bpy.context.view_layer.update()
+
+
 def move(armature, bone, offset):
     pose_bone = armature.pose.bones[bone]
     pose_bone.matrix = Matrix.Translation(Vector(offset)) @ pose_bone.matrix
@@ -202,7 +212,10 @@ def hands_up(armature, amount):
 
 
 def salute(armature):
+    """Fingertips to the brow, hand flat with the palm facing out, as in a military salute."""
     raise_right_arm(armature, side=95, forward=25, elbow=110)
+    twist(armature, "LowerArm_R", -90)
+    rotate(armature, "Hand_R", "Y", 50)
     rotate(armature, "Head", "X", -3)
 
 
