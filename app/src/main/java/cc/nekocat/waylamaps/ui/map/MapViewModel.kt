@@ -22,9 +22,11 @@ import cc.nekocat.waylamaps.navigation.PlacesSearch
 import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.service.RideController
+import cc.nekocat.waylamaps.ui.confirmationPhrase
 import cc.nekocat.waylamaps.ui.main.MainUiState
 import cc.nekocat.waylamaps.ui.main.toUiState
 import cc.nekocat.waylamaps.ui.permissions.hasLocationPermission
+import cc.nekocat.waylamaps.voice.VoiceFeedback
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -72,6 +74,7 @@ class MapViewModel @Inject constructor(
     private val rideController: RideController,
     private val travelMode: TravelModePreference,
     private val places: PlacesSearch,
+    private val voice: VoiceFeedback,
 ) : ViewModel() {
     private val search = MutableStateFlow(SearchState())
 
@@ -136,7 +139,11 @@ class MapViewModel @Inject constructor(
         search.value = SearchState()
     }
 
-    fun setTravelMode(mode: TravelMode) = travelMode.set(mode)
+    fun setTravelMode(mode: TravelMode) {
+        if (mode == travelMode.mode.value) return
+        travelMode.set(mode)
+        voice.speak(mode.confirmationPhrase())
+    }
 
     fun startNavigation(simulate: Boolean) {
         val destination = search.value.selected ?: return

@@ -527,6 +527,30 @@
     "no_internet": {
       "zh-TW": "沒有網路",
       "en": "No internet connection"
+    },
+    "mode_car": {
+      "zh-TW": "汽車模式",
+      "en": "Car mode"
+    },
+    "mode_scooter": {
+      "zh-TW": "機車模式",
+      "en": "Scooter mode"
+    },
+    "mode_heavy_motorcycle": {
+      "zh-TW": "重機模式",
+      "en": "Heavy motorcycle mode"
+    },
+    "elevation_filter_on": {
+      "zh-TW": "高架上下的照相不提醒",
+      "en": "Cameras above or below you will be skipped"
+    },
+    "elevation_filter_off": {
+      "zh-TW": "高架上下的照相都會提醒",
+      "en": "Cameras above and below you will be announced"
+    },
+    "voice_demo": {
+      "zh-TW": "這是 Wayla 的聲音，接下來由我陪你上路",
+      "en": "This is Wayla. I will ride along with you"
     }
   },
   "phrases": {
@@ -798,6 +822,72 @@
         ],
         "en": [
           "no_internet"
+        ]
+      }
+    },
+    "mode_car": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "mode_car"
+        ],
+        "en": [
+          "mode_car"
+        ]
+      }
+    },
+    "mode_scooter": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "mode_scooter"
+        ],
+        "en": [
+          "mode_scooter"
+        ]
+      }
+    },
+    "mode_heavy_motorcycle": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "mode_heavy_motorcycle"
+        ],
+        "en": [
+          "mode_heavy_motorcycle"
+        ]
+      }
+    },
+    "elevation_filter_on": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "elevation_filter_on"
+        ],
+        "en": [
+          "elevation_filter_on"
+        ]
+      }
+    },
+    "elevation_filter_off": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "elevation_filter_off"
+        ],
+        "en": [
+          "elevation_filter_off"
+        ]
+      }
+    },
+    "voice_demo": {
+      "priority": "CHATTER",
+      "fragments": {
+        "zh-TW": [
+          "voice_demo"
+        ],
+        "en": [
+          "voice_demo"
         ]
       }
     }

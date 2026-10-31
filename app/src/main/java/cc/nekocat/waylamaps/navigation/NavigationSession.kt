@@ -73,7 +73,7 @@ class NavigationSession @Inject constructor(
         }
         val mode = travelMode.mode.value
         _state.value = GuidanceState.Routing(destination)
-        navigator.setDestination(waypoint, RoutingOptions().travelMode(mode.sdkTravelMode)) { description ->
+        navigator.setDestination(waypoint, RoutingOptions().travelMode(mode.sdkTravelMode).avoidHighways(mode.avoidHighways)) { description ->
             mainHandler.post { onRouteResult(navigator, destination, mode, simulate, description.routeStatus) }
         }
     }

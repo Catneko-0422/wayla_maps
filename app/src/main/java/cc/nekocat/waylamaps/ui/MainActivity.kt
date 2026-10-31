@@ -11,8 +11,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import cc.nekocat.waylamaps.ui.legal.LegalScreen
 import cc.nekocat.waylamaps.ui.map.MapScreen
+import cc.nekocat.waylamaps.ui.settings.SettingsScreen
 import cc.nekocat.waylamaps.ui.theme.WaylaTheme
 import dagger.hilt.android.AndroidEntryPoint
+
+private enum class Screen { MAP, SETTINGS, LEGAL }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -21,12 +24,21 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WaylaTheme {
-                var showLegal by rememberSaveable { mutableStateOf(false) }
-                if (showLegal) {
-                    BackHandler { showLegal = false }
-                    LegalScreen(onBack = { showLegal = false })
-                } else {
-                    MapScreen(onOpenLegal = { showLegal = true })
+                var screen by rememberSaveable { mutableStateOf(Screen.MAP) }
+                val back = { screen = Screen.MAP }
+                when (screen) {
+                    Screen.MAP -> MapScreen(
+                        onOpenSettings = { screen = Screen.SETTINGS },
+                        onOpenLegal = { screen = Screen.LEGAL },
+                    )
+                    Screen.SETTINGS -> {
+                        BackHandler(onBack = back)
+                        SettingsScreen(onBack = back)
+                    }
+                    Screen.LEGAL -> {
+                        BackHandler(onBack = back)
+                        LegalScreen(onBack = back)
+                    }
                 }
             }
         }

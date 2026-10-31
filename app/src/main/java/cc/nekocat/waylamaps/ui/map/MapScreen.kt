@@ -58,6 +58,7 @@ import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.PlaceSuggestion
 import cc.nekocat.waylamaps.navigation.RouteFailure
 import cc.nekocat.waylamaps.navigation.TravelMode
+import cc.nekocat.waylamaps.ui.labelRes
 import cc.nekocat.waylamaps.ui.main.NavigationSetupCard
 import cc.nekocat.waylamaps.ui.main.NextCamera
 import cc.nekocat.waylamaps.ui.main.Speed
@@ -74,6 +75,7 @@ private class PanelActions(
     val onTravelMode: (TravelMode) -> Unit,
     val onStart: (simulate: Boolean) -> Unit,
     val onStop: () -> Unit,
+    val onOpenAppSettings: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenLegal: () -> Unit,
 )
@@ -83,7 +85,7 @@ private class PanelActions(
  * landscape (handlebar mounts, car dashboards) puts it beside the map.
  */
 @Composable
-fun MapScreen(onOpenLegal: () -> Unit, viewModel: MapViewModel = hiltViewModel()) {
+fun MapScreen(onOpenSettings: () -> Unit, onOpenLegal: () -> Unit, viewModel: MapViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val query = viewModel.query
     val context = LocalContext.current
@@ -101,7 +103,8 @@ fun MapScreen(onOpenLegal: () -> Unit, viewModel: MapViewModel = hiltViewModel()
         onTravelMode = viewModel::setTravelMode,
         onStart = viewModel::startNavigation,
         onStop = viewModel::stopNavigation,
-        onOpenSettings = { context.openAppSettings() },
+        onOpenAppSettings = { context.openAppSettings() },
+        onOpenSettings = onOpenSettings,
         onOpenLegal = onOpenLegal,
     )
     // One map instance moved between the two layouts, so rotating keeps the route on screen.
@@ -182,7 +185,7 @@ private fun ControlPanel(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            OutlinedButton(onClick = actions.onOpenSettings) { Text(stringResource(R.string.open_settings)) }
+            OutlinedButton(onClick = actions.onOpenAppSettings) { Text(stringResource(R.string.open_settings)) }
         }
 
         val guidance = state.guidance
@@ -199,7 +202,10 @@ private fun ControlPanel(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            TextButton(onClick = actions.onOpenLegal) { Text(stringResource(R.string.legal_title)) }
+            Row {
+                TextButton(onClick = actions.onOpenSettings) { Text(stringResource(R.string.settings_title)) }
+                TextButton(onClick = actions.onOpenLegal) { Text(stringResource(R.string.legal_title)) }
+            }
         }
     }
 }
@@ -254,13 +260,18 @@ private fun DestinationControls(state: MapUiState, query: String, actions: Panel
                 onClick = { actions.onTravelMode(mode) },
                 shape = SegmentedButtonDefaults.itemShape(index, TravelMode.entries.size),
             ) {
-                Text(stringResource(if (mode == TravelMode.CAR) R.string.travel_mode_car else R.string.travel_mode_scooter))
+                Text(stringResource(mode.labelRes()))
             }
         }
     }
-    if (state.travelMode == TravelMode.SCOOTER) {
+    val routeNotice = when (state.travelMode) {
+        TravelMode.SCOOTER -> R.string.scooter_route_notice
+        TravelMode.HEAVY_MOTORCYCLE -> R.string.heavy_motorcycle_route_notice
+        TravelMode.CAR -> null
+    }
+    routeNotice?.let {
         Text(
-            text = stringResource(R.string.scooter_route_notice),
+            text = stringResource(it),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

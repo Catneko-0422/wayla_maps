@@ -50,4 +50,11 @@
     <string name="legal_navigation_section">Google 地圖與 Navigation SDK</string>
     <string name="data_attribution">測速照相資料來源：內政部警政署「測速執法設置點」（政府資料開放平臺），依政府資料開放授權條款第 1 版使用</string>
     <string name="enforcement_attribution">科技執法路口資料來源：臺北市、桃園市、臺中市、高雄市、基隆市、苗栗縣、彰化縣、雲林縣、新竹市、屏東縣、澎湖縣、金門縣警察局（政府資料開放平臺），依政府資料開放授權條款第 1 版使用</string>
+    <string name="travel_mode_heavy_motorcycle">重機</string>
+    <string name="heavy_motorcycle_route_notice">重機路線會避開國道和快速道路，請依標誌確認大型重機可以行駛的路段。</string>
+    <string name="settings_title">設定</string>
+    <string name="settings_travel_mode">車種</string>
+    <string name="settings_match_elevation">高架上下的照相不提醒</string>
+    <string name="settings_match_elevation_summary">在高架下行駛時不提醒高架上的照相，在高架上時也不提醒下面的照相。</string>
+    <string name="settings_voice_demo">試聽語音</string>
 </resources>

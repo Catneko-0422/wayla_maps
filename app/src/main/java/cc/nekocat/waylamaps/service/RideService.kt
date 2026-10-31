@@ -38,7 +38,6 @@ import cc.nekocat.waylamaps.data.enforcement.EnforcementRepository
 import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.NavigationSession
 import cc.nekocat.waylamaps.navigation.RouteFailure
-import cc.nekocat.waylamaps.navigation.TravelMode
 import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
 import cc.nekocat.waylamaps.navigation.TurnPrompt
@@ -81,6 +80,7 @@ class RideService : LifecycleService() {
     @Inject lateinit var notificationProvider: RideNotificationProvider
     @Inject lateinit var turnByTurn: TurnByTurnFeed
     @Inject lateinit var travelMode: TravelModePreference
+    @Inject lateinit var ridePreferences: RidePreferences
 
     private val detector = CameraAheadDetector()
     private val routeMatcher = RouteCameraMatcher()
@@ -192,14 +192,15 @@ class RideService : LifecycleService() {
         speedMps = fix.speedMps
         statusMonitor.onFix(SystemClock.elapsedRealtime(), fix)?.let { speakStatus(it) }
         val guiding = navigation.state.value as? GuidanceState.Guiding
-        val scooter = (guiding?.travelMode ?: travelMode.mode.value) == TravelMode.SCOOTER
+        val access = (guiding?.travelMode ?: travelMode.mode.value).roadAccess
+        val matchElevation = ridePreferences.matchElevation.value
         val currentRoad = guiding?.let { turnByTurn.currentRoad.value }
         val onRoute = guiding != null && routeMatcher.hasRoute
         val cameras = repository.camerasNear(fix.lat, fix.lng, SEARCH_RADIUS_M)
-            .filter { CameraRoadFilter.isRelevant(it.address, scooter, currentRoad) }
+            .filter { CameraRoadFilter.isRelevant(it.address, access, currentRoad, matchElevation) }
         val result = if (onRoute) routeMatcher.update(fix, cameras) else detector.update(fix, cameras)
         val points = enforcementRepository.pointsNear(fix.lat, fix.lng, SEARCH_RADIUS_M)
-            .filter { CameraRoadFilter.isRelevant(it.location, scooter, currentRoad) }
+            .filter { CameraRoadFilter.isRelevant(it.location, access, currentRoad, matchElevation) }
         val enforcement = if (onRoute) {
             enforcementRouteMatcher.update(fix, points)
         } else {
