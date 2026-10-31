@@ -8,6 +8,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +36,7 @@ private const val LICENSES_ASSET = "legal/navigation_licenses.txt"
 private const val LINES_PER_ITEM = 200
 
 /** Attribution and open source licenses, as the Navigation SDK terms require. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LegalScreen(credits: List<String>, onBack: () -> Unit) {
     val context = LocalContext.current
@@ -43,17 +51,28 @@ fun LegalScreen(credits: List<String>, onBack: () -> Unit) {
         }
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.legal_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.action_back))
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        // A readable column in landscape instead of text stretched across the whole screen.
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .wrapContentWidth()
+                .widthIn(max = LEGAL_MAX_WIDTH),
             contentPadding = PaddingValues(16.dp),
         ) {
-            item {
-                TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
-                Text(stringResource(R.string.legal_title), style = MaterialTheme.typography.headlineSmall)
-            }
             item {
                 Section(
                     stringResource(R.string.legal_data_section),
@@ -70,6 +89,8 @@ fun LegalScreen(credits: List<String>, onBack: () -> Unit) {
         }
     }
 }
+
+private val LEGAL_MAX_WIDTH = 720.dp
 
 @Composable
 private fun Section(title: String, body: String) {

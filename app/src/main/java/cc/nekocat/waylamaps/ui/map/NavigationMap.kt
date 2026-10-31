@@ -1,6 +1,9 @@
 package cc.nekocat.waylamaps.ui.map
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.WindowInsets
 import android.view.View
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -208,6 +211,7 @@ fun NavigationMap(
                 },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(12.dp),
             )
         }

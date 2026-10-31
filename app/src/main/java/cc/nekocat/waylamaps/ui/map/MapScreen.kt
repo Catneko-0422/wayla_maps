@@ -2,6 +2,22 @@ package cc.nekocat.waylamaps.ui.map
 
 import android.app.Activity
 import android.graphics.Bitmap
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.foundation.ScrollState
@@ -39,7 +55,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
@@ -87,7 +102,10 @@ private data class MapFrame(
     val top: Dp = 0.dp,
     val topDown: Boolean = false,
     val logoOnRight: Boolean = false,
-)
+) {
+    fun plusSystemBars(left: Dp, top: Dp, right: Dp, bottom: Dp) =
+        copy(left = this.left + left, top = this.top + top, right = this.right + right, bottom = this.bottom + bottom)
+}
 
 /**
  * Main screen: a full-screen map in every mode.
@@ -95,7 +113,7 @@ private data class MapFrame(
  *   bottom sheet in portrait, a card on the left in landscape (handlebar mounts, dashboards).
  * - Guiding: turn, speed and trip cards over the map, with the character beside them.
  */
-@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class, ExperimentalLayoutApi::class)
 @Composable
 fun MapScreen(
     themeMode: ThemeMode,
@@ -172,22 +190,26 @@ fun MapScreen(
         }
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
+    // The map runs under the status and navigation bars, as in other map apps; only the cards
+    // and buttons drawn over it keep clear of them (SAFE below).
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
             val landscape = maxWidth > maxHeight
+            val safe = WindowInsets.safeDrawing.asPaddingValues()
+            val safeTop = safe.calculateTopPadding()
+            val safeBottom = safe.calculateBottomPadding()
+            val safeLeft = safe.calculateLeftPadding(LayoutDirection.Ltr)
+            val safeRight = safe.calculateRightPadding(LayoutDirection.Ltr)
             // A new destination starts at the top of the panel, not where the last list was scrolled.
             val panelScroll = remember(state.search.selected) { ScrollState(0) }
-            // The character would cover the route's far end while previewing.
-            val showCharacter = state.guidance !is GuidanceState.Previewing
+            // The character would cover the route's far end while previewing, and float oddly
+            // over the map while the keyboard pushes the sheet up.
+            val showCharacter = state.guidance !is GuidanceState.Previewing && !WindowInsets.isImeVisible
             // Browsing after a drag; the route preview's overview is not a drag.
             val showFollow = !following && state.guidance !is GuidanceState.Previewing
             val onFollow: () -> Unit = { followRequests++ }
             // How much of the map the portrait sheet covers, so the route preview stays visible.
-            var sheetCover by remember { mutableStateOf(SHEET_PEEK_HEIGHT) }
+            var sheetCover by remember { mutableStateOf(SHEET_PEEK_HEIGHT + safeBottom) }
             val guiding = state.navigatorReady && state.guidance is GuidanceState.Guiding
             val wanted = when {
                 // Equal side padding keeps the vehicle mid-screen; the bottom padding puts the
@@ -200,24 +222,30 @@ fun MapScreen(
                     left = if (characterModel != null) IMMERSIVE_CHARACTER_WIDTH else SIDE_INSET,
                     right = SIDE_INSET,
                     bottom = TRIP_PILL_CLEARANCE,
-                )
+                ).plusSystemBars(safeLeft, safeTop, safeRight, safeBottom)
                 guiding && routeOverview -> MapFrame(
                     left = SIDE_INSET,
                     right = PORTRAIT_CONTROLS_CLEARANCE,
                     bottom = if (characterModel != null) PORTRAIT_CHARACTER_HEIGHT else TRIP_PILL_CLEARANCE,
                     top = PORTRAIT_CARDS_CLEARANCE,
-                )
-                guiding -> MapFrame(SIDE_INSET, SIDE_INSET, TRIP_PILL_CLEARANCE, topDown = !landscape, logoOnRight = true)
+                ).plusSystemBars(safeLeft, safeTop, safeRight, safeBottom)
+                // Equal sides keep the vehicle mid-screen, so the larger side inset goes on both.
+                guiding -> {
+                    val side = SIDE_INSET + maxOf(safeLeft, safeRight)
+                    MapFrame(side, side, TRIP_PILL_CLEARANCE + safeBottom, top = safeTop, topDown = !landscape, logoOnRight = true)
+                }
                 landscape -> MapFrame(left = LANDSCAPE_PANEL_WIDTH + PANEL_MARGIN * 2)
+                    .plusSystemBars(safeLeft, safeTop, safeRight, safeBottom)
                 // As in portrait guidance: the character on the left, the logo bottom right.
-                // The top inset keeps a previewed route out from under the search bar.
-                else -> MapFrame(bottom = sheetCover + SHEET_MAP_GAP, top = SEARCH_BAR_CLEARANCE, logoOnRight = true)
+                // The top inset keeps a previewed route out from under the search bar; the sheet
+                // already covers the navigation bar.
+                else -> MapFrame(bottom = sheetCover + SHEET_MAP_GAP, top = SEARCH_BAR_CLEARANCE + safeTop, logoOnRight = true)
             }
             LaunchedEffect(wanted) { frame = wanted }
 
             when {
-                !state.navigatorReady -> SetupScreen(state, locationDenied, actions, viewModel::initializeNavigation) {
-                    context.openAppSettings()
+                !state.navigatorReady -> Box(Modifier.safeDrawingPadding()) {
+                    SetupScreen(state, locationDenied, actions, viewModel::initializeNavigation) { context.openAppSettings() }
                 }
                 guiding -> GuidanceLayout(
                     landscape = landscape,
@@ -246,14 +274,30 @@ fun MapScreen(
                 )
                 landscape -> Box(Modifier.fillMaxSize()) {
                     map()
-                    if (showFollow) FollowVehicleButton(onFollow, Modifier.align(Alignment.TopEnd).padding(FOLLOW_BUTTON_PADDING))
+                    if (showFollow) {
+                        FollowVehicleButton(
+                            onFollow,
+                            Modifier
+                                .align(Alignment.TopEnd)
+                                .windowInsetsPadding(WindowInsets.safeDrawing)
+                                .padding(FOLLOW_BUTTON_PADDING),
+                        )
+                    }
                     characterModel?.takeIf { showCharacter }?.let { model ->
-                        FloatingCharacter(model, speech, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp))
+                        FloatingCharacter(
+                            model,
+                            speech,
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                                .padding(end = 16.dp),
+                        )
                     }
                     Surface(
                         shape = RoundedCornerShape(24.dp),
                         shadowElevation = 8.dp,
                         modifier = Modifier
+                            .windowInsetsPadding(WindowInsets.safeDrawing)
                             .padding(PANEL_MARGIN)
                             .width(LANDSCAPE_PANEL_WIDTH)
                             .fillMaxHeight(),
@@ -299,7 +343,7 @@ fun MapScreen(
                     }
                     BottomSheetScaffold(
                         scaffoldState = sheetState,
-                        sheetPeekHeight = SHEET_PEEK_HEIGHT,
+                        sheetPeekHeight = SHEET_PEEK_HEIGHT + safeBottom,
                         sheetContainerColor = MaterialTheme.colorScheme.surface,
                         sheetShadowElevation = 8.dp,
                         sheetContent = {
@@ -309,17 +353,33 @@ fun MapScreen(
                                     .heightIn(max = sheetMaxHeight)
                                     .verticalScroll(panelScroll)
                                     .padding(horizontal = 16.dp)
+                                    .navigationBarsPadding()
                                     .padding(bottom = 16.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
-                                BrowseBody(state, saved, query, locationDenied, actions, viewModel::unlockManually, context)
+                                BrowseBody(
+                                    state,
+                                    saved,
+                                    query,
+                                    locationDenied,
+                                    actions,
+                                    viewModel::unlockManually,
+                                    context,
+                                    statusGap = SHEET_STATUS_GAP,
+                                )
                             }
                         },
                     ) {
                         Box(Modifier.fillMaxSize()) {
                             map()
                             if (showFollow) {
-                                FollowVehicleButton(onFollow, Modifier.align(Alignment.TopEnd).padding(FOLLOW_BUTTON_PADDING))
+                                FollowVehicleButton(
+                                    onFollow,
+                                    Modifier
+                                        .align(Alignment.TopEnd)
+                                        .statusBarsPadding()
+                                        .padding(FOLLOW_BUTTON_PADDING),
+                                )
                             }
                             characterModel?.takeIf { showCharacter }?.let { model ->
                                 FloatingCharacter(
@@ -327,7 +387,7 @@ fun MapScreen(
                                     speech,
                                     Modifier
                                         .align(Alignment.BottomStart)
-                                        .padding(start = 8.dp, bottom = SHEET_PEEK_HEIGHT),
+                                        .padding(start = 8.dp, bottom = SHEET_PEEK_HEIGHT + safeBottom),
                                     bubbleFirst = false,
                                 )
                             }
@@ -339,7 +399,7 @@ fun MapScreen(
                                         Modifier
                                             .align(Alignment.BottomStart)
                                             .widthIn(max = PORTRAIT_BUBBLE_MAX_WIDTH)
-                                            .padding(start = 12.dp, bottom = SHEET_PEEK_HEIGHT + 12.dp),
+                                            .padding(start = 12.dp, bottom = SHEET_PEEK_HEIGHT + safeBottom + 12.dp),
                                     )
                                 }
                             }
@@ -347,15 +407,29 @@ fun MapScreen(
                             SearchBar(
                                 query,
                                 actions,
-                                Modifier.padding(start = 12.dp, top = 12.dp, end = 72.dp),
+                                Modifier
+                                    .statusBarsPadding()
+                                    .padding(start = 12.dp, top = 12.dp, end = 72.dp),
                                 addingStop = state.search.addingStop,
                             )
                         }
                     }
                 }
             }
+            if (state.navigatorReady) StatusBarScrim()
         }
     }
+}
+
+/** Keeps the status bar icons readable over the map, whatever its day or night look. */
+@Composable
+private fun StatusBarScrim() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .windowInsetsTopHeight(WindowInsets.statusBars)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = STATUS_SCRIM_ALPHA)),
+    )
 }
 
 /** The browse panel's content, shared by the portrait sheet and the landscape card. */
@@ -368,14 +442,19 @@ private fun BrowseBody(
     actions: BrowseActions,
     onUnlock: () -> Unit,
     context: android.content.Context,
+    /** Space under the speed row; the portrait sheet's peek ends there, so nothing shows half. */
+    statusGap: Dp = 0.dp,
 ) {
     if (state.locked) {
         LockedPanel(state, null, onUnlock, Modifier.fillMaxWidth())
         return
     }
-    // A chosen destination or a stop search needs the room for itself.
-    val planning = state.search.selected != null || state.search.addingStop
-    if (!planning) RideStatusRow(state, actions.onAlertsChange)
+    // Results, a chosen destination or a stop search need the room for themselves.
+    val planning = query.isNotBlank() || state.search.selected != null || state.search.addingStop
+    if (!planning) {
+        RideStatusRow(state, actions.onAlertsChange)
+        if (statusGap > 0.dp) Spacer(Modifier.height(statusGap))
+    }
     if (locationDenied) LocationDeniedNotice { context.openAppSettings() }
     DestinationContent(state, saved, query, actions)
     if (!planning) PanelFooter(actions)
@@ -442,7 +521,11 @@ private fun GuidanceLayout(
         // cut off by the screen edge, and her captions go under the speed card.
         characterModel?.let { model ->
             val characterModifier = if (landscape) {
-                Modifier.width(IMMERSIVE_CHARACTER_WIDTH).fillMaxHeight()
+                // Clear of a camera cutout on the left edge.
+                Modifier
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))
+                    .width(IMMERSIVE_CHARACTER_WIDTH)
+                    .fillMaxHeight()
             } else {
                 Modifier
                     .align(Alignment.BottomStart)
@@ -466,6 +549,7 @@ private fun GuidanceLayout(
                     it.text,
                     Modifier
                         .align(Alignment.BottomStart)
+                        .windowInsetsPadding(WindowInsets.safeDrawing)
                         .padding(start = 12.dp, bottom = 12.dp)
                         .widthIn(max = BUBBLE_MAX_WIDTH),
                 )
@@ -474,6 +558,7 @@ private fun GuidanceLayout(
         Column(
             Modifier
                 .align(Alignment.TopEnd)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(12.dp),
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -491,6 +576,7 @@ private fun GuidanceLayout(
             Row(
                 Modifier
                     .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(12.dp),
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -500,12 +586,19 @@ private fun GuidanceLayout(
             }
         } else {
             // Halfway down the right edge, between the cards and the logo above the trip pill.
-            controls(true, Modifier.align(Alignment.CenterEnd).padding(end = 12.dp))
+            controls(
+                true,
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                    .padding(end = 12.dp),
+            )
             TripPill(
                 turn,
                 onStop,
                 Modifier
                     .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(12.dp),
                 // Two lines, narrow enough to sit beside the character.
                 compact = characterModel != null,
@@ -607,7 +700,10 @@ private val LANDSCAPE_PANEL_WIDTH = 360.dp
 /** Under the 48dp compass in the top right corner. */
 private val FOLLOW_BUTTON_PADDING = PaddingValues(top = 72.dp, end = 12.dp)
 private val PANEL_MARGIN = 12.dp
-private val SHEET_PEEK_HEIGHT = 128.dp
+/** Down to just below the speed row, so the sheet does not show half of the next row. */
+private val SHEET_PEEK_HEIGHT = 104.dp
+private const val STATUS_SCRIM_ALPHA = 0.85f
+private val SHEET_STATUS_GAP = 24.dp
 private val SHEET_MAP_GAP = 8.dp
 private val SEARCH_BAR_CLEARANCE = 76.dp
 private const val SHEET_SETTLE_MS = 250L

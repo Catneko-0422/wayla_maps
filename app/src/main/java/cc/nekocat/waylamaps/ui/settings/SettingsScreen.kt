@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -117,10 +119,13 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLegal: () -> Unit, viewModel: Setti
             )
         },
     ) { innerPadding ->
+        // A readable column in landscape instead of text stretched across the whole screen.
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .wrapContentWidth()
+                .widthIn(max = SETTINGS_MAX_WIDTH),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
@@ -424,6 +429,7 @@ private fun VoiceBoost.labelRes() = when (this) {
 }
 
 private val CHARACTER_CARD_WIDTH = 168.dp
+private val SETTINGS_MAX_WIDTH = 640.dp
 
 /** Fragment counts are for this language unless the pack speaks another. */
 private const val VOICE_LANGUAGE = "zh-TW"
