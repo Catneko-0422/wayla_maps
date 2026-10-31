@@ -1,14 +1,5 @@
 package cc.nekocat.waylamaps.ui.main
 
-import android.Manifest
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,43 +30,33 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cc.nekocat.waylamaps.R
 import cc.nekocat.waylamaps.service.SpeedCameraService
+import cc.nekocat.waylamaps.ui.permissions.openAppSettings
+import cc.nekocat.waylamaps.ui.permissions.rememberLocationPermissionRequest
 import cc.nekocat.waylamaps.ui.theme.WaylaTheme
 
 @Composable
-fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
+fun MainScreen(onOpenLegal: () -> Unit, viewModel: MainViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val navigatorState by viewModel.navigatorState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var locationDenied by remember { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { grants ->
-        // Notifications are optional; the service runs without them.
-        locationDenied = grants[Manifest.permission.ACCESS_FINE_LOCATION] != true
-        if (!locationDenied) SpeedCameraService.start(context)
+    val startAlerts = rememberLocationPermissionRequest { granted ->
+        locationDenied = !granted
+        if (granted) SpeedCameraService.start(context)
     }
 
     MainContent(
         state = state,
         locationDenied = locationDenied,
-        onStartStop = {
-            if (state.running) {
-                SpeedCameraService.stop(context)
-            } else {
-                val missing = requiredPermissions().filterNot { context.isGranted(it) }
-                if (missing.isEmpty()) SpeedCameraService.start(context) else permissionLauncher.launch(missing.toTypedArray())
-            }
-        },
-        onOpenSettings = {
-            context.startActivity(
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
-            )
-        },
+        onStartStop = { if (state.running) SpeedCameraService.stop(context) else startAlerts() },
+        onOpenSettings = { context.openAppSettings() },
+        onOpenLegal = onOpenLegal,
+        navigationSetup = { NavigationSetupCard(viewModel, navigatorState) },
     )
 }
 
@@ -84,6 +66,8 @@ private fun MainContent(
     locationDenied: Boolean,
     onStartStop: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenLegal: () -> Unit,
+    navigationSetup: @Composable () -> Unit,
 ) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
@@ -98,6 +82,7 @@ private fun MainContent(
             Speed(state.speedKmh)
             NextCamera(state)
             Spacer(Modifier.weight(1f))
+            navigationSetup()
 
             if (locationDenied) {
                 Text(
@@ -135,22 +120,28 @@ private fun MainContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+            TextButton(onClick = onOpenLegal) {
+                Text(stringResource(R.string.legal_title))
+            }
         }
     }
 }
 
 @Composable
 private fun Speed(speedKmh: Int?) {
-    Row(verticalAlignment = Alignment.Bottom) {
+    Row {
         Text(
             text = speedKmh?.toString() ?: stringResource(R.string.speed_unknown),
             fontSize = 120.sp,
             fontWeight = FontWeight.Bold,
+            modifier = Modifier.alignByBaseline(),
         )
         Text(
             text = stringResource(R.string.speed_unit),
             style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(start = 8.dp, bottom = 24.dp),
+            modifier = Modifier
+                .alignByBaseline()
+                .padding(start = 8.dp),
         )
     }
 }
@@ -192,15 +183,6 @@ private fun NextCamera(state: MainUiState) {
     }
 }
 
-private fun requiredPermissions(): List<String> = buildList {
-    add(Manifest.permission.ACCESS_FINE_LOCATION)
-    add(Manifest.permission.ACCESS_COARSE_LOCATION)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
-}
-
-private fun Context.isGranted(permission: String) =
-    ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
-
 @Preview(showBackground = true)
 @Composable
 private fun MainContentPreview() {
@@ -210,6 +192,8 @@ private fun MainContentPreview() {
             locationDenied = false,
             onStartStop = {},
             onOpenSettings = {},
+            onOpenLegal = {},
+            navigationSetup = {},
         )
     }
 }

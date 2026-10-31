@@ -1,3 +1,5 @@
+import javax.inject.Inject
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.room)
+    alias(libs.plugins.secrets)
 }
 
 android {
@@ -32,15 +35,71 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Required by the Navigation SDK.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 room {
     schemaDirectory("$projectDir/schemas")
+}
+
+// MAPS_API_KEY comes from the gitignored local.properties; local.defaults.properties keeps
+// builds working without one.
+secrets {
+    propertiesFileName = "local.properties"
+    defaultPropertiesFileName = "local.defaults.properties"
+}
+
+/**
+ * Copies the Navigation SDK's NOTICE.txt and LICENSE out of its AAR into assets/legal/, so the
+ * attribution the SDK requires always matches the SDK version in use.
+ */
+abstract class ExtractNavigationLegal : DefaultTask() {
+    @get:InputFiles
+    abstract val aars: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @get:Inject
+    abstract val archives: ArchiveOperations
+
+    @get:Inject
+    abstract val files: FileSystemOperations
+
+    @TaskAction
+    fun extract() {
+        files.sync {
+            aars.forEach { from(archives.zipTree(it)) }
+            include("NOTICE.txt", "LICENSE")
+            rename("NOTICE.txt", "navigation_notice.txt")
+            rename("LICENSE", "navigation_licenses.txt")
+            // The AAR stores these read-only, which would block the next sync.
+            filePermissions { unix("rw-r--r--") }
+            into(outputDir.dir("legal"))
+        }
+    }
+}
+
+val navigationAar: Configuration = configurations.create("navigationAar") {
+    isTransitive = false
+    isCanBeConsumed = false
+}
+
+val extractNavigationLegal = tasks.register<ExtractNavigationLegal>("extractNavigationLegal") {
+    aars.from(navigationAar)
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(extractNavigationLegal, ExtractNavigationLegal::outputDir)
+    }
 }
 
 dependencies {
@@ -71,6 +130,14 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+
+    // The Navigation SDK bundles its own Maps SDK; the standalone one must not be on the classpath.
+    implementation(libs.google.navigation)
+    navigationAar(libs.google.navigation)
+    implementation(libs.google.places) {
+        exclude(group = "com.google.android.gms", module = "play-services-maps")
+    }
+    coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

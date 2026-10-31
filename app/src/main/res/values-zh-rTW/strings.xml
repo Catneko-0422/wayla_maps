@@ -12,5 +12,20 @@
     <string name="next_camera_limit">限速 %1$d</string>
     <string name="location_permission_needed">需要「精確位置」權限，才能提醒前方的測速照相。</string>
     <string name="open_settings">開啟設定</string>
+    <string name="action_back">返回</string>
+
+    <string name="navigation_not_enabled">導航尚未啟用。</string>
+    <string name="navigation_enable">啟用導航</string>
+    <string name="navigation_initializing">正在啟用導航…</string>
+    <string name="navigation_terms_declined">需要同意 Google 導航服務條款，才能使用導航。</string>
+    <string name="navigation_error_not_authorized">Google Maps API 金鑰無效，或金鑰所屬專案沒有啟用 Navigation SDK。</string>
+    <string name="navigation_error_network">無法連線到 Google，請確認網路後再試一次。</string>
+    <string name="navigation_error_location">導航需要「精確位置」權限。</string>
+    <string name="navigation_error_missing_key">尚未設定 Google Maps API 金鑰。請在 local.properties 加上 MAPS_API_KEY 後重新建置。</string>
+    <string name="navigation_error_timed_out">導航沒有成功啟用。請確認 API 金鑰有效，而且已經啟用 Navigation SDK。</string>
+
+    <string name="legal_title">關於與授權</string>
+    <string name="legal_data_section">測速照相資料</string>
+    <string name="legal_navigation_section">Google 地圖與 Navigation SDK</string>
     <string name="data_attribution">測速照相資料來源：內政部警政署「測速執法設置點」（政府資料開放平臺），依政府資料開放授權條款第 1 版使用</string>
 </resources>

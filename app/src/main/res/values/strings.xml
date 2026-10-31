@@ -17,5 +17,20 @@
     <string name="next_camera_limit">Limit %1$d</string>
     <string name="location_permission_needed">Precise location is needed to warn about speed cameras ahead.</string>
     <string name="open_settings">Open settings</string>
+    <string name="action_back">Back</string>
+
+    <string name="navigation_not_enabled">Navigation is not enabled yet.</string>
+    <string name="navigation_enable">Enable navigation</string>
+    <string name="navigation_initializing">Starting navigation…</string>
+    <string name="navigation_terms_declined">Navigation needs you to accept the Google navigation terms.</string>
+    <string name="navigation_error_not_authorized">The Google Maps API key is invalid, or the Navigation SDK is not enabled for it.</string>
+    <string name="navigation_error_network">Could not reach Google. Check the connection and try again.</string>
+    <string name="navigation_error_location">Navigation needs precise location.</string>
+    <string name="navigation_error_missing_key">No Google Maps API key is configured. Add MAPS_API_KEY to local.properties and rebuild.</string>
+    <string name="navigation_error_timed_out">Navigation did not start. Check that the API key is valid and has the Navigation SDK enabled.</string>
+
+    <string name="legal_title">About and licenses</string>
+    <string name="legal_data_section">Speed camera data</string>
+    <string name="legal_navigation_section">Google Maps and Navigation SDK</string>
     <string name="data_attribution">Speed camera data: National Police Agency, \"測速執法設置點\" (data.gov.tw), Open Government Data License v1.0</string>
 </resources>

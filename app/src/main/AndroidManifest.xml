@@ -19,6 +19,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WaylaMaps">
 
+        <!-- Filled in by the Secrets Gradle Plugin from local.properties. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <activity
             android:name=".ui.MainActivity"
             android:exported="true">
