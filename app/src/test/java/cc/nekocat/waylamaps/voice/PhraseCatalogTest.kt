@@ -55,7 +55,7 @@ class PhraseCatalogTest {
     fun everySpokenCameraDistanceHasAFragment() {
         val distances = catalog.slots.getValue("distance")
         (0..300).map { CameraAheadDetector.spokenDistanceMeters(it.toDouble()) }.toSet().forEach {
-            assertTrue("no fragment for $it m", it in distances)
+            assertTrue("no fragment for $it m", it.toString() in distances)
         }
     }
 

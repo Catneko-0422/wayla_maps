@@ -4,8 +4,18 @@
     "en": { "joiner": ", " }
   },
   "slots": {
-    "distance": [50, 100, 150, 200, 250, 300, 500, 1000],
-    "limit": [25, 30, 40, 50, 60, 70, 80, 90, 100, 110]
+    "distance": ["50", "100", "150", "200", "250", "300", "500", "1000"],
+    "limit": ["25", "30", "40", "50", "60", "70", "80", "90", "100", "110"],
+    "maneuver": [
+      "maneuver_turn_left", "maneuver_turn_right", "maneuver_keep_left", "maneuver_keep_right",
+      "maneuver_u_turn", "maneuver_straight", "maneuver_merge",
+      "maneuver_roundabout", "maneuver_roundabout_exit_1", "maneuver_roundabout_exit_2",
+      "maneuver_roundabout_exit_3", "maneuver_roundabout_exit_4", "maneuver_roundabout_exit_5",
+      "maneuver_roundabout_leave",
+      "maneuver_on_ramp", "maneuver_on_ramp_left", "maneuver_on_ramp_right",
+      "maneuver_off_ramp", "maneuver_off_ramp_left", "maneuver_off_ramp_right",
+      "maneuver_destination", "maneuver_destination_left", "maneuver_destination_right"
+    ]
   },
   "fragments": {
     "ahead_50m": { "zh-TW": "前方五十公尺", "en": "in 50 meters" },
@@ -31,7 +41,33 @@
     "limit_110": { "zh-TW": "限速一百一十", "en": "limit 110" },
 
     "average_speed_enter": { "zh-TW": "進入區間測速", "en": "Entering average speed zone" },
-    "average_speed_exit": { "zh-TW": "離開區間測速", "en": "Leaving average speed zone" }
+    "average_speed_exit": { "zh-TW": "離開區間測速", "en": "Leaving average speed zone" },
+
+    "maneuver_turn_left": { "zh-TW": "左轉", "en": "Turn left" },
+    "maneuver_turn_right": { "zh-TW": "右轉", "en": "Turn right" },
+    "maneuver_keep_left": { "zh-TW": "靠左", "en": "Keep left" },
+    "maneuver_keep_right": { "zh-TW": "靠右", "en": "Keep right" },
+    "maneuver_u_turn": { "zh-TW": "迴轉", "en": "Make a U-turn" },
+    "maneuver_straight": { "zh-TW": "直行", "en": "Go straight" },
+    "maneuver_merge": { "zh-TW": "匯入車道", "en": "Merge" },
+    "maneuver_roundabout": { "zh-TW": "進入圓環", "en": "Enter the roundabout" },
+    "maneuver_roundabout_exit_1": { "zh-TW": "圓環第一個出口", "en": "At the roundabout, take the first exit" },
+    "maneuver_roundabout_exit_2": { "zh-TW": "圓環第二個出口", "en": "At the roundabout, take the second exit" },
+    "maneuver_roundabout_exit_3": { "zh-TW": "圓環第三個出口", "en": "At the roundabout, take the third exit" },
+    "maneuver_roundabout_exit_4": { "zh-TW": "圓環第四個出口", "en": "At the roundabout, take the fourth exit" },
+    "maneuver_roundabout_exit_5": { "zh-TW": "圓環第五個出口", "en": "At the roundabout, take the fifth exit" },
+    "maneuver_roundabout_leave": { "zh-TW": "離開圓環", "en": "Exit the roundabout" },
+    "maneuver_on_ramp": { "zh-TW": "上匝道", "en": "Take the ramp" },
+    "maneuver_on_ramp_left": { "zh-TW": "靠左上匝道", "en": "Take the ramp on the left" },
+    "maneuver_on_ramp_right": { "zh-TW": "靠右上匝道", "en": "Take the ramp on the right" },
+    "maneuver_off_ramp": { "zh-TW": "下匝道", "en": "Take the exit" },
+    "maneuver_off_ramp_left": { "zh-TW": "靠左下匝道", "en": "Take the exit on the left" },
+    "maneuver_off_ramp_right": { "zh-TW": "靠右下匝道", "en": "Take the exit on the right" },
+    "maneuver_destination": { "zh-TW": "抵達目的地", "en": "Your destination" },
+    "maneuver_destination_left": { "zh-TW": "目的地在左側", "en": "Your destination is on the left" },
+    "maneuver_destination_right": { "zh-TW": "目的地在右側", "en": "Your destination is on the right" },
+
+    "arrived": { "zh-TW": "已抵達目的地", "en": "You have arrived" }
   },
   "phrases": {
     "speed_camera_ahead": {
@@ -55,6 +91,21 @@
     "average_speed_exit": {
       "priority": "SPEED_CAMERA",
       "fragments": { "zh-TW": ["average_speed_exit"], "en": ["average_speed_exit"] }
+    },
+    "turn_ahead": {
+      "priority": "TURN",
+      "fragments": {
+        "zh-TW": ["ahead_{distance}m", "{maneuver}"],
+        "en": ["{maneuver}", "ahead_{distance}m"]
+      }
+    },
+    "turn_now": {
+      "priority": "TURN",
+      "fragments": { "zh-TW": ["{maneuver}"], "en": ["{maneuver}"] }
+    },
+    "arrived": {
+      "priority": "TURN",
+      "fragments": { "zh-TW": ["arrived"], "en": ["arrived"] }
     }
   }
 }

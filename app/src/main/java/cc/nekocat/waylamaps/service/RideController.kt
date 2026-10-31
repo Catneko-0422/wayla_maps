@@ -31,7 +31,10 @@ class RideController @Inject constructor(
 
     init {
         scope.launch {
-            combine(_alertsEnabled, navigation.state) { alerts, guidance -> alerts || guidance is GuidanceState.Guiding }
+            combine(_alertsEnabled, navigation.state) { alerts, guidance ->
+                // Arrived keeps the service a little longer so the arrival prompt is heard.
+                alerts || guidance is GuidanceState.Guiding || guidance is GuidanceState.Arrived
+            }
                 .distinctUntilChanged()
                 .collect { needed -> if (needed) RideService.start(application) else RideService.stop(application) }
         }

@@ -7,6 +7,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+data class GeoPoint(val lat: Double, val lng: Double)
+
 object Geo {
     private const val EARTH_RADIUS_M = 6_371_000.0
 

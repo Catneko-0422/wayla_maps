@@ -1,8 +1,10 @@
 package cc.nekocat.waylamaps.navigation
 
+import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import cc.nekocat.waylamaps.alerts.GeoPoint
 import com.google.android.libraries.navigation.Navigator
 import com.google.android.libraries.navigation.RoutingOptions
 import com.google.android.libraries.navigation.SimulationOptions
@@ -18,24 +20,42 @@ sealed interface GuidanceState {
     data class Routing(val destination: PlaceSuggestion) : GuidanceState
     data class Guiding(val destination: PlaceSuggestion, val travelMode: TravelMode, val simulated: Boolean) : GuidanceState
     data class Failed(val destination: PlaceSuggestion, val reason: RouteFailure) : GuidanceState
+
+    /** Guidance ended at the destination; held briefly so the arrival prompt can play. */
+    data class Arrived(val destination: PlaceSuggestion) : GuidanceState
 }
 
 enum class RouteFailure { NO_ROUTE, NETWORK, LOCATION_UNKNOWN, QUOTA, NOT_READY, OTHER }
 
-/** Starts and stops turn-by-turn guidance on the shared [Navigator]. */
+/**
+ * Starts and stops turn-by-turn guidance on the shared [Navigator], and publishes the route and
+ * the turn-by-turn feed while guiding.
+ */
 @Singleton
 class NavigationSession @Inject constructor(
+    private val application: Application,
     private val controller: NavigationController,
     private val travelMode: TravelModePreference,
+    private val turnByTurn: TurnByTurnFeed,
 ) {
     private val _state = MutableStateFlow<GuidanceState>(GuidanceState.Idle)
     val state: StateFlow<GuidanceState> = _state.asStateFlow()
 
+    private val _route = MutableStateFlow<List<GeoPoint>>(emptyList())
+
+    /** The current route's polyline, empty when not guiding. Replaced on every reroute. */
+    val route: StateFlow<List<GeoPoint>> = _route.asStateFlow()
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private val arrivalListener = Navigator.ArrivalListener { event ->
-        // Stage 3 announces arrival before this; for now guidance simply ends.
-        if (event.isFinalDestination) stop()
+        if (!event.isFinalDestination) return@ArrivalListener
+        val guiding = _state.value as? GuidanceState.Guiding ?: return@ArrivalListener
+        endGuidance()
+        val arrived = GuidanceState.Arrived(guiding.destination)
+        _state.value = arrived
+        mainHandler.postDelayed({ if (_state.value == arrived) _state.value = GuidanceState.Idle }, ARRIVED_HOLD_MS)
     }
+    private val routeChangedListener = Navigator.RouteChangedListener { refreshRoute() }
 
     /** Routes to [destination] with the current travel mode and starts guidance. */
     fun start(destination: PlaceSuggestion, simulate: Boolean = false) {
@@ -59,13 +79,26 @@ class NavigationSession @Inject constructor(
     }
 
     fun stop() {
+        endGuidance()
+        _state.value = GuidanceState.Idle
+    }
+
+    private fun endGuidance() {
         controller.navigator?.let { navigator ->
             navigator.removeArrivalListener(arrivalListener)
+            navigator.removeRouteChangedListener(routeChangedListener)
+            navigator.unregisterServiceForNavUpdates()
             navigator.stopGuidance()
             navigator.clearDestinations()
             navigator.simulator.unsetUserLocation()
         }
-        _state.value = GuidanceState.Idle
+        turnByTurn.clear()
+        _route.value = emptyList()
+    }
+
+    private fun refreshRoute() {
+        val navigator = controller.navigator ?: return
+        _route.value = navigator.routeSegments.flatMap { it.latLngs }.map { GeoPoint(it.latitude, it.longitude) }
     }
 
     private fun onRouteResult(
@@ -83,7 +116,15 @@ class NavigationSession @Inject constructor(
             return
         }
         navigator.addArrivalListener(arrivalListener)
+        navigator.addRouteChangedListener(routeChangedListener)
+        val registered = navigator.registerServiceForNavUpdates(
+            application.packageName,
+            NavInfoReceiverService::class.java.name,
+            NEXT_STEPS_TO_PREVIEW,
+        )
+        if (!registered) Log.e(TAG, "Turn-by-turn feed unavailable; turns will not be announced")
         navigator.startGuidance()
+        refreshRoute()
         if (simulate) {
             navigator.simulator.simulateLocationsAlongExistingRoute(SimulationOptions().speedMultiplier(SIMULATION_SPEED))
         }
@@ -101,5 +142,7 @@ class NavigationSession @Inject constructor(
     private companion object {
         const val TAG = "NavigationSession"
         const val SIMULATION_SPEED = 1.5f
+        const val NEXT_STEPS_TO_PREVIEW = 1
+        const val ARRIVED_HOLD_MS = 10_000L
     }
 }

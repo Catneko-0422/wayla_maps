@@ -1,10 +1,14 @@
 package cc.nekocat.waylamaps.voice
 
-/** One sentence to speak: a phrase from the phrase table with its slot values. */
+/**
+ * One sentence to speak: a phrase from the phrase table with its slot values, or, when [text] is
+ * set, free text for the system TTS (instructions with no recorded fragments).
+ */
 data class Prompt(
     val phraseId: String,
     val args: Map<String, Any> = emptyMap(),
     val priority: Priority,
+    val text: String? = null,
 )
 
 /** Plays one prompt at a time for [PromptScheduler]. */

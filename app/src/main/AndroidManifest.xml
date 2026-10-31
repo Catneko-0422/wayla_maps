@@ -40,6 +40,11 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
+        <!-- Bound by the Navigation SDK to deliver turn-by-turn data. -->
+        <service
+            android:name=".navigation.NavInfoReceiverService"
+            android:exported="false" />
+
         <!-- WorkManager is initialized on demand by WaylaApp so workers get Hilt injection. -->
         <provider
             android:name="androidx.startup.InitializationProvider"

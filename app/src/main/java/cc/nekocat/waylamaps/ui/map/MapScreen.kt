@@ -275,6 +275,7 @@ private fun DestinationControls(state: MapUiState, query: String, actions: Panel
             text = stringResource(guidance.reason.messageRes()),
             color = MaterialTheme.colorScheme.error,
         )
+        is GuidanceState.Arrived -> Text(stringResource(R.string.navigation_arrived, guidance.destination.name))
         else -> Unit
     }
 

@@ -29,4 +29,5 @@ private fun SpeedCameraEntity.toDomain() = SpeedCamera(
     lng = lng,
     bearingDeg = bearingDeg,
     limitKmh = limitKmh,
+    address = address,
 )

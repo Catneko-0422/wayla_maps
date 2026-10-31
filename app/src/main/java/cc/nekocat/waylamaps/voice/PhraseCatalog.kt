@@ -13,7 +13,8 @@ class PhraseCatalog(private val table: Table) {
     @Serializable
     data class Table(
         val languages: Map<String, Language>,
-        val slots: Map<String, List<Int>> = emptyMap(),
+        /** Allowed values per slot, as strings: distances, limits and maneuver fragment ids. */
+        val slots: Map<String, List<String>> = emptyMap(),
         val fragments: Map<String, Map<String, String>>,
         val phrases: Map<String, Phrase>,
     )
@@ -32,7 +33,7 @@ class PhraseCatalog(private val table: Table) {
 
     val languages: Set<String> get() = table.languages.keys
     val phraseIds: Set<String> get() = table.phrases.keys
-    val slots: Map<String, List<Int>> get() = table.slots
+    val slots: Map<String, List<String>> get() = table.slots
 
     fun priorityOf(phraseId: String): Priority = phrase(phraseId).priority
 

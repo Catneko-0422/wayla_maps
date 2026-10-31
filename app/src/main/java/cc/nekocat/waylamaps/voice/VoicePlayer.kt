@@ -70,6 +70,11 @@ class VoicePlayer @Inject constructor(
         scheduler.submit(Prompt(phraseId, args, catalog.priorityOf(phraseId)))
     }
 
+    /** Speaks [text] with the system TTS; [key] replaces a queued prompt with the same key. */
+    fun speakText(key: String, text: String, priority: Priority) {
+        scheduler.submit(Prompt(key, priority = priority, text = text))
+    }
+
     fun release() {
         scheduler.clear()
         player.release()
@@ -78,6 +83,12 @@ class VoicePlayer @Inject constructor(
     }
 
     override fun play(prompt: Prompt) {
+        if (prompt.text != null) {
+            Log.i(TAG, "Playing ${prompt.phraseId} with TTS: ${prompt.text}")
+            audioFocus.acquire()
+            speakWithTts(prompt, prompt.text)
+            return
+        }
         val resolved = try {
             catalog.resolve(prompt.phraseId, prompt.args, language)
         } catch (e: IllegalArgumentException) {

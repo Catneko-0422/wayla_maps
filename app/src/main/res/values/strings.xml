@@ -21,6 +21,7 @@
     <string name="navigation_start">Start navigation</string>
     <string name="navigation_stop">End navigation</string>
     <string name="navigating_to">To %1$s</string>
+    <string name="navigation_arrived">Arrived at %1$s</string>
     <string name="simulate_route">Simulate drive (testing)</string>
     <string name="route_failed_no_route">No route found.</string>
     <string name="route_failed_network">Network error while finding a route. Try again.</string>

@@ -1,0 +1,121 @@
+package cc.nekocat.waylamaps.alerts
+
+import kotlin.math.cos
+import kotlin.math.sqrt
+
+/**
+ * Finds speed cameras on the route ahead while navigating, measuring distance along the route.
+ *
+ * A camera counts when it lies within [maxOffsetM] of the route polyline, ahead of the current
+ * position along the route, and (if its direction is known) enforces the direction the route
+ * travels there. This rules out cameras on parallel roads and cross streets, which
+ * [CameraAheadDetector] cannot tell apart without a route.
+ *
+ * Not thread-safe: feed it from a single coroutine.
+ */
+class RouteCameraMatcher(
+    private val alertDistanceM: Double = 300.0,
+    private val lookAheadM: Double = 1000.0,
+    private val maxOffsetM: Double = 25.0,
+    private val directionToleranceDeg: Double = 45.0,
+    /** How far off the route the position may be and still be placed on it. */
+    private val maxPositionOffsetM: Double = 60.0,
+    /** Progress is searched from this far behind the last known progress, for GPS jitter. */
+    private val backtrackM: Double = 100.0,
+) {
+    private var points: List<GeoPoint> = emptyList()
+
+    /** Distance along the route at each point. */
+    private var cumulative: DoubleArray = DoubleArray(0)
+    private var progressM: Double? = null
+    private val announced = mutableSetOf<Long>()
+
+    val hasRoute: Boolean get() = points.size >= 2
+
+    /** Replaces the route, e.g. after a reroute. Cameras already announced stay announced. */
+    fun setRoute(route: List<GeoPoint>) {
+        points = route
+        cumulative = DoubleArray(route.size)
+        for (i in 1 until route.size) {
+            cumulative[i] = cumulative[i - 1] + Geo.distanceMeters(route[i - 1].lat, route[i - 1].lng, route[i].lat, route[i].lng)
+        }
+        progressM = null
+    }
+
+    fun update(fix: Fix, candidates: List<SpeedCamera>): CameraAheadDetector.Result {
+        // Forget cameras that dropped out of the search area, so a later pass can announce them again.
+        val candidateIds = candidates.mapTo(HashSet()) { it.id }
+        announced.retainAll(candidateIds)
+
+        val position = locate(fix) ?: return CameraAheadDetector.Result(next = null, announce = null)
+        progressM = position.alongM
+
+        val next = candidates
+            .mapNotNull { camera -> measure(camera, position.alongM) }
+            .minByOrNull { it.distanceM }
+        val announce = next?.takeIf { it.distanceM <= alertDistanceM && announced.add(it.camera.id) }
+        return CameraAheadDetector.Result(next, announce)
+    }
+
+    /** Places the fix on the route, preferring the stretch just ahead of the last progress. */
+    private fun locate(fix: Fix): Projection? {
+        if (!hasRoute) return null
+        val last = progressM
+        if (last != null) {
+            nearest(fix.lat, fix.lng, fromM = last - backtrackM, toM = last + lookAheadM)
+                ?.takeIf { it.offsetM <= maxPositionOffsetM }
+                ?.let { return it }
+        }
+        return nearest(fix.lat, fix.lng, fromM = Double.NEGATIVE_INFINITY, toM = Double.POSITIVE_INFINITY)
+            ?.takeIf { it.offsetM <= maxPositionOffsetM }
+    }
+
+    private fun measure(camera: SpeedCamera, positionAlongM: Double): CameraAhead? {
+        val onRoute = nearest(camera.lat, camera.lng, fromM = positionAlongM, toM = positionAlongM + lookAheadM)
+            ?.takeIf { it.offsetM <= maxOffsetM && it.alongM > positionAlongM }
+            ?: return null
+        val enforced = camera.bearingDeg
+        if (enforced != null && Geo.angleBetween(enforced.toDouble(), onRoute.segmentBearingDeg) > directionToleranceDeg) {
+            return null
+        }
+        return CameraAhead(camera, onRoute.alongM - positionAlongM)
+    }
+
+    private data class Projection(val alongM: Double, val offsetM: Double, val segmentBearingDeg: Double)
+
+    /** Closest point on the segments overlapping [fromM, toM] of the route. */
+    private fun nearest(lat: Double, lng: Double, fromM: Double, toM: Double): Projection? {
+        var best: Projection? = null
+        for (i in 0 until points.size - 1) {
+            if (cumulative[i + 1] < fromM) continue
+            if (cumulative[i] > toM) break
+            val projection = project(lat, lng, i)
+            if (best == null || projection.offsetM < best.offsetM) best = projection
+        }
+        return best
+    }
+
+    /** Projects onto segment [i] in a local flat approximation, fine at segment scale. */
+    private fun project(lat: Double, lng: Double, i: Int): Projection {
+        val a = points[i]
+        val b = points[i + 1]
+        val metersPerDegLng = METERS_PER_DEGREE_LAT * cos(Math.toRadians(a.lat))
+        val bx = (b.lng - a.lng) * metersPerDegLng
+        val by = (b.lat - a.lat) * METERS_PER_DEGREE_LAT
+        val px = (lng - a.lng) * metersPerDegLng
+        val py = (lat - a.lat) * METERS_PER_DEGREE_LAT
+        val lengthSq = bx * bx + by * by
+        val t = if (lengthSq == 0.0) 0.0 else ((px * bx + py * by) / lengthSq).coerceIn(0.0, 1.0)
+        val dx = px - t * bx
+        val dy = py - t * by
+        return Projection(
+            alongM = cumulative[i] + t * (cumulative[i + 1] - cumulative[i]),
+            offsetM = sqrt(dx * dx + dy * dy),
+            segmentBearingDeg = Geo.bearingDegrees(a.lat, a.lng, b.lat, b.lng),
+        )
+    }
+
+    private companion object {
+        const val METERS_PER_DEGREE_LAT = 111_195.0
+    }
+}

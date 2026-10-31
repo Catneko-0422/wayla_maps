@@ -17,6 +17,7 @@
     <string name="navigation_start">開始導航</string>
     <string name="navigation_stop">結束導航</string>
     <string name="navigating_to">前往 %1$s</string>
+    <string name="navigation_arrived">已抵達 %1$s</string>
     <string name="simulate_route">模擬導航（測試用）</string>
     <string name="route_failed_no_route">找不到可以走的路線。</string>
     <string name="route_failed_network">規劃路線時網路連線失敗，請再試一次。</string>
