@@ -1,5 +1,6 @@
 package cc.nekocat.waylamaps.ui.main
 
+import android.app.Activity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,18 +26,18 @@ import cc.nekocat.waylamaps.ui.permissions.rememberLocationPermissionRequest
 
 /**
  * Walks the user through what navigation needs: location permission, then the Navigation SDK
- * terms, then starts the navigator. Speed camera alerts work without any of this.
+ * terms (shown by the SDK during [onEnable]), then the navigator. Speed camera alerts work
+ * without any of this.
  */
 @Composable
-fun NavigationSetupCard(viewModel: MainViewModel, navigatorState: NavigatorState) {
+fun NavigationSetupCard(navigatorState: NavigatorState, onEnable: (Activity?) -> Unit) {
     if (navigatorState is NavigatorState.Ready) return
     val activity = LocalActivity.current
     var locationDenied by remember { mutableStateOf(false) }
 
     val requestLocation = rememberLocationPermissionRequest { granted ->
         locationDenied = !granted
-        // The SDK shows its terms dialog here if needed and reports a refusal as an error.
-        if (granted) viewModel.initializeNavigation(activity)
+        if (granted) onEnable(activity)
     }
 
     val message = when {

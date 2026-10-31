@@ -1,9 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="notification_channel_alerts">測速照相提醒</string>
+    <string name="notification_channel_alerts">行車提醒</string>
     <string name="notification_alerts_running">測速照相提醒執行中</string>
+    <string name="notification_navigating">導航中：%1$s</string>
+    <string name="notification_map_active">地圖正在使用目前位置</string>
     <string name="action_stop">停止</string>
-    <string name="action_start">開始</string>
+    <string name="action_clear">清除</string>
+    <string name="speed_camera_alerts">測速提醒</string>
+
+    <string name="search_hint">搜尋目的地</string>
+    <string name="search_failed">搜尋失敗，請確認網路連線。</string>
+    <string name="travel_mode_car">汽車</string>
+    <string name="travel_mode_scooter">機車</string>
+    <string name="scooter_route_notice">機車路線由 Google 提供，請以實際路況、標誌與號誌為準。</string>
+    <string name="navigation_routing">正在規劃路線…</string>
+    <string name="navigation_start">開始導航</string>
+    <string name="navigation_stop">結束導航</string>
+    <string name="navigating_to">前往 %1$s</string>
+    <string name="simulate_route">模擬導航（測試用）</string>
+    <string name="route_failed_no_route">找不到可以走的路線。</string>
+    <string name="route_failed_network">規劃路線時網路連線失敗，請再試一次。</string>
+    <string name="route_failed_location">還沒取得目前位置，請稍後再試。</string>
+    <string name="route_failed_quota">Google 導航的使用額度已用完。</string>
+    <string name="route_failed_other">無法規劃路線。</string>
 
     <string name="speed_unit">公里/時</string>
     <string name="waiting_for_gps">正在等待 GPS 定位…</string>

@@ -10,7 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import cc.nekocat.waylamaps.ui.legal.LegalScreen
-import cc.nekocat.waylamaps.ui.main.MainScreen
+import cc.nekocat.waylamaps.ui.map.MapScreen
 import cc.nekocat.waylamaps.ui.theme.WaylaTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
                     BackHandler { showLegal = false }
                     LegalScreen(onBack = { showLegal = false })
                 } else {
-                    MainScreen(onOpenLegal = { showLegal = true })
+                    MapScreen(onOpenLegal = { showLegal = true })
                 }
             }
         }

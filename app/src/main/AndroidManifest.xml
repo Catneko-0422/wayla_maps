@@ -24,8 +24,10 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
 
+        <!-- Rotation is handled by Compose so the navigation map is not torn down mid-route. -->
         <activity
             android:name=".ui.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -34,7 +36,7 @@
         </activity>
 
         <service
-            android:name=".service.SpeedCameraService"
+            android:name=".service.RideService"
             android:exported="false"
             android:foregroundServiceType="location" />
 

@@ -1,66 +1,70 @@
 package cc.nekocat.waylamaps.service
 
 import android.Manifest
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
 import android.os.Build
-import android.os.Looper
 import android.util.Log
-import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import cc.nekocat.waylamaps.R
 import cc.nekocat.waylamaps.alerts.AlertSession
 import cc.nekocat.waylamaps.alerts.AlertSessionState
 import cc.nekocat.waylamaps.alerts.CameraAhead
 import cc.nekocat.waylamaps.alerts.CameraAheadDetector
 import cc.nekocat.waylamaps.alerts.Fix
 import cc.nekocat.waylamaps.data.SpeedCameraRepository
-import cc.nekocat.waylamaps.ui.MainActivity
+import cc.nekocat.waylamaps.navigation.GuidanceState
+import cc.nekocat.waylamaps.navigation.NavigationSession
 import cc.nekocat.waylamaps.voice.PhraseCatalog
 import cc.nekocat.waylamaps.voice.VoicePlayer
+import com.google.android.libraries.navigation.NavigationApi
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
-/** Foreground service that follows GPS and announces speed cameras ahead. */
+/**
+ * Foreground service for a ride: follows the position, announces speed cameras ahead, and keeps
+ * the process alive (screen off included) while navigating. Started and stopped by [RideController].
+ *
+ * Uses raw GPS when not navigating and the Navigation SDK's road-snapped positions while
+ * navigating. Its notification is shared with the SDK's own foreground service.
+ */
 @AndroidEntryPoint
-class SpeedCameraService : LifecycleService() {
+class RideService : LifecycleService() {
     @Inject lateinit var repository: SpeedCameraRepository
     @Inject lateinit var sessionState: AlertSessionState
     @Inject lateinit var voicePlayer: VoicePlayer
     @Inject lateinit var phraseCatalog: PhraseCatalog
+    @Inject lateinit var navigation: NavigationSession
+    @Inject lateinit var rideController: RideController
+    @Inject lateinit var notificationProvider: RideNotificationProvider
 
     private val detector = CameraAheadDetector()
     private val locations = Channel<Location>(Channel.CONFLATED)
-    private val locationListener = LocationListener { locations.trySend(it) }
+    private var locationSource: LocationSource? = null
     private var started = false
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        when (intent?.action) {
-            ACTION_STOP -> stopSelf()
-            else -> start()
-        }
+        // Every start, even a stop request, must go foreground: it may come from startForegroundService.
+        start()
+        if (intent?.action == ACTION_STOP) rideController.stopAll()
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        getSystemService(LocationManager::class.java).removeUpdates(locationListener)
+        locationSource?.stop()
+        if (started) runCatching { NavigationApi.getForegroundServiceManager(application).stopForeground(this) }
         voicePlayer.release()
         sessionState.update { AlertSession() }
         super.onDestroy()
@@ -72,28 +76,38 @@ class SpeedCameraService : LifecycleService() {
             PackageManager.PERMISSION_GRANTED
         ) {
             Log.w(TAG, "Location permission missing, not starting")
+            rideController.stopAll()
             stopSelf()
             return
         }
         started = true
-
-        ServiceCompat.startForeground(
-            this,
-            NOTIFICATION_ID,
-            buildNotification(),
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0,
-        )
+        goForeground()
         sessionState.update { it.copy(running = true) }
 
-        getSystemService(LocationManager::class.java).requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            UPDATE_INTERVAL_MS,
-            0f,
-            locationListener,
-            Looper.getMainLooper(),
-        )
+        lifecycleScope.launch {
+            navigation.state.map { it is GuidanceState.Guiding }.distinctUntilChanged().collect { guiding ->
+                locationSource?.stop()
+                locationSource = (if (guiding) RoadSnappedLocationSource(application) else GpsLocationSource(application))
+                    .also { it.start { location -> locations.trySend(location) } }
+            }
+        }
         lifecycleScope.launch {
             locations.consumeAsFlow().collect { onLocation(it) }
+        }
+    }
+
+    /** Goes foreground with the notification shared with the Navigation SDK. */
+    private fun goForeground() {
+        try {
+            NavigationApi.getForegroundServiceManager(application).startForeground(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Shared foreground notification unavailable, using our own", e)
+            ServiceCompat.startForeground(
+                this,
+                RideNotificationProvider.NOTIFICATION_ID,
+                notificationProvider.notification,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0,
+            )
         }
     }
 
@@ -128,53 +142,22 @@ class SpeedCameraService : LifecycleService() {
         }
     }
 
-    private fun buildNotification(): Notification {
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_ID,
-                getString(R.string.notification_channel_alerts),
-                NotificationManager.IMPORTANCE_LOW,
-            ),
-        )
-        val openApp = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE,
-        )
-        val stop = PendingIntent.getService(
-            this,
-            0,
-            stopIntent(this),
-            PendingIntent.FLAG_IMMUTABLE,
-        )
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(getString(R.string.notification_alerts_running))
-            .setContentIntent(openApp)
-            .addAction(0, getString(R.string.action_stop), stop)
-            .setOngoing(true)
-            .build()
-    }
-
     companion object {
-        private const val TAG = "SpeedCameraService"
-        private const val ACTION_STOP = "cc.nekocat.waylamaps.action.STOP_ALERTS"
-        private const val CHANNEL_ID = "speed_camera_alerts"
-        private const val NOTIFICATION_ID = 1
-        private const val UPDATE_INTERVAL_MS = 1_000L
+        private const val TAG = "RideService"
+        private const val ACTION_STOP = "cc.nekocat.waylamaps.action.STOP_RIDE"
         private const val SEARCH_RADIUS_M = 1_000.0
 
+        /** Only from the foreground (a user action), as Android requires for foreground services. */
         fun start(context: Context) {
-            ContextCompat.startForegroundService(context, Intent(context, SpeedCameraService::class.java))
+            ContextCompat.startForegroundService(context, Intent(context, RideService::class.java))
         }
 
+        /** Safe from anywhere, unlike startService(), which background apps may not call. */
         fun stop(context: Context) {
-            context.startService(stopIntent(context))
+            context.stopService(Intent(context, RideService::class.java))
         }
 
-        private fun stopIntent(context: Context) =
-            Intent(context, SpeedCameraService::class.java).setAction(ACTION_STOP)
+        /** For the notification's stop action. */
+        fun stopIntent(context: Context): Intent = Intent(context, RideService::class.java).setAction(ACTION_STOP)
     }
 }

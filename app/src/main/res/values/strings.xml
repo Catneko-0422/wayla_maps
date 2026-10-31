@@ -4,10 +4,29 @@
 
     <!-- Spoken prompts live in assets/voice/phrases.json, not here. -->
 
-    <string name="notification_channel_alerts">Speed camera alerts</string>
+    <string name="notification_channel_alerts">Ride</string>
     <string name="notification_alerts_running">Speed camera alerts are on</string>
+    <string name="notification_navigating">Navigating to %1$s</string>
+    <string name="notification_map_active">Map is using your location</string>
     <string name="action_stop">Stop</string>
-    <string name="action_start">Start</string>
+    <string name="action_clear">Clear</string>
+    <string name="speed_camera_alerts">Camera alerts</string>
+
+    <string name="search_hint">Search for a destination</string>
+    <string name="search_failed">Search failed. Check the connection.</string>
+    <string name="travel_mode_car">Car</string>
+    <string name="travel_mode_scooter">Scooter</string>
+    <string name="scooter_route_notice">Scooter routes come from Google. Always follow the actual road, signs and signals.</string>
+    <string name="navigation_routing">Finding a route…</string>
+    <string name="navigation_start">Start navigation</string>
+    <string name="navigation_stop">End navigation</string>
+    <string name="navigating_to">To %1$s</string>
+    <string name="simulate_route">Simulate drive (testing)</string>
+    <string name="route_failed_no_route">No route found.</string>
+    <string name="route_failed_network">Network error while finding a route. Try again.</string>
+    <string name="route_failed_location">Current location is not known yet. Try again shortly.</string>
+    <string name="route_failed_quota">The Google navigation quota is used up.</string>
+    <string name="route_failed_other">Could not find a route.</string>
 
     <string name="speed_unit">km/h</string>
     <string name="speed_unknown" translatable="false">--</string>
