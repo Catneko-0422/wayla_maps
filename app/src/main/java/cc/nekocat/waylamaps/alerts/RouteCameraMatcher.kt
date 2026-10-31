@@ -15,6 +15,8 @@ import kotlin.math.sqrt
  * Not thread-safe: feed it from a single coroutine.
  */
 class RouteCameraMatcher(
+    /** Distances to announce a point at; see [AlertCountdown]. */
+    countdownM: List<Int> = AlertCountdown.DEFAULT_DISTANCES_M,
     private val lookAheadM: Double = 1000.0,
     private val maxOffsetM: Double = 25.0,
     private val directionToleranceDeg: Double = 45.0,
@@ -30,7 +32,7 @@ class RouteCameraMatcher(
     /** Distance along the route at each point. */
     private var cumulative: DoubleArray = DoubleArray(0)
     private var progressM: Double? = null
-    private val countdown = AlertCountdown()
+    private val countdown = AlertCountdown(countdownM)
     private val announced get() = countdown.ids
 
     /** Announced points not passed yet, by their distance along the route. */

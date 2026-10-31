@@ -9,6 +9,8 @@ import kotlin.math.roundToInt
  * Not thread-safe: feed it fixes from a single coroutine.
  */
 class CameraAheadDetector(
+    /** Distances to announce a point at; see [AlertCountdown]. */
+    countdownM: List<Int> = AlertCountdown.DEFAULT_DISTANCES_M,
     private val lookAheadM: Double = 1000.0,
     /** Below this speed the GPS course is noise, so the last good heading is kept. */
     private val minHeadingSpeedMps: Double = 10.0 / 3.6,
@@ -35,7 +37,7 @@ class CameraAheadDetector(
     )
 
     private var heading: Double? = null
-    private val countdown = AlertCountdown()
+    private val countdown = AlertCountdown(countdownM)
     private val announced get() = countdown.ids
     private val awaitingPass = mutableSetOf<Long>()
 

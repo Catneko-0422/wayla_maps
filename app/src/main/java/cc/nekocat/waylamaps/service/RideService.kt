@@ -46,6 +46,7 @@ import cc.nekocat.waylamaps.navigation.NavigationSession
 import cc.nekocat.waylamaps.navigation.RouteFailure
 import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
+import cc.nekocat.waylamaps.navigation.TurnNavState
 import cc.nekocat.waylamaps.navigation.TurnPrompt
 import cc.nekocat.waylamaps.navigation.TurnPromptPlanner
 import cc.nekocat.waylamaps.voice.AlertPhrases
@@ -91,10 +92,12 @@ class RideService : LifecycleService() {
 
     private val detector = CameraAheadDetector()
     private val routeMatcher = RouteCameraMatcher()
-    private val enforcementDetector = CameraAheadDetector()
-    private val enforcementRouteMatcher = RouteCameraMatcher()
-    private val userPointDetector = CameraAheadDetector()
-    private val userPointRouteMatcher = RouteCameraMatcher()
+    // Speed cameras count down 400 to 50 m. Enforcement intersections are many in cities, and
+    // the rider's own points are reminders, so they are said less often.
+    private val enforcementDetector = CameraAheadDetector(countdownM = SHORT_COUNTDOWN_M)
+    private val enforcementRouteMatcher = RouteCameraMatcher(countdownM = SHORT_COUNTDOWN_M)
+    private val userPointDetector = CameraAheadDetector(countdownM = SHORT_COUNTDOWN_M)
+    private val userPointRouteMatcher = RouteCameraMatcher(countdownM = SHORT_COUNTDOWN_M)
     private val overLimit = OverLimitWarner()
     private val averageSpeed = AverageSpeedTracker()
     private var lastFix: Fix? = null
@@ -165,8 +168,12 @@ class RideService : LifecycleService() {
             }
         }
         lifecycleScope.launch {
+            var lastState: TurnNavState? = null
             turnByTurn.updates.filterNotNull().collect { update ->
                 Log.d(TAG, "Turn feed $update")
+                // Said once as the route is recalculated, so a missed turn is not met with silence.
+                if (update.state == TurnNavState.REROUTING && lastState != TurnNavState.REROUTING) voicePlayer.speak("rerouting")
+                lastState = update.state
                 turnPlanner.next(update, speedMps)?.let { speakTurn(it) }
             }
         }
@@ -382,6 +389,7 @@ class RideService : LifecycleService() {
         private const val TAG = "RideService"
         private const val ACTION_STOP = "cc.nekocat.waylamaps.action.STOP_RIDE"
         private const val SEARCH_RADIUS_M = 1_000.0
+        private val SHORT_COUNTDOWN_M = listOf(300, 100)
 
         /** An enforcement point this close to an announced speed camera is the same spot. */
         private const val SAME_SPOT_M = 50.0

@@ -717,6 +717,11 @@
       "zh-TW": "已到達停靠點，繼續前往下一站",
       "en": "Stop reached. On to the next one",
       "ja": "経由地に到着。次の目標へ向かいます"
+    },
+    "rerouting": {
+      "zh-TW": "重新規劃路線",
+      "en": "Rerouting",
+      "ja": "ルート再計算"
     }
   },
   "phrases": {
@@ -1262,6 +1267,20 @@
         ],
         "ja": [
           "stop_reached"
+        ]
+      }
+    },
+    "rerouting": {
+      "priority": "TURN",
+      "fragments": {
+        "zh-TW": [
+          "rerouting"
+        ],
+        "en": [
+          "rerouting"
+        ],
+        "ja": [
+          "rerouting"
         ]
       }
     }
