@@ -9,8 +9,7 @@ The model is licensed (VN3, ©ジンゴ) and must not be redistributed: the outp
 is gitignored and only ends up in local builds.
 
 What it does:
-- drops the underwear meshes (the default outfit assumes them off) and the lower-body meshes
-  hidden below the camera's chest-up framing;
+- drops the bra and panty meshes (the default outfit assumes them off);
 - keeps only the face shape keys the app drives (blink, vowels, joy) and removes the others;
 - decimates every other mesh, which then has no shape keys to preserve;
 - poses the arms down from the T-pose and bakes that pose into the meshes, dropping the
@@ -29,10 +28,7 @@ import bpy
 from mathutils import Matrix
 
 FACE_MESH = "Body"
-DROP_MESHES = {
-    "Manuka_underwear_bra", "Manuka_underwear_panty", "Manuka_underwear_stocking",
-    "Manuka_costume_shoes", "Manuka_costume_shorts",
-}
+DROP_MESHES = {"Manuka_underwear_bra", "Manuka_underwear_panty"}
 FACE_KEYS = {
     "blink": "eye_close",
     "a": "mouth_a",
@@ -168,7 +164,7 @@ def main():
         "id": "manuka",
         "name": "MANUKA",
         "credit": "MANUKA ©ジンゴ (VN3 license, personal use)",
-        "model": {"file": "model.glb", "morphs": FACE_KEYS, "focusHeight": 0.95, "cameraDistance": 0.75},
+        "model": {"file": "model.glb", "morphs": FACE_KEYS, "focusHeight": 0.9, "cameraDistance": 1.2},
     }
     (out_dir / "character.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"OPTIMIZED triangles={tris} glb={(out_dir / 'model.glb').stat().st_size} bytes")

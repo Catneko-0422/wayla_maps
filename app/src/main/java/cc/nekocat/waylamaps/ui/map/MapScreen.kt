@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -154,10 +156,18 @@ fun MapScreen(
                             .width(PANEL_WIDTH)
                             .fillMaxHeight(),
                     )
-                    characterModel?.let { model ->
-                        CharacterColumn(model, speech, Modifier.width(CHARACTER_WIDTH).fillMaxHeight())
+                    Box(Modifier.weight(1f).fillMaxHeight()) {
+                        map()
+                        // The character floats over the map, bottom right, clear of the SDK's
+                        // turn card (top), trip summary (bottom left) and buttons (right edge).
+                        characterModel?.let { model ->
+                            FloatingCharacter(
+                                model,
+                                speech,
+                                Modifier.align(Alignment.BottomEnd).padding(end = 72.dp),
+                            )
+                        }
                     }
-                    Box(Modifier.weight(1f).fillMaxHeight()) { map() }
                 }
                 else -> Column(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -417,13 +427,13 @@ private fun formatDistance(meters: Int): String =
     if (meters < 1000) "$meters m" else String.format(Locale.ROOT, "%.1f km", meters / 1000.0)
 
 @Composable
-private fun CharacterColumn(model: CharacterModel, speech: Speech?, modifier: Modifier) {
-    Column(modifier.padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        key(model.id) {
-            CharacterView(model.bytes, model.spec, speech, Modifier.fillMaxWidth().weight(1f))
+private fun FloatingCharacter(model: CharacterModel, speech: Speech?, modifier: Modifier) {
+    Row(modifier, verticalAlignment = Alignment.Bottom) {
+        speech?.let {
+            SpeechBubble(model.name, it.text, Modifier.widthIn(max = 240.dp).padding(bottom = 48.dp))
         }
-        Box(Modifier.fillMaxWidth().heightIn(min = 96.dp).padding(horizontal = 8.dp)) {
-            speech?.let { SpeechBubble(model.name, it.text, Modifier.fillMaxWidth()) }
+        key(model.id) {
+            CharacterView(model.bytes, model.spec, speech, Modifier.size(CHARACTER_WIDTH, CHARACTER_HEIGHT))
         }
     }
 }
@@ -439,6 +449,7 @@ private fun SpeechBubble(name: String, text: String, modifier: Modifier = Modifi
 }
 
 private val PANEL_WIDTH = 340.dp
-private val CHARACTER_WIDTH = 240.dp
+private val CHARACTER_WIDTH = 180.dp
+private val CHARACTER_HEIGHT = 240.dp
 private const val UNLOCK_HOLD_MS = 2_000L
 private const val PORTRAIT_PANEL_FRACTION = 0.55f
