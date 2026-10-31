@@ -1,0 +1,60 @@
+{
+  "languages": {
+    "zh-TW": { "joiner": "，" },
+    "en": { "joiner": ", " }
+  },
+  "slots": {
+    "distance": [50, 100, 150, 200, 250, 300, 500, 1000],
+    "limit": [25, 30, 40, 50, 60, 70, 80, 90, 100, 110]
+  },
+  "fragments": {
+    "ahead_50m": { "zh-TW": "前方五十公尺", "en": "in 50 meters" },
+    "ahead_100m": { "zh-TW": "前方一百公尺", "en": "in 100 meters" },
+    "ahead_150m": { "zh-TW": "前方一百五十公尺", "en": "in 150 meters" },
+    "ahead_200m": { "zh-TW": "前方兩百公尺", "en": "in 200 meters" },
+    "ahead_250m": { "zh-TW": "前方兩百五十公尺", "en": "in 250 meters" },
+    "ahead_300m": { "zh-TW": "前方三百公尺", "en": "in 300 meters" },
+    "ahead_500m": { "zh-TW": "前方五百公尺", "en": "in 500 meters" },
+    "ahead_1000m": { "zh-TW": "前方一公里", "en": "in 1 kilometer" },
+
+    "speed_camera": { "zh-TW": "測速照相", "en": "Speed camera" },
+
+    "limit_25": { "zh-TW": "限速二十五", "en": "limit 25" },
+    "limit_30": { "zh-TW": "限速三十", "en": "limit 30" },
+    "limit_40": { "zh-TW": "限速四十", "en": "limit 40" },
+    "limit_50": { "zh-TW": "限速五十", "en": "limit 50" },
+    "limit_60": { "zh-TW": "限速六十", "en": "limit 60" },
+    "limit_70": { "zh-TW": "限速七十", "en": "limit 70" },
+    "limit_80": { "zh-TW": "限速八十", "en": "limit 80" },
+    "limit_90": { "zh-TW": "限速九十", "en": "limit 90" },
+    "limit_100": { "zh-TW": "限速一百", "en": "limit 100" },
+    "limit_110": { "zh-TW": "限速一百一十", "en": "limit 110" },
+
+    "average_speed_enter": { "zh-TW": "進入區間測速", "en": "Entering average speed zone" },
+    "average_speed_exit": { "zh-TW": "離開區間測速", "en": "Leaving average speed zone" }
+  },
+  "phrases": {
+    "speed_camera_ahead": {
+      "priority": "SPEED_CAMERA",
+      "fragments": {
+        "zh-TW": ["ahead_{distance}m", "speed_camera"],
+        "en": ["speed_camera", "ahead_{distance}m"]
+      }
+    },
+    "speed_camera_ahead_limit": {
+      "priority": "SPEED_CAMERA",
+      "fragments": {
+        "zh-TW": ["ahead_{distance}m", "speed_camera", "limit_{limit}"],
+        "en": ["speed_camera", "ahead_{distance}m", "limit_{limit}"]
+      }
+    },
+    "average_speed_enter": {
+      "priority": "SPEED_CAMERA",
+      "fragments": { "zh-TW": ["average_speed_enter"], "en": ["average_speed_enter"] }
+    },
+    "average_speed_exit": {
+      "priority": "SPEED_CAMERA",
+      "fragments": { "zh-TW": ["average_speed_exit"], "en": ["average_speed_exit"] }
+    }
+  }
+}
