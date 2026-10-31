@@ -1,0 +1,61 @@
+{
+  "files": {
+    "taipei": {
+      "url": "https://data.taipei/api/dataset/986fa73e-c470-4ebf-9f35-3a1c9d2a8788/resource/4715904f-6ce1-41c2-8a68-3bc5303f3607/download",
+      "sha256": "b7c59cf6f38df3e00440e6e568c92321d28ca7286e522bc946198da8e8ba1d3a"
+    },
+    "taoyuan": {
+      "url": "https://opendata.tycg.gov.tw/api/dataset/46bd8de0-cb90-4149-a530-5f5b1751b450/resource/636bb62e-cc5b-4ad4-ac11-5849ad5c432d/download",
+      "sha256": "074faf345571e79504cd47aac26490fccda102f91ee26858b7986a3bf26725af"
+    },
+    "taichung": {
+      "url": "https://newdatacenter.taichung.gov.tw/api/v1/no-auth/resource.download?rid=b3f58c63-53b3-4c01-8203-2a7afa08bb13",
+      "sha256": "f0c22ce132a93336967de2ff80d28bed30ebc947d342439dd43a17e08177a4e8"
+    },
+    "kaohsiung_intersection": {
+      "url": "https://data.kcg.gov.tw/File/DirectDownload/406808f2-42a1-49c2-90f1-bca21920a863",
+      "sha256": "758e9aca70ce2f58c848144e8afb4ec8328be8cca53835af2c0d8ce6a8c83256"
+    },
+    "kaohsiung_traffic": {
+      "url": "https://data.kcg.gov.tw/File/DirectDownload/181e0e72-b21a-4fc6-b377-554053bb4215",
+      "sha256": "36c35dca92629ad503f2bf14ddfa450c2fc659ac6b8ae5d8315aaf2a5ad285f5"
+    },
+    "kaohsiung_pedestrian": {
+      "url": "https://data.kcg.gov.tw/File/DirectDownload/b026de91-efa3-46bb-8b95-4c20c8854936",
+      "sha256": "cd13f723d652c13273e0d0104c14f004e015fc0743abbc9e9a6d07aae343760c"
+    },
+    "keelung": {
+      "url": "https://www.klg.gov.tw/cht/upload/TechArea.csv",
+      "sha256": "f4ce0cf8db910690dc58ea43c5e36dfd1964d6bcbe4d3cdcd72768781f1806ad"
+    },
+    "miaoli": {
+      "url": "https://webws.miaoli.gov.tw/Download.ashx?u=LzAwMS9VcGxvYWQvb3BlbmRhdGEvMTcxNS83MjlmODcxOC0xNGVkLTQ5NmQtOTMzZS1jOTRmZmZkZjNmYzYuY3N2&n=6IuX5qCX57ij56eR5oqA5Z%2b35rOV6Kit5YKZ5Y%2bW57eg5Zyw6bueLmNzdg%3d%3d&icon=.csv",
+      "sha256": "cf93f3b728cd00f5557f60cb1c42fb5ffba0d4a9cbaa87cc4b31c05e6a694716"
+    },
+    "changhua": {
+      "url": "https://www.chpb.gov.tw/opendata/deJgXKJjLESCdBNje_-bYA/csv",
+      "sha256": "72a4b7ae2026e64edc67728671868d5092d914ab13fb2b46c2fc6ebdd3e1cad2"
+    },
+    "yunlin": {
+      "url": "https://ws.yunlin.gov.tw/001/Upload/539/opendata/0/2491/be1537c9-659a-46a6-940b-0b89e2c594fa.csv",
+      "sha256": "528290e16c914c61e064f44dd13b7da6ad2bd25de830c4069b265b0c627c473d"
+    },
+    "hsinchu_city": {
+      "url": "https://odws.hccg.gov.tw/001/Upload/25/opendataback/9059/2006/51a0af55-4a9f-43fb-86cc-5ea09ab58bef.csv",
+      "sha256": "0eef1933fdb8fe53b65e1049dcda9a3a459eaac0350d57433698691d984e38cc"
+    },
+    "pingtung": {
+      "url": "https://www-ws.pthg.gov.tw/Upload/2015pthg/0/relfile/0/0/6a3e921a-ff5f-4de3-90ab-1d2094ad1170.csv",
+      "sha256": "823ddfaac9d840b1199137f7c1e7e12f0f28d666df6144ba5effa7f5eb3c523c"
+    },
+    "penghu": {
+      "url": "https://opendata.penghu.gov.tw/dataset/bbb46c6f-dd1a-4ca4-b4e4-ef25dab065fc/resource/4666f04f-88ef-4ca9-8cad-d4ee82c76d7e/download/pb140300-2025-02-21-1740105639.csv",
+      "sha256": "bd69ee0ce5b0e0e4cc8da3d1d50ddf78d00ba2871c4f0fb4162828e55ff93a0a"
+    },
+    "kinmen": {
+      "url": "https://ws.kinmen.gov.tw/001/Upload/0/relfile/0/0/9eaa309e-e67d-42ca-bd22-518d1dc39bb5.csv",
+      "sha256": "2f827e9a06b320cefb06dfebfdd5a76a25a732793a8e6e584dc50d5196633a18"
+    }
+  },
+  "version": "2026-10-31"
+}

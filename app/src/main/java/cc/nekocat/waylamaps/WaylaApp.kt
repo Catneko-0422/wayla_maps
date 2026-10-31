@@ -4,8 +4,9 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import cc.nekocat.waylamaps.data.OpenDataUpdateWorker
 import cc.nekocat.waylamaps.data.SpeedCameraImporter
-import cc.nekocat.waylamaps.data.SpeedCameraUpdateWorker
+import cc.nekocat.waylamaps.data.enforcement.EnforcementImporter
 import cc.nekocat.waylamaps.service.RideController
 import cc.nekocat.waylamaps.service.RideNotificationProvider
 import com.google.android.libraries.navigation.NavigationApi
@@ -18,6 +19,7 @@ import javax.inject.Inject
 @HiltAndroidApp
 class WaylaApp : Application(), Configuration.Provider {
     @Inject lateinit var speedCameraImporter: SpeedCameraImporter
+    @Inject lateinit var enforcementImporter: EnforcementImporter
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var rideNotificationProvider: RideNotificationProvider
 
@@ -34,8 +36,11 @@ class WaylaApp : Application(), Configuration.Provider {
         appScope.launch {
             runCatching { speedCameraImporter.importBundledIfNeeded() }
                 .onFailure { Log.e(TAG, "Speed camera import failed", it) }
+            // After the speed cameras: enforcement points that duplicate one are left out.
+            runCatching { enforcementImporter.importBundledIfNeeded() }
+                .onFailure { Log.e(TAG, "Enforcement point import failed", it) }
         }
-        SpeedCameraUpdateWorker.schedule(this)
+        OpenDataUpdateWorker.schedule(this)
 
         // One notification for both RideService and the Navigation SDK's foreground service.
         try {

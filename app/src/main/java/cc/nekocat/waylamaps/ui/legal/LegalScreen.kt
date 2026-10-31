@@ -54,7 +54,12 @@ fun LegalScreen(onBack: () -> Unit) {
                 TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Text(stringResource(R.string.legal_title), style = MaterialTheme.typography.headlineSmall)
             }
-            item { Section(stringResource(R.string.legal_data_section), stringResource(R.string.data_attribution)) }
+            item {
+                Section(
+                    stringResource(R.string.legal_data_section),
+                    stringResource(R.string.data_attribution) + "\n\n" + stringResource(R.string.enforcement_attribution),
+                )
+            }
             item { Section(stringResource(R.string.legal_navigation_section), notice) }
             items(licenseChunks) { chunk ->
                 Text(chunk, style = MaterialTheme.typography.bodySmall)

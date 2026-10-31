@@ -1,0 +1,18 @@
+{
+  "sources": [
+    { "key": "taipei", "agency": "臺北市政府警察局", "datasetId": 135957 },
+    { "key": "taoyuan", "agency": "桃園市政府警察局", "datasetId": 178168 },
+    { "key": "taichung", "agency": "臺中市政府警察局", "datasetId": 170673 },
+    { "key": "kaohsiung_intersection", "agency": "高雄市政府警察局", "datasetId": 176561 },
+    { "key": "kaohsiung_traffic", "agency": "高雄市政府警察局", "datasetId": 176558 },
+    { "key": "kaohsiung_pedestrian", "agency": "高雄市政府警察局", "datasetId": 177827 },
+    { "key": "keelung", "agency": "基隆市警察局", "datasetId": 178159 },
+    { "key": "miaoli", "agency": "苗栗縣警察局", "datasetId": 172178 },
+    { "key": "changhua", "agency": "彰化縣警察局", "datasetId": 172905 },
+    { "key": "yunlin", "agency": "雲林縣警察局", "datasetId": 178357 },
+    { "key": "hsinchu_city", "agency": "新竹市警察局", "datasetId": 178144 },
+    { "key": "pingtung", "agency": "屏東縣政府警察局", "datasetId": 159972 },
+    { "key": "penghu", "agency": "澎湖縣政府警察局", "datasetId": 172940 },
+    { "key": "kinmen", "agency": "金門縣警察局", "datasetId": 178121 }
+  ]
+}

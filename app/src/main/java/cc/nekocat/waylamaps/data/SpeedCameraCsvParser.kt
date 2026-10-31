@@ -32,10 +32,9 @@ object SpeedCameraCsvParser {
     private val COLUMNS = listOf("CityName", "RegionName", "Address", "Longitude", "Latitude", "direct", "limit")
 
     fun parse(csv: String): Parsed {
-        val lines = csv.removePrefix("\uFEFF").lineSequence().map { it.trimEnd('\r') }.filter { it.isNotBlank() }
-        val iterator = lines.iterator()
+        val iterator = Csv.parse(csv).iterator()
         require(iterator.hasNext()) { "Empty CSV" }
-        val header = splitLine(iterator.next())
+        val header = iterator.next()
         val index = COLUMNS.associateWith { column ->
             header.indexOf(column).also { require(it >= 0) { "Missing column $column" } }
         }
@@ -43,8 +42,7 @@ object SpeedCameraCsvParser {
         val cameras = mutableListOf<SpeedCameraAsset.Camera>()
         val seen = mutableSetOf<List<Any?>>()
         var rejected = 0
-        for (line in iterator) {
-            val fields = splitLine(line)
+        for (fields in iterator) {
             val row = index.mapValues { (_, i) -> fields.getOrNull(i)?.trim().orEmpty() }
             // The second line repeats the header in Chinese.
             if (row["CityName"] == "設置縣市") continue
@@ -110,26 +108,6 @@ object SpeedCameraCsvParser {
 
     private fun roundCoordinate(text: String): Double? =
         text.toBigDecimalOrNull()?.setScale(6, RoundingMode.HALF_EVEN)?.toDouble()
-
-    /** Splits one CSV line, honouring double-quoted fields. */
-    private fun splitLine(line: String): List<String> {
-        val fields = mutableListOf<String>()
-        val current = StringBuilder()
-        var quoted = false
-        var i = 0
-        while (i < line.length) {
-            val c = line[i]
-            when {
-                quoted && c == '"' && line.getOrNull(i + 1) == '"' -> { current.append('"'); i++ }
-                c == '"' -> quoted = !quoted
-                c == ',' && !quoted -> { fields += current.toString(); current.clear() }
-                else -> current.append(c)
-            }
-            i++
-        }
-        fields += current.toString()
-        return fields
-    }
 
     private fun String.toBigDecimalOrNull(): BigDecimal? = try {
         BigDecimal(trim())

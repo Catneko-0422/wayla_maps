@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        These county open data servers send their certificate without the TWCA intermediate,
+        so the chain cannot be built from the system store alone. The intermediates are
+        TWCA's own (sslserver.twca.com.tw/cacert/) and are trusted only for these hosts.
+    -->
+    <domain-config>
+        <domain includeSubdomains="false">odws.hccg.gov.tw</domain>
+        <domain includeSubdomains="false">ws.kinmen.gov.tw</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/twca_ssl_ca" />
+            <certificates src="@raw/twca_secure_ssl_ca" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

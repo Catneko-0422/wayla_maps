@@ -15,7 +15,7 @@ cd tools && python3 -m unittest test_convert_speed_cameras
 The raw CSV is saved to `tools/data/` (gitignored). Bump nothing by hand: the
 asset `version` defaults to today's date, so a regenerated asset is re-imported.
 
-The app also refreshes the data by itself: `SpeedCameraUpdateWorker` downloads the
+The app also refreshes the data by itself: `OpenDataUpdateWorker` downloads the
 same CSV weekly and parses it with `SpeedCameraCsvParser`, a Kotlin port of this
 script. **Change both together.** `SpeedCameraCsvParserTest` repeats the Python test
 cases and, when `tools/data/speed_cameras_raw.csv` exists, checks that the Kotlin
@@ -67,3 +67,33 @@ then only checks that the camera is ahead of the rider.
 Notes such as (區間測速) or 兼闖紅燈 are ignored for the bearing; the original text
 stays in `direction`. Rows with coordinates outside Taiwan are dropped (one row in
 the 2026-10-31 data: 苗栗 台1線104.9公里, latitude 26.645).
+
+## Traffic enforcement points (科技執法)
+
+`fetch_enforcement.py` downloads each county dataset listed in
+`app/src/main/assets/enforcement/sources.json` and stores the CSV unchanged as
+`assets/enforcement/<key>.csv`, plus `manifest.json` (version date, URL and SHA-256 of
+each file). There is no conversion step: the app parses the raw files with
+`EnforcementCsvParser`, both for the bundled snapshot and for its weekly downloads.
+
+```bash
+python3 tools/fetch_enforcement.py                 # refresh every county
+python3 tools/fetch_enforcement.py --only taipei   # refresh some
+cd tools && python3 -m unittest test_fetch_enforcement
+```
+
+For each data.gov.tw dataset the CSV resource with coordinate columns and the highest
+「第N次公告」 is used (`pick_csv_url`, mirrored by `EnforcementSources.pickCsvUrl`).
+A county that fails to download keeps its previous file.
+
+The Hsinchu City and Kinmen servers omit their TWCA intermediate certificate. The two
+intermediates in `app/src/main/res/raw/twca_*.pem` come from
+`sslserver.twca.com.tw/cacert/` and chain to TWCA roots in the system store; the tool
+and the app (`network_security_config.xml`, those hosts only) add them for verification.
+
+Not included yet: New Taipei (PDF only), Hualien and Taitung (non-tabular), Chiayi County
+(its server only offers a Diffie-Hellman key that modern TLS rejects), and Tainan and
+Chiayi City (no coordinates; planned via geocoding).
+
+All datasets are licensed under 政府資料開放授權條款－第1版; the app lists the agencies
+on its about screen.
