@@ -19,6 +19,16 @@ class RideAlertRulesTest {
     }
 
     @Test
+    fun estimatesSpeedFromTwoPositions() {
+        val a = GeoPoint(25.0, 121.5)
+        val b = GeoPoint(25.0 + 10 / 111_195.0, 121.5)
+
+        assertEquals(10.0, speedBetween(a, 0, b, 1_000_000_000)!!, 0.1)
+        assertNull(speedBetween(a, 0, b, 100_000_000))
+        assertNull(speedBetween(a, 0, b, 10_000_000_000))
+    }
+
+    @Test
     fun nearbyOnceReportsSlowApproachOnce() {
         val zone = SpeedCamera(9, 25.0, 121.5, bearingDeg = null, limitKmh = null)
         val notifier = NearbyOnceNotifier()

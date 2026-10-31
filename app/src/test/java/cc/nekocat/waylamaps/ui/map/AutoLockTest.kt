@@ -36,6 +36,14 @@ class AutoLockTest {
     }
 
     @Test
+    fun fixesWithoutSpeedKeepTheState() {
+        ride(0, 10, 30)
+        assertTrue(lock.locked)
+        ride(11, 20, null)
+        assertTrue(lock.locked)
+    }
+
+    @Test
     fun neverLocksWhenDisabledOrSpeedUnknown() {
         ride(0, 30, null)
         assertFalse(lock.locked)

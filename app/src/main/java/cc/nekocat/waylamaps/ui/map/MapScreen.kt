@@ -222,6 +222,9 @@ private fun ControlPanel(
                 )
             }
         }
+        val guidance = state.guidance
+        // While navigating, ending the trip comes first so it stays on screen in landscape.
+        if (state.navigatorReady && guidance is GuidanceState.Guiding) GuidingControls(guidance, actions.onStop)
         NextCamera(state.alerts)
 
         if (locationDenied) {
@@ -233,10 +236,9 @@ private fun ControlPanel(
             OutlinedButton(onClick = actions.onOpenAppSettings) { Text(stringResource(R.string.open_settings)) }
         }
 
-        val guidance = state.guidance
         when {
             !state.navigatorReady -> NavigationSetupCard(state.navigator, actions.onEnableNavigation)
-            guidance is GuidanceState.Guiding -> GuidingControls(guidance, actions.onStop)
+            guidance is GuidanceState.Guiding -> Unit
             else -> DestinationControls(state, query, actions)
         }
 
@@ -265,32 +267,48 @@ private fun ControlPanel(
  */
 @Composable
 private fun LockedPanel(state: MapUiState, actions: PanelActions, modifier: Modifier) {
+    // Compact enough for a landscape phone: both buttons share one row under the alerts.
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Speed(state.alerts.speedKmh, fontSize = 96.sp)
+        Speed(state.alerts.speedKmh, fontSize = 72.sp)
         NextCamera(state.alerts)
-        val guidance = state.guidance
-        if (guidance is GuidanceState.Guiding) GuidingControls(guidance, actions.onStop)
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(72.dp)
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        awaitFirstDown()
-                        val released = withTimeoutOrNull(UNLOCK_HOLD_MS) { waitForUpOrCancellation() }
-                        if (released == null) actions.onUnlock()
-                    }
-                },
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.locked_hint), style = MaterialTheme.typography.bodyLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (state.guidance is GuidanceState.Guiding) {
+                Button(
+                    onClick = actions.onStop,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(72.dp),
+                ) {
+                    Text(stringResource(R.string.navigation_stop), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(72.dp)
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown()
+                            val released = withTimeoutOrNull(UNLOCK_HOLD_MS) { waitForUpOrCancellation() }
+                            if (released == null) actions.onUnlock()
+                        }
+                    },
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(8.dp)) {
+                    Text(
+                        stringResource(R.string.locked_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }

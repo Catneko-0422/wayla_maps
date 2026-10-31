@@ -35,6 +35,7 @@ import cc.nekocat.waylamaps.alerts.NearbyOnceNotifier
 import cc.nekocat.waylamaps.alerts.OverLimitWarner
 import cc.nekocat.waylamaps.alerts.AlertDescription
 import cc.nekocat.waylamaps.alerts.RouteCameraMatcher
+import cc.nekocat.waylamaps.alerts.speedBetween
 import cc.nekocat.waylamaps.alerts.camera
 import cc.nekocat.waylamaps.data.SpeedCameraRepository
 import cc.nekocat.waylamaps.data.UserPointRepository
@@ -96,6 +97,7 @@ class RideService : LifecycleService() {
     private val overLimit = OverLimitWarner()
     private val averageSpeed = AverageSpeedTracker()
     private var lastFix: Fix? = null
+    private var lastPosition: Pair<GeoPoint, Long>? = null
     private val parkingZones = NearbyOnceNotifier()
     private val announcedCameraIds = mutableSetOf<Long>()
 
@@ -193,11 +195,19 @@ class RideService : LifecycleService() {
     }
 
     private suspend fun onLocation(location: Location) {
+        val here = GeoPoint(location.latitude, location.longitude)
+        val previous = lastPosition
+        lastPosition = here to location.elapsedRealtimeNanos
+        val speed = if (location.hasSpeed()) {
+            location.speed.toDouble()
+        } else {
+            previous?.let { (point, nanos) -> speedBetween(point, nanos, here, location.elapsedRealtimeNanos) }
+        }
         val fix = Fix(
             lat = location.latitude,
             lng = location.longitude,
             bearingDeg = if (location.hasBearing()) location.bearing.toDouble() else null,
-            speedMps = if (location.hasSpeed()) location.speed.toDouble() else null,
+            speedMps = speed,
         )
         speedMps = fix.speedMps
         statusMonitor.onFix(SystemClock.elapsedRealtime(), fix)?.let { speakStatus(it) }

@@ -1,6 +1,16 @@
 package cc.nekocat.waylamaps.alerts
 
 /**
+ * Speed from two consecutive positions, for fixes that carry none (road-snapped positions often
+ * do not). Null when the gap is too short to be meaningful or too long to still be current.
+ */
+fun speedBetween(previous: GeoPoint, previousNanos: Long, current: GeoPoint, currentNanos: Long): Double? {
+    val seconds = (currentNanos - previousNanos) / 1e9
+    if (seconds !in 0.5..5.0) return null
+    return Geo.distanceMeters(previous.lat, previous.lng, current.lat, current.lng) / seconds
+}
+
+/**
  * Says "over the limit" once per announced camera, while it is within [rangeM] ahead and the
  * speed is above its limit. States the fact only: no tolerance, no advice.
  */

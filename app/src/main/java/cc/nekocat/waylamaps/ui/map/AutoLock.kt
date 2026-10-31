@@ -21,12 +21,17 @@ class AutoLock(
     private var slowSince: Long? = null
     private var manuallyUnlocked = false
 
-    /** @param speedKmh null when unknown (no ride running): never locks, and unlocks. */
+    /**
+     * @param speedKmh null when a fix carries no speed (road-snapped positions sometimes do not):
+     *   the state is kept until a speed arrives.
+     * @param enabled the setting is on and a ride is running; otherwise everything resets.
+     */
     fun update(now: Long, speedKmh: Int?, enabled: Boolean): Change? {
-        if (!enabled || speedKmh == null) {
+        if (!enabled) {
             reset()
             return null
         }
+        if (speedKmh == null) return null
         if (speedKmh > lockSpeedKmh) {
             slowSince = null
             val since = fastSince ?: now.also { fastSince = it }

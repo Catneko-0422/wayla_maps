@@ -136,8 +136,8 @@ class MapViewModel @Inject constructor(
             while (true) {
                 delay(AUTO_LOCK_TICK_MS)
                 val session = alertState.session.value
-                val speed = session.speedKmh.takeIf { session.running && session.hasFix }
-                val change = autoLock.update(SystemClock.elapsedRealtime(), speed, ridePreferences.autoLock.value)
+                val riding = session.running && session.hasFix
+                val change = autoLock.update(SystemClock.elapsedRealtime(), session.speedKmh, ridePreferences.autoLock.value && riding)
                 if (change == AutoLock.Change.UNLOCKED_STOPPED) voice.speak("lock_released")
                 locked.value = autoLock.locked
             }
