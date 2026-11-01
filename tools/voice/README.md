@@ -60,3 +60,17 @@ character kept in the gitignored `app/src/local/` gets its voice in place with
 
 Only use a voice the author recorded or has permission to use. Do not train or ship
 voices cloned from real people or existing characters without permission.
+
+## Road names on the phone
+
+Road names cannot be recorded ahead, so a pack may name a server voice for them
+(`"roadNames": {"voice": "miapla", "language": "zh"}` in `character.json`). The app asks the
+speech server (`TTS_SERVER_URL` and `TTS_API_KEY` in `local.properties`) for the whole route's
+roads when guidance starts, and keeps the clips on the phone.
+
+For riding without a connection, a pack can also carry the voice model itself in an `ondevice/`
+folder, made from the server's Genie-TTS model with `export_ondevice.py` (Python 3.11 with
+`genie-tts==2.0.2`; see its docstring). The phone then makes the names with ONNX Runtime.
+`export_ondevice.py g2p` regenerates the Chinese pronunciation tables in
+`app/src/main/assets/g2p_zh` and the expected readings the unit test compares against.
+Like the voice itself, an exported model of someone else's voice stays out of git.
