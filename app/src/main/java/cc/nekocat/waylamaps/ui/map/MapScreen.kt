@@ -2,6 +2,10 @@ package cc.nekocat.waylamaps.ui.map
 
 import android.app.Activity
 import android.graphics.Bitmap
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.graphics.luminance
+import androidx.core.view.WindowCompat
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
@@ -163,6 +167,7 @@ fun MapScreen(
 
     // One map instance moved between layouts, so rotating or starting guidance keeps it.
     var frame by remember { mutableStateOf(MapFrame()) }
+    var mapNight by remember { mutableStateOf(false) }
     val currentFrame by rememberUpdatedState(frame)
     val currentTheme by rememberUpdatedState(themeMode)
     val currentGuiding by rememberUpdatedState(state.guiding)
@@ -186,6 +191,7 @@ fun MapScreen(
                 overview = currentOverview,
                 followRequests = currentFollowRequests,
                 onFollowingChanged = { following = it },
+                onNightModeChanged = { mapNight = it },
             )
         }
     }
@@ -416,20 +422,26 @@ fun MapScreen(
                     }
                 }
             }
-            if (state.navigatorReady) StatusBarScrim()
+            if (state.navigatorReady) StatusBarIconsFor(mapNight)
         }
     }
 }
 
-/** Keeps the status bar icons readable over the map, whatever its day or night look. */
+/**
+ * The status bar is see-through over the map, so its icons follow the map's look (dark icons
+ * on the day map, light on the night map) rather than the app theme, which may differ. The app
+ * theme's icons come back when the map screen goes.
+ */
 @Composable
-private fun StatusBarScrim() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .windowInsetsTopHeight(WindowInsets.statusBars)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = STATUS_SCRIM_ALPHA)),
-    )
+private fun StatusBarIconsFor(mapNight: Boolean) {
+    val view = LocalView.current
+    val appDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    DisposableEffect(mapNight, appDark) {
+        val window = (view.context as? Activity)?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        controller?.isAppearanceLightStatusBars = !mapNight
+        onDispose { controller?.isAppearanceLightStatusBars = !appDark }
+    }
 }
 
 /** The browse panel's content, shared by the portrait sheet and the landscape card. */
@@ -702,7 +714,6 @@ private val FOLLOW_BUTTON_PADDING = PaddingValues(top = 72.dp, end = 12.dp)
 private val PANEL_MARGIN = 12.dp
 /** Down to just below the speed row, so the sheet does not show half of the next row. */
 private val SHEET_PEEK_HEIGHT = 104.dp
-private const val STATUS_SCRIM_ALPHA = 0.85f
 private val SHEET_STATUS_GAP = 24.dp
 private val SHEET_MAP_GAP = 8.dp
 private val SEARCH_BAR_CLEARANCE = 76.dp

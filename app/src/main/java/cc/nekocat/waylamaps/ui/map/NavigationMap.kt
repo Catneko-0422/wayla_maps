@@ -86,11 +86,14 @@ fun NavigationMap(
     followRequests: Int = 0,
     /** Whether the camera follows the vehicle; false after the rider pans the map. */
     onFollowingChanged: (Boolean) -> Unit = {},
+    /** The map switched between its day and night look. */
+    onNightModeChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val configuration = LocalConfiguration.current
     val currentOnFollowingChanged by rememberUpdatedState(onFollowingChanged)
+    val currentOnNightModeChanged by rememberUpdatedState(onNightModeChanged)
     val view = remember {
         NavigationView(context).apply {
             onCreate(null)
@@ -118,6 +121,7 @@ fun NavigationMap(
         val listener = NavigationView.OnNightModeChangedListener { event ->
             night = event.inNightMode()
             nightMode = night
+            currentOnNightModeChanged(night)
             applyStyle()
         }
         view.addOnNightModeChangedListener(listener)
