@@ -58,14 +58,6 @@ private fun NavInfo.toTurnUpdate(): TurnUpdate {
         nextManeuver = next?.maneuver,
         nextRoundaboutExit = next?.roundaboutTurnNumber,
         nextStepGapM = next?.distanceFromPrevStepMeters,
-        roads = (listOfNotNull(step) + remainingSteps.orEmpty()).mapNotNull { it.fullRoadName?.takeIf(::isRoadName) },
+        roads = (listOfNotNull(step) + remainingSteps.orEmpty()).mapNotNull { it.fullRoadName?.let(RoadNames::spoken) },
     )
 }
-
-/**
- * Whether the SDK's road text is a Taiwanese road name (中山路, 台1線, 國道1號) rather than the
- * instruction it puts there for unnamed roads (靠左).
- */
-internal fun isRoadName(text: String): Boolean = ROAD_NAME.containsMatchIn(text.trim())
-
-private val ROAD_NAME = Regex("[路街道段巷弄線橋號]$|[路街道]")

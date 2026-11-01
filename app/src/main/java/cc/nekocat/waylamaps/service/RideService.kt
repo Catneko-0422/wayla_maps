@@ -51,6 +51,7 @@ import cc.nekocat.waylamaps.navigation.GuidanceState
 import cc.nekocat.waylamaps.navigation.NavigationSession
 import cc.nekocat.waylamaps.navigation.RouteFailure
 import cc.nekocat.waylamaps.navigation.TravelModePreference
+import cc.nekocat.waylamaps.navigation.RoadNames
 import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
 import cc.nekocat.waylamaps.navigation.TurnPrompt
 import cc.nekocat.waylamaps.navigation.TurnPromptPlanner
@@ -180,7 +181,7 @@ class RideService : LifecycleService() {
         lifecycleScope.launch {
             turnByTurn.updates.filterNotNull().collect { update ->
                 Log.d(TAG, "Turn feed $update")
-                turnPlanner.next(update, speedMps)?.let { speakTurn(it, update.roadName) }
+                turnPlanner.next(update, speedMps)?.let { speakTurn(it, update.roadName?.let(RoadNames::spoken)) }
             }
         }
         lifecycleScope.launch {
