@@ -159,7 +159,14 @@ class VoicePlayer @Inject constructor(
         // language; otherwise it is left out.
         val tail = prompt.tailText?.takeIf { (recorded && prompt.tailClip != null) || (!recorded && language == phoneLanguage) }
         val text = listOfNotNull(resolved.text, tail).joinToString(catalog.joiner(language))
-        announce(prompt, text)
+        // A character speaking another language still gets captions the rider can read.
+        val caption = if (language == phoneLanguage) {
+            text
+        } else {
+            val local = runCatching { catalog.resolve(prompt.phraseId, prompt.args, phoneLanguage).text }.getOrNull()
+            local?.let { listOfNotNull(it, tail).joinToString(catalog.joiner(phoneLanguage)) } ?: text
+        }
+        announce(prompt, caption)
         if (recorded) {
             Log.i(TAG, "Playing ${prompt.phraseId} from ${character.id} audio: ${resolved.fragmentIds} ${tail.orEmpty()}")
             audioPrompt = prompt to text
