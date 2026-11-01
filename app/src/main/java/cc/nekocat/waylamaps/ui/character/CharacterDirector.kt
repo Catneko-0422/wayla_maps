@@ -81,6 +81,7 @@ class CharacterDirector(private val holdMs: Long = 2_500) {
                     Reaction(CharacterMood.NEUTRAL, CharacterMotion.NOD)
                 id == "point_add_failed" -> Reaction(CharacterMood.OOPS, CharacterMotion.TILT)
                 id == "rerouting" -> Reaction(CharacterMood.SURPRISED, CharacterMotion.TILT)
+                id == "guidance_start" -> Reaction(CharacterMood.HAPPY, CharacterMotion.NOD)
                 id == "over_limit" -> Reaction(CharacterMood.WORRIED)
                 id in setOf("gps_lost", "gps_disabled", "no_fix", "no_internet") -> Reaction(CharacterMood.WORRIED, CharacterMotion.TILT)
                 id == "doze_begin" || id == "stationary" -> Reaction(CharacterMood.SLEEPY)

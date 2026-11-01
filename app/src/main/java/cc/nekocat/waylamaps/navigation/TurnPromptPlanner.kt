@@ -4,11 +4,14 @@ import kotlin.math.abs
 import kotlin.math.max
 
 sealed interface TurnPrompt {
-    /** "In [distanceM] meters, <maneuver>": `turn_ahead`. */
-    data class Ahead(val maneuverFragment: String, val distanceM: Int) : TurnPrompt
+    /** "In [distanceM] meters, <maneuver>[, then <then>]": `turn_ahead`, `turn_ahead_then`. */
+    data class Ahead(val maneuverFragment: String, val distanceM: Int, val then: String? = null) : TurnPrompt
 
-    /** Just the maneuver, at the turn: `turn_now`. */
-    data class Now(val maneuverFragment: String) : TurnPrompt
+    /** Just the maneuver, at the turn[, then the next one]: `turn_now`, `turn_now_then`. */
+    data class Now(val maneuverFragment: String, val then: String? = null) : TurnPrompt
+
+    /** "Continue for about [km] kilometers", when the next turn is far: `follow_road`. */
+    data class Continue(val km: Int) : TurnPrompt
 
     /** The SDK's own instruction text, for maneuvers without fragments. */
     data class Instruction(val text: String) : TurnPrompt
@@ -24,7 +27,9 @@ sealed interface TurnPrompt {
  *   meters, turn right";
  * - the maneuver alone just before the turn, about [finalLeadTimeS] seconds ahead (at least
  *   [minFinalDistanceM]).
- * Distances are spoken as the nearest recorded distance. A notice is skipped when the next one
+ * When the next maneuver follows within [thenGapM], the main notice and the turn prompt add it
+ * ("then turn left") and its own main notice is left out. A step that starts with a long way to
+ * go gets "continue for about N km" first. Distances are spoken as the nearest recorded distance. A notice is skipped when the next one
  * is about to follow anyway, so close turns do not pile up prompts. A step is identified by
  * number, maneuver and road, so a traffic-driven route update that keeps the same next step does
  * not repeat it.
@@ -34,6 +39,10 @@ sealed interface TurnPrompt {
 class TurnPromptPlanner(
     /** Distances with recorded `ahead_<n>m` fragments. */
     private val distanceSlots: List<Int>,
+    /** Kilometers with recorded `follow_<n>km` fragments. */
+    private val kmSlots: List<Int> = emptyList(),
+    private val thenGapM: Int = 150,
+    private val minContinueM: Double = 2_000.0,
     private val nearDistanceM: Double = 100.0,
     private val nearLeadTimeS: Double = 7.0,
     private val minFinalDistanceM: Double = 25.0,
@@ -45,10 +54,13 @@ class TurnPromptPlanner(
 ) {
     private data class StepKey(val stepNumber: Int, val maneuver: Int, val roadName: String?)
 
-    private enum class Stage { FAR, NEAR, NOW }
+    private enum class Stage { CONTINUE, FAR, NEAR, NOW }
 
     private var step: StepKey? = null
     private val done = mutableSetOf<Stage>()
+
+    /** The step number whose maneuver was already said as "then …". */
+    private var chainedStep: Int? = null
 
     init {
         require(distanceSlots.isNotEmpty()) { "No distance slots" }
@@ -57,6 +69,7 @@ class TurnPromptPlanner(
     fun reset() {
         step = null
         done.clear()
+        chainedStep = null
     }
 
     fun next(update: TurnUpdate, speedMps: Double?): TurnPrompt? {
@@ -70,6 +83,7 @@ class TurnPromptPlanner(
         if (key != step) {
             step = key
             done.clear()
+            if (chainedStep == number) done += Stage.NEAR
         }
         val speed = speedMps ?: 0.0
         val finalDistance = max(minFinalDistanceM, speed * finalLeadTimeS)
@@ -79,7 +93,7 @@ class TurnPromptPlanner(
             if (Stage.NOW in done) return null
             done += Stage.entries
             return when (speech) {
-                is ManeuverSpeech.Fragment -> if (speech.atManeuver) TurnPrompt.Now(speech.id) else null
+                is ManeuverSpeech.Fragment -> if (speech.atManeuver) TurnPrompt.Now(speech.id, then(update, number)) else null
                 ManeuverSpeech.Unmapped -> update.instructionText?.takeIf { it.isNotBlank() }?.let(TurnPrompt::Instruction)
                 ManeuverSpeech.Silent -> null
             }
@@ -92,7 +106,14 @@ class TurnPromptPlanner(
             done += Stage.FAR
             done += Stage.NEAR
             if (distance < finalDistance + minNoticeGapM) return null
-            return TurnPrompt.Ahead(fragment, nearestSlot(distance))
+            return TurnPrompt.Ahead(fragment, nearestSlot(distance), then(update, number))
+        }
+
+        if (Stage.CONTINUE !in done) {
+            done += Stage.CONTINUE
+            if (distance >= minContinueM && kmSlots.isNotEmpty()) {
+                return TurnPrompt.Continue(kmSlots.minBy { abs(it * 1000.0 - distance) })
+            }
         }
 
         val farDistance = farDistanceM(speed) ?: return null
@@ -100,6 +121,16 @@ class TurnPromptPlanner(
         done += Stage.FAR
         if (distance < nearDistance + minFarGapM) return null
         return TurnPrompt.Ahead(fragment, nearestSlot(distance))
+    }
+
+    /** The next maneuver's fragment when it follows closely, remembering that it was said. */
+    private fun then(update: TurnUpdate, stepNumber: Int): String? {
+        val gap = update.nextStepGapM ?: return null
+        val maneuver = update.nextManeuver ?: return null
+        if (gap > thenGapM) return null
+        val next = ManeuverMapper.speechFor(maneuver, update.nextRoundaboutExit) as? ManeuverSpeech.Fragment ?: return null
+        chainedStep = stepNumber + 1
+        return next.id
     }
 
     private fun farDistanceM(speedMps: Double): Double? {

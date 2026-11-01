@@ -11,7 +11,10 @@ import com.google.android.libraries.navigation.RoutingOptions
 import com.google.android.libraries.navigation.SimulationOptions
 import com.google.android.libraries.navigation.TimeAndDistance
 import com.google.android.libraries.navigation.Waypoint
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
@@ -80,6 +83,12 @@ class NavigationSession @Inject constructor(
 
     /** The current route's polyline, empty when not guiding. Replaced on every reroute. */
     val route: StateFlow<List<GeoPoint>> = _route.asStateFlow()
+
+    private val _reroutes = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /** Fires when the rider leaves the route and a new one is being worked out. */
+    val reroutes: SharedFlow<Unit> = _reroutes.asSharedFlow()
+    private val reroutingListener = Navigator.ReroutingListener { _reroutes.tryEmit(Unit) }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val arrivalListener = Navigator.ArrivalListener { event ->
@@ -151,6 +160,7 @@ class NavigationSession @Inject constructor(
         controller.navigator?.let { navigator ->
             navigator.removeArrivalListener(arrivalListener)
             navigator.removeRouteChangedListener(routeChangedListener)
+            navigator.removeReroutingListener(reroutingListener)
             navigator.unregisterServiceForNavUpdates()
             navigator.stopGuidance()
             navigator.clearDestinations()
@@ -201,6 +211,7 @@ class NavigationSession @Inject constructor(
     private fun beginGuidance(navigator: Navigator, trip: Trip, mode: TravelMode, simulate: Boolean) {
         navigator.addArrivalListener(arrivalListener)
         navigator.addRouteChangedListener(routeChangedListener)
+        navigator.addReroutingListener(reroutingListener)
         // Maneuver pictures are generated for the Android Auto turn card.
         val options = NavigationUpdatesOptions.Builder()
             .setNumNextStepsToPreview(NEXT_STEPS_TO_PREVIEW)

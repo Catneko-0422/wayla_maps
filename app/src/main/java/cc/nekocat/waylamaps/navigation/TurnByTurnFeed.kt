@@ -23,6 +23,11 @@ data class TurnUpdate(
     /** To the final destination, for the trip estimate. */
     val remainingMeters: Int? = null,
     val remainingSeconds: Int? = null,
+    /** The maneuver after this one, for "then turn left"; a `Maneuver` constant. */
+    val nextManeuver: Int? = null,
+    val nextRoundaboutExit: Int? = null,
+    /** From this maneuver to the next one. */
+    val nextStepGapM: Int? = null,
 )
 
 /** Latest turn-by-turn data, fed by [NavInfoReceiverService] and read by the ride service. */

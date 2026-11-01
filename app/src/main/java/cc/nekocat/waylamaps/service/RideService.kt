@@ -46,7 +46,6 @@ import cc.nekocat.waylamaps.navigation.NavigationSession
 import cc.nekocat.waylamaps.navigation.RouteFailure
 import cc.nekocat.waylamaps.navigation.TravelModePreference
 import cc.nekocat.waylamaps.navigation.TurnByTurnFeed
-import cc.nekocat.waylamaps.navigation.TurnNavState
 import cc.nekocat.waylamaps.navigation.TurnPrompt
 import cc.nekocat.waylamaps.navigation.TurnPromptPlanner
 import cc.nekocat.waylamaps.voice.AlertPhrases
@@ -108,7 +107,10 @@ class RideService : LifecycleService() {
     /** Where speed cameras were announced this ride, so an enforcement point there is not repeated. */
     private val announcedCameraSpots = ArrayDeque<GeoPoint>()
     private val turnPlanner by lazy {
-        TurnPromptPlanner(phraseCatalog.slots.getValue("distance").map { it.toInt() })
+        TurnPromptPlanner(
+            phraseCatalog.slots.getValue("distance").map { it.toInt() },
+            kmSlots = phraseCatalog.slots["km"].orEmpty().map { it.toInt() },
+        )
     }
     private var speedMps: Double? = null
     private val locations = Channel<Location>(Channel.CONFLATED)
@@ -168,20 +170,21 @@ class RideService : LifecycleService() {
             }
         }
         lifecycleScope.launch {
-            var lastState: TurnNavState? = null
             turnByTurn.updates.filterNotNull().collect { update ->
                 Log.d(TAG, "Turn feed $update")
-                // Said once as the route is recalculated, so a missed turn is not met with silence.
-                if (update.state == TurnNavState.REROUTING && lastState != TurnNavState.REROUTING) voicePlayer.speak("rerouting")
-                lastState = update.state
                 turnPlanner.next(update, speedMps)?.let { speakTurn(it) }
             }
+        }
+        lifecycleScope.launch {
+            // Off the route: said as the new route is worked out, so a missed turn is not met with silence.
+            navigation.reroutes.collect { voicePlayer.speak("rerouting") }
         }
         lifecycleScope.launch {
             var previous = navigation.state.value
             navigation.state.collect { state ->
                 if (state !is GuidanceState.Guiding) turnPlanner.reset()
                 if (state is GuidanceState.Arrived && previous is GuidanceState.Guiding) voicePlayer.speak("arrived")
+                if (state is GuidanceState.Guiding && previous !is GuidanceState.Guiding) voicePlayer.speak("guidance_start")
                 val before = previous
                 if (state is GuidanceState.Guiding && before is GuidanceState.Guiding && state.reached > before.reached) {
                     voicePlayer.speak("stop_reached")
@@ -378,9 +381,20 @@ class RideService : LifecycleService() {
     private fun speakTurn(prompt: TurnPrompt) {
         Log.i(TAG, "Turn prompt $prompt at ${speedMps?.let { (it * 3.6).roundToInt() }} km/h")
         when (prompt) {
-            is TurnPrompt.Ahead ->
-                voicePlayer.speak("turn_ahead", mapOf("distance" to prompt.distanceM, "maneuver" to prompt.maneuverFragment))
-            is TurnPrompt.Now -> voicePlayer.speak("turn_now", mapOf("maneuver" to prompt.maneuverFragment))
+            is TurnPrompt.Ahead -> {
+                val args = mapOf("distance" to prompt.distanceM, "maneuver" to prompt.maneuverFragment)
+                if (prompt.then == null) {
+                    voicePlayer.speak("turn_ahead", args)
+                } else {
+                    voicePlayer.speak("turn_ahead_then", args + ("next" to prompt.then))
+                }
+            }
+            is TurnPrompt.Now -> if (prompt.then == null) {
+                voicePlayer.speak("turn_now", mapOf("maneuver" to prompt.maneuverFragment))
+            } else {
+                voicePlayer.speak("turn_now_then", mapOf("maneuver" to prompt.maneuverFragment, "next" to prompt.then))
+            }
+            is TurnPrompt.Continue -> voicePlayer.speak("follow_road", mapOf("km" to prompt.km))
             is TurnPrompt.Instruction -> voicePlayer.speakText("turn_text", prompt.text, Priority.TURN)
         }
     }

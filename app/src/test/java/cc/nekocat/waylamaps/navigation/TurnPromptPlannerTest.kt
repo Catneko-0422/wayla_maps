@@ -6,7 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class TurnPromptPlannerTest {
-    private val planner = TurnPromptPlanner(listOf(50, 100, 150, 200, 250, 300, 500, 1000))
+    private val planner = TurnPromptPlanner(listOf(50, 100, 150, 200, 250, 300, 500, 1000), kmSlots = listOf(2, 3, 5, 10))
 
     private fun update(
         distance: Int,
@@ -15,7 +15,12 @@ class TurnPromptPlannerTest {
         road: String? = "忠孝東路",
         state: TurnNavState = TurnNavState.ENROUTE,
         text: String? = "左轉進入忠孝東路",
-    ) = TurnUpdate(state, step, maneuver, roundaboutExit = null, distanceToStepM = distance, roadName = road, instructionText = text)
+        next: Int? = null,
+        gap: Int? = null,
+    ) = TurnUpdate(
+        state, step, maneuver, roundaboutExit = null, distanceToStepM = distance, roadName = road, instructionText = text,
+        nextManeuver = next, nextStepGapM = gap,
+    )
 
     private fun kmh(value: Double) = value / 3.6
 
@@ -117,5 +122,35 @@ class TurnPromptPlannerTest {
     @Test
     fun stoppedFeedIsIgnored() {
         assertNull(planner.next(update(20, state = TurnNavState.STOPPED), kmh(30.0)))
+    }
+
+    @Test
+    fun closeTurnsAreChainedAndTheSecondNoticeIsSkipped() {
+        val first = update(100, next = Maneuver.TURN_RIGHT, gap = 80)
+        assertEquals(TurnPrompt.Ahead("maneuver_turn_left", 100, then = "maneuver_turn_right"), planner.next(first, kmh(30.0)))
+        assertEquals(TurnPrompt.Now("maneuver_turn_left", then = "maneuver_turn_right"), planner.next(first.copy(distanceToStepM = 20), kmh(30.0)))
+
+        // The right turn was already said: only its turn prompt remains.
+        val second = update(75, step = 4, maneuver = Maneuver.TURN_RIGHT, road = "復興南路")
+        assertNull(planner.next(second, kmh(30.0)))
+        assertEquals(TurnPrompt.Now("maneuver_turn_right"), planner.next(second.copy(distanceToStepM = 20), kmh(30.0)))
+    }
+
+    @Test
+    fun distantNextTurnIsNotChained() {
+        assertEquals(TurnPrompt.Ahead("maneuver_turn_left", 100), planner.next(update(100, next = Maneuver.TURN_RIGHT, gap = 600), kmh(30.0)))
+    }
+
+    @Test
+    fun longStretchGetsContinueFirst() {
+        assertEquals(TurnPrompt.Continue(3), planner.next(update(3_200), kmh(60.0)))
+        assertNull(planner.next(update(3_100), kmh(60.0)))
+        assertEquals(TurnPrompt.Ahead("maneuver_turn_left", 500), planner.next(update(495), kmh(60.0)))
+    }
+
+    @Test
+    fun shortStretchHasNoContinue() {
+        assertNull(planner.next(update(1_500), kmh(30.0)))
+        assertEquals(TurnPrompt.Ahead("maneuver_turn_left", 100), planner.next(update(100), kmh(30.0)))
     }
 }

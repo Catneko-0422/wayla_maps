@@ -39,6 +39,7 @@ class NavInfoReceiverService : Service() {
 
 private fun NavInfo.toTurnUpdate(): TurnUpdate {
     val step = currentStep
+    val next = remainingSteps?.firstOrNull()
     return TurnUpdate(
         state = when (navState) {
             NavState.ENROUTE -> TurnNavState.ENROUTE
@@ -54,5 +55,8 @@ private fun NavInfo.toTurnUpdate(): TurnUpdate {
         instructionText = step?.fullInstructionText,
         remainingMeters = distanceToFinalDestinationMeters,
         remainingSeconds = timeToFinalDestinationSeconds,
+        nextManeuver = next?.maneuver,
+        nextRoundaboutExit = next?.roundaboutTurnNumber,
+        nextStepGapM = next?.distanceFromPrevStepMeters,
     )
 }

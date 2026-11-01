@@ -110,6 +110,43 @@
       "maneuver_destination",
       "maneuver_destination_left",
       "maneuver_destination_right"
+    ],
+    "next": [
+      "maneuver_turn_left",
+      "maneuver_turn_right",
+      "maneuver_keep_left",
+      "maneuver_keep_right",
+      "maneuver_u_turn",
+      "maneuver_straight",
+      "maneuver_merge",
+      "maneuver_roundabout",
+      "maneuver_roundabout_exit_1",
+      "maneuver_roundabout_exit_2",
+      "maneuver_roundabout_exit_3",
+      "maneuver_roundabout_exit_4",
+      "maneuver_roundabout_exit_5",
+      "maneuver_roundabout_leave",
+      "maneuver_on_ramp",
+      "maneuver_on_ramp_left",
+      "maneuver_on_ramp_right",
+      "maneuver_off_ramp",
+      "maneuver_off_ramp_left",
+      "maneuver_off_ramp_right",
+      "maneuver_destination",
+      "maneuver_destination_left",
+      "maneuver_destination_right"
+    ],
+    "km": [
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "8",
+      "10",
+      "15",
+      "20",
+      "30"
     ]
   },
   "fragments": {
@@ -722,6 +759,66 @@
       "zh-TW": "重新規劃路線",
       "en": "Rerouting",
       "ja": "ルート再計算"
+    },
+    "follow_2km": {
+      "zh-TW": "沿著道路直行約兩公里",
+      "en": "Continue for about 2 kilometers",
+      "ja": "このまま直進、約二キロ"
+    },
+    "follow_3km": {
+      "zh-TW": "沿著道路直行約三公里",
+      "en": "Continue for about 3 kilometers",
+      "ja": "このまま直進、約三キロ"
+    },
+    "follow_4km": {
+      "zh-TW": "沿著道路直行約四公里",
+      "en": "Continue for about 4 kilometers",
+      "ja": "このまま直進、約四キロ"
+    },
+    "follow_5km": {
+      "zh-TW": "沿著道路直行約五公里",
+      "en": "Continue for about 5 kilometers",
+      "ja": "このまま直進、約五キロ"
+    },
+    "follow_6km": {
+      "zh-TW": "沿著道路直行約六公里",
+      "en": "Continue for about 6 kilometers",
+      "ja": "このまま直進、約六キロ"
+    },
+    "follow_8km": {
+      "zh-TW": "沿著道路直行約八公里",
+      "en": "Continue for about 8 kilometers",
+      "ja": "このまま直進、約八キロ"
+    },
+    "follow_10km": {
+      "zh-TW": "沿著道路直行約十公里",
+      "en": "Continue for about 10 kilometers",
+      "ja": "このまま直進、約十キロ"
+    },
+    "follow_15km": {
+      "zh-TW": "沿著道路直行約十五公里",
+      "en": "Continue for about 15 kilometers",
+      "ja": "このまま直進、約十五キロ"
+    },
+    "follow_20km": {
+      "zh-TW": "沿著道路直行約二十公里",
+      "en": "Continue for about 20 kilometers",
+      "ja": "このまま直進、約二十キロ"
+    },
+    "follow_30km": {
+      "zh-TW": "沿著道路直行約三十公里",
+      "en": "Continue for about 30 kilometers",
+      "ja": "このまま直進、約三十キロ"
+    },
+    "then": {
+      "zh-TW": "接著",
+      "en": "then",
+      "ja": "続いて"
+    },
+    "guidance_start": {
+      "zh-TW": "開始導航",
+      "en": "Starting navigation",
+      "ja": "航法支援、開始"
     }
   },
   "phrases": {
@@ -1281,6 +1378,77 @@
         ],
         "ja": [
           "rerouting"
+        ]
+      }
+    },
+    "turn_ahead_then": {
+      "priority": "TURN",
+      "fragments": {
+        "zh-TW": [
+          "ahead_{distance}m",
+          "{maneuver}",
+          "then",
+          "{next}"
+        ],
+        "en": [
+          "{maneuver}",
+          "ahead_{distance}m",
+          "then",
+          "{next}"
+        ],
+        "ja": [
+          "ahead_{distance}m",
+          "{maneuver}",
+          "then",
+          "{next}"
+        ]
+      }
+    },
+    "turn_now_then": {
+      "priority": "TURN",
+      "fragments": {
+        "zh-TW": [
+          "{maneuver}",
+          "then",
+          "{next}"
+        ],
+        "en": [
+          "{maneuver}",
+          "then",
+          "{next}"
+        ],
+        "ja": [
+          "{maneuver}",
+          "then",
+          "{next}"
+        ]
+      }
+    },
+    "follow_road": {
+      "priority": "TURN",
+      "fragments": {
+        "zh-TW": [
+          "follow_{km}km"
+        ],
+        "en": [
+          "follow_{km}km"
+        ],
+        "ja": [
+          "follow_{km}km"
+        ]
+      }
+    },
+    "guidance_start": {
+      "priority": "TURN",
+      "fragments": {
+        "zh-TW": [
+          "guidance_start"
+        ],
+        "en": [
+          "guidance_start"
+        ],
+        "ja": [
+          "guidance_start"
         ]
       }
     }
