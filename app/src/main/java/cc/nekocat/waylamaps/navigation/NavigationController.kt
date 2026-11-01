@@ -84,12 +84,7 @@ class NavigationController @Inject constructor(
             override fun onNavigatorReady(navigator: Navigator) {
                 if (_state.value != NavigatorState.Initializing) return
                 watchdog?.cancel()
-                navigator.setAudioGuidanceSettings(
-                    AudioGuidanceSettings.builder()
-                        .setGuidanceMode(AudioGuidanceSettings.GuidanceMode.SILENT)
-                        .setVibrationEnabled(false)
-                        .build(),
-                )
+                navigator.silenceSdkVoice()
                 Log.i(TAG, "Navigator ready (Navigation SDK ${NavigationApi.getNavSDKVersion()})")
                 _state.value = NavigatorState.Ready(navigator)
             }
@@ -150,4 +145,17 @@ class NavigationController @Inject constructor(
         const val CALLBACK_TIMEOUT_MS = 30_000L
         const val TERMS_TIMEOUT_MS = 120_000L
     }
+}
+
+/**
+ * Mutes the Navigation SDK's own spoken guidance, which would talk over the character. Set again
+ * whenever guidance starts: on some devices the SDK does not keep it from navigator creation.
+ */
+fun Navigator.silenceSdkVoice() {
+    setAudioGuidanceSettings(
+        AudioGuidanceSettings.builder()
+            .setGuidanceMode(AudioGuidanceSettings.GuidanceMode.SILENT)
+            .setVibrationEnabled(false)
+            .build(),
+    )
 }

@@ -89,6 +89,7 @@ class NavigationSession @Inject constructor(
             // touch the phone to continue.
             val navigator = controller.navigator ?: return@ArrivalListener
             navigator.continueToNextDestination()
+            navigator.silenceSdkVoice()
             navigator.startGuidance()
             if (guiding.simulated) {
                 navigator.simulator.simulateLocationsAlongExistingRoute(SimulationOptions().speedMultiplier(SIMULATION_SPEED))
@@ -212,6 +213,7 @@ class NavigationSession @Inject constructor(
             options,
         )
         if (!registered) Log.e(TAG, "Turn-by-turn feed unavailable; turns will not be announced")
+        navigator.silenceSdkVoice()
         navigator.startGuidance()
         refreshRoute()
         if (simulate) {
