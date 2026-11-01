@@ -1,3 +1,5 @@
+import java.net.URI
+import java.util.Properties
 import javax.inject.Inject
 
 plugins {
@@ -93,6 +95,49 @@ abstract class ExtractNavigationLegal : DefaultTask() {
     }
 }
 
+/**
+ * Writes res/xml/network_security_config.xml from the template in src/main/netsec, allowing
+ * plain HTTP to the speech server only. That server lives on the home network or Tailscale and
+ * has no certificate; its host comes from local.properties, so it is not in the public repo.
+ */
+abstract class GenerateNetworkSecurityConfig : DefaultTask() {
+    @get:InputFile
+    abstract val template: RegularFileProperty
+
+    @get:Input
+    abstract val speechServerUrl: Property<String>
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val url = speechServerUrl.get().trim()
+        val host = url.takeIf { it.startsWith("http://") }?.let { URI(it).host }.orEmpty()
+        val rule = if (host.isEmpty()) {
+            ""
+        } else {
+            """<domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">$host</domain>
+    </domain-config>"""
+        }
+        val xml = template.get().asFile.readText().replace("<!-- SPEECH_SERVER -->", rule)
+        outputDir.file("xml/network_security_config.xml").get().asFile.apply {
+            parentFile.mkdirs()
+            writeText(xml)
+        }
+    }
+}
+
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.reader()?.use { load(it) }
+}
+
+val generateNetworkSecurityConfig = tasks.register<GenerateNetworkSecurityConfig>("generateNetworkSecurityConfig") {
+    template.set(layout.projectDirectory.file("src/main/netsec/network_security_config.xml"))
+    speechServerUrl.set(localProperties.getProperty("TTS_SERVER_URL", ""))
+}
+
 val navigationAar: Configuration = configurations.create("navigationAar") {
     isTransitive = false
     isCanBeConsumed = false
@@ -105,6 +150,7 @@ val extractNavigationLegal = tasks.register<ExtractNavigationLegal>("extractNavi
 androidComponents {
     onVariants { variant ->
         variant.sources.assets?.addGeneratedSourceDirectory(extractNavigationLegal, ExtractNavigationLegal::outputDir)
+        variant.sources.res?.addGeneratedSourceDirectory(generateNetworkSecurityConfig, GenerateNetworkSecurityConfig::outputDir)
     }
 }
 

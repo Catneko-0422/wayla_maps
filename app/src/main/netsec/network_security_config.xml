@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Template: the build (generateNetworkSecurityConfig) writes it to res/xml/ and replaces the
+    marker below with a cleartext rule for the local speech server, whose host is configuration
+    (TTS_SERVER_URL in local.properties) and so is not written here.
+-->
 <network-security-config>
+    <!-- SPEECH_SERVER -->
     <!--
         These county open data servers send their certificate without the TWCA intermediate,
         so the chain cannot be built from the system store alone. The intermediates are
