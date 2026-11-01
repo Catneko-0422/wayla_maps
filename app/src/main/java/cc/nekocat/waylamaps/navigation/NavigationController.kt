@@ -151,7 +151,10 @@ class NavigationController @Inject constructor(
  * Mutes the Navigation SDK's own spoken guidance, which would talk over the character. Set again
  * whenever guidance starts: on some devices the SDK does not keep it from navigator creation.
  */
+@Suppress("DEPRECATION") // setAudioGuidance, kept on purpose below
 fun Navigator.silenceSdkVoice() {
+    // Both the old and the new setting: on some devices the new one alone left the voice on.
+    setAudioGuidance(Navigator.AudioGuidance.SILENT)
     setAudioGuidanceSettings(
         AudioGuidanceSettings.builder()
             .setGuidanceMode(AudioGuidanceSettings.GuidanceMode.SILENT)
