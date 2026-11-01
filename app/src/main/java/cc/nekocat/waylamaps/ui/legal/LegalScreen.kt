@@ -82,6 +82,7 @@ fun LegalScreen(credits: List<String>, onBack: () -> Unit) {
             if (credits.isNotEmpty()) {
                 item { Section(stringResource(R.string.legal_characters_section), credits.joinToString("\n")) }
             }
+            item { Section(stringResource(R.string.legal_speech_section), stringResource(R.string.speech_attribution)) }
             item { Section(stringResource(R.string.legal_navigation_section), notice) }
             items(licenseChunks) { chunk ->
                 Text(chunk, style = MaterialTheme.typography.bodySmall)

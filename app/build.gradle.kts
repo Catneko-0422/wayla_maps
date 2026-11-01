@@ -182,6 +182,8 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    // On-device speech for road names (approved by the user, 2026-11-01).
+    implementation(libs.onnxruntime.android)
 
     // The Navigation SDK bundles its own Maps SDK; the standalone one must not be on the classpath.
     implementation(libs.google.navigation)

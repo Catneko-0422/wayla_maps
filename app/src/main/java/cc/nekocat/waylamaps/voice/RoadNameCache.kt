@@ -3,6 +3,7 @@ package cc.nekocat.waylamaps.voice
 import android.content.Context
 import android.util.Log
 import cc.nekocat.waylamaps.character.RoadNameVoice
+import cc.nekocat.waylamaps.voice.ondevice.OnDeviceSpeechSynthesizer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -64,9 +65,12 @@ class RoadNameCache @Inject constructor(
     }
 }
 
-/** The ways to make a road name clip, tried in order: on the phone first, then the server. */
-class RoadNameSynthesizers @Inject constructor(server: ServerSpeechSynthesizer) {
-    private val all: List<SpeechSynthesizer> = listOf(server)
+/**
+ * The ways to make a road name clip, tried in order: the home server, whose voice also has BERT
+ * features for natural phrasing, then the phone itself when the server cannot be reached.
+ */
+class RoadNameSynthesizers @Inject constructor(server: ServerSpeechSynthesizer, phone: OnDeviceSpeechSynthesizer) {
+    private val all: List<SpeechSynthesizer> = listOf(server, phone)
 
     suspend fun synthesize(text: String, voice: RoadNameVoice): ByteArray? =
         all.firstNotNullOfOrNull { it.synthesize(text, voice) }

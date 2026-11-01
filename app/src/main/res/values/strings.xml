@@ -163,4 +163,7 @@
     <string name="voice_boost_loud">Loud</string>
     <string name="voice_boost_loudest">Loudest</string>
     <string name="character_language_ja">Japanese</string>
+    <string name="debug_on_device_road_name">Test a road name made on the phone</string>
+    <string name="legal_speech_section">On-device speech</string>
+    <string name="speech_attribution">ONNX Runtime, © Microsoft Corporation, MIT License\n\nPhone set and inference follow GPT-SoVITS (© RVC-Boss, MIT License) and Genie-TTS (© High_Logic, MIT License)\n\nPinyin readings from pypinyin (© mozillazg, MIT License); traditional to simplified table from PaddleSpeech (© PaddlePaddle Authors, Apache License 2.0)</string>
 </resources>

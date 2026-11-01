@@ -86,6 +86,7 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLegal: () -> Unit, viewModel: Setti
     val theme by viewModel.theme.collectAsStateWithLifecycle()
     val voiceMode by viewModel.voiceMode.collectAsStateWithLifecycle()
     val voiceBoost by viewModel.voiceBoost.collectAsStateWithLifecycle()
+    val onDeviceTest by viewModel.onDeviceTest.collectAsStateWithLifecycle()
     val userPoints by viewModel.userPoints.collectAsStateWithLifecycle()
     val characters by viewModel.characters.collectAsStateWithLifecycle()
     val selectedCharacter by viewModel.selectedCharacter.collectAsStateWithLifecycle()
@@ -184,6 +185,12 @@ fun SettingsScreen(onBack: () -> Unit, onOpenLegal: () -> Unit, viewModel: Setti
                         }
                     }
                     HowToMakeVoicePack()
+                    if (BuildConfig.DEBUG && selectedCharacter.manifest.roadNames != null) {
+                        // Debug builds only: tries the phone's own voice model with a road name.
+                        TextButton(onClick = viewModel::testOnDeviceRoadName, modifier = Modifier.padding(horizontal = 4.dp)) {
+                            Text(stringResource(R.string.debug_on_device_road_name) + (onDeviceTest?.let { " — $it" } ?: ""))
+                        }
+                    }
                 }
             }
             item {

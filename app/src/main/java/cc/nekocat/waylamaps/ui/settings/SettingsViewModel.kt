@@ -2,6 +2,11 @@ package cc.nekocat.waylamaps.ui.settings
 
 import android.app.Application
 import android.net.Uri
+import java.io.File
+import cc.nekocat.waylamaps.voice.ondevice.OnDeviceSpeechSynthesizer
+import android.os.SystemClock
+import android.media.MediaPlayer
+import android.media.AudioAttributes
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import cc.nekocat.waylamaps.data.OpenDataUpdateWorker
@@ -41,6 +46,7 @@ class SettingsViewModel @Inject constructor(
     private val application: Application,
     private val speedCameras: SpeedCameraImporter,
     private val enforcement: EnforcementImporter,
+    private val onDeviceSpeech: OnDeviceSpeechSynthesizer,
 ) : ViewModel() {
     val characters = characterRepository.characters
     val selectedCharacter = characterRepository.selected
@@ -122,6 +128,37 @@ class SettingsViewModel @Inject constructor(
 
     fun setVoiceMode(mode: VoiceMode) = ridePreferences.setVoiceMode(mode)
 
+    private val _onDeviceTest = MutableStateFlow<String?>(null)
+
+    /** Debug builds: the last on-device road name test, for checking the phone's own voice model. */
+    val onDeviceTest: StateFlow<String?> = _onDeviceTest.asStateFlow()
+
+    fun testOnDeviceRoadName() {
+        val voice = selectedCharacter.value.manifest.roadNames ?: run {
+            _onDeviceTest.value = "no road voice"
+            return
+        }
+        _onDeviceTest.value = "…"
+        viewModelScope.launch {
+            val started = SystemClock.elapsedRealtime()
+            val audio = onDeviceSpeech.synthesize(ON_DEVICE_TEST_ROAD, voice)
+            val ms = SystemClock.elapsedRealtime() - started
+            if (audio == null) {
+                _onDeviceTest.value = "failed after $ms ms"
+                return@launch
+            }
+            _onDeviceTest.value = "$ON_DEVICE_TEST_ROAD: $ms ms"
+            val file = File(application.cacheDir, "ondevice-test.wav").apply { writeBytes(audio) }
+            MediaPlayer().apply {
+                setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE).build())
+                setDataSource(file.path)
+                setOnCompletionListener { it.release() }
+                prepare()
+                start()
+            }
+        }
+    }
+
     /** Plays a sample at the new level, so the rider hears the difference. */
     fun setVoiceBoost(boost: VoiceBoost) {
         ridePreferences.setVoiceBoost(boost)
@@ -159,5 +196,9 @@ class SettingsViewModel @Inject constructor(
             userPointRepository.delete(point.id)
             voice.speak("point_deleted")
         }
+    }
+
+    private companion object {
+        const val ON_DEVICE_TEST_ROAD = "重慶北路一段"
     }
 }

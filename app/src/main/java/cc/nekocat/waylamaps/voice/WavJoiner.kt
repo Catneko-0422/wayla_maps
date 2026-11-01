@@ -56,6 +56,13 @@ object WavJoiner {
         return join(listOf(write(trimmed)), gapMs = 0) ?: bytes
     }
 
+    /** A mono 16-bit PCM WAV file of [samples]. */
+    fun encode(samples: ShortArray, sampleRate: Int): ByteArray {
+        val data = ByteBuffer.allocate(samples.size * 2).order(ByteOrder.LITTLE_ENDIAN)
+        samples.forEach { data.putShort(it) }
+        return write(Pcm(channels = 1, sampleRate = sampleRate, bitsPerSample = 16, data = data.array()))
+    }
+
     private fun write(pcm: Pcm): ByteArray {
         val frameBytes = pcm.channels * pcm.bitsPerSample / 8
         return ByteBuffer.allocate(HEADER_BYTES + pcm.data.size).order(ByteOrder.LITTLE_ENDIAN).apply {

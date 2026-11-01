@@ -1,5 +1,6 @@
 package cc.nekocat.waylamaps.voice
 
+import android.os.SystemClock
 import android.util.Log
 import cc.nekocat.waylamaps.BuildConfig
 import cc.nekocat.waylamaps.character.RoadNameVoice
@@ -26,8 +27,12 @@ interface SpeechSynthesizer {
 class ServerSpeechSynthesizer @Inject constructor() : SpeechSynthesizer {
     private val serverUrl = BuildConfig.TTS_SERVER_URL.trim().trimEnd('/')
 
+    /** After a failed connection the server is left alone a while, so the phone takes over at once. */
+    @Volatile
+    private var unreachableUntilMs = 0L
+
     override suspend fun synthesize(text: String, voice: RoadNameVoice): ByteArray? {
-        if (serverUrl.isEmpty()) return null
+        if (serverUrl.isEmpty() || SystemClock.elapsedRealtime() < unreachableUntilMs) return null
         return withContext(Dispatchers.IO) {
             try {
                 val connection = URL("$serverUrl/v1/audio/speech").openConnection() as HttpURLConnection
@@ -57,6 +62,7 @@ class ServerSpeechSynthesizer @Inject constructor() : SpeechSynthesizer {
                 }
             } catch (e: IOException) {
                 Log.i(TAG, "Speech server unreachable: ${e.message}")
+                unreachableUntilMs = SystemClock.elapsedRealtime() + RETRY_AFTER_MS
                 null
             }
         }
@@ -66,5 +72,6 @@ class ServerSpeechSynthesizer @Inject constructor() : SpeechSynthesizer {
         const val TAG = "ServerSpeech"
         const val CONNECT_TIMEOUT_MS = 3_000
         const val READ_TIMEOUT_MS = 60_000
+        const val RETRY_AFTER_MS = 120_000L
     }
 }

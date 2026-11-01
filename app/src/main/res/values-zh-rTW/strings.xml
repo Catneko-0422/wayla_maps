@@ -158,4 +158,7 @@
     <string name="voice_boost_loud">大聲</string>
     <string name="voice_boost_loudest">最大</string>
     <string name="character_language_ja">日語</string>
+    <string name="debug_on_device_road_name">測試手機合成路名</string>
+    <string name="legal_speech_section">手機語音合成</string>
+    <string name="speech_attribution">ONNX Runtime，© Microsoft Corporation，MIT 授權\n\n音素表與推理流程依照 GPT-SoVITS（© RVC-Boss，MIT 授權）與 Genie-TTS（© High_Logic，MIT 授權）\n\n拼音讀音取自 pypinyin（© mozillazg，MIT 授權）；繁簡對照表取自 PaddleSpeech（© PaddlePaddle Authors，Apache 2.0 授權）</string>
 </resources>
