@@ -72,7 +72,7 @@ class CharacterDirector(private val holdMs: Long = 2_500) {
             val id = phraseId ?: return Reaction(CharacterMood.NEUTRAL)
             return when {
                 id == "arrived" -> Reaction(CharacterMood.JOY, CharacterMotion.SALUTE)
-                id == "detect_start" -> Reaction(CharacterMood.HAPPY, CharacterMotion.SALUTE)
+                id == "detect_start" -> Reaction(CharacterMood.HAPPY, CharacterMotion.NOD)
                 id == "voice_demo" -> Reaction(CharacterMood.HAPPY, CharacterMotion.WAVE)
                 id == "stop_reached" || id == "point_added" -> Reaction(CharacterMood.HAPPY, CharacterMotion.NOD)
                 id == "gps_recovered" || id == "gps_enabled" || id == "doze_end" -> Reaction(CharacterMood.HAPPY, CharacterMotion.CHEER)
