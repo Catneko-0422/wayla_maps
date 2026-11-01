@@ -70,7 +70,11 @@ fun CharacterView(model: ByteArray, spec: ModelSpec, speech: Speech?, modifier: 
         }
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_RESUME -> Choreographer.getInstance().postFrameCallback(callback)
+                Lifecycle.Event.ON_RESUME -> Choreographer.getInstance().run {
+                    // A repeated resume must not start a second frame loop.
+                    removeFrameCallback(callback)
+                    postFrameCallback(callback)
+                }
                 Lifecycle.Event.ON_PAUSE -> Choreographer.getInstance().removeFrameCallback(callback)
                 else -> Unit
             }
