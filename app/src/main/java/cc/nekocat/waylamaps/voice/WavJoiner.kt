@@ -34,6 +34,39 @@ object WavJoiner {
         return out.array()
     }
 
+    /**
+     * Cuts leading and trailing silence (below [threshold] of full scale) from 16-bit PCM, keeping
+     * [keepMs] on each side, so a clip joins the sentence without a gap. Unchanged if not 16-bit
+     * PCM WAV.
+     */
+    fun trimSilence(bytes: ByteArray, threshold: Double = 0.02, keepMs: Int = 60): ByteArray {
+        val pcm = parse(bytes) ?: return bytes
+        if (pcm.bitsPerSample != 16) return bytes
+        val frameBytes = pcm.channels * 2
+        val frames = pcm.data.size / frameBytes
+        val samples = ByteBuffer.wrap(pcm.data).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+        val limit = (threshold * Short.MAX_VALUE).toInt()
+        fun loud(frame: Int) = (0 until pcm.channels).any { kotlin.math.abs(samples.get(frame * pcm.channels + it).toInt()) > limit }
+        val first = (0 until frames).firstOrNull(::loud) ?: return bytes
+        val last = (frames - 1 downTo 0).first(::loud)
+        val keep = pcm.sampleRate * keepMs / 1000
+        val start = (first - keep).coerceAtLeast(0)
+        val end = (last + keep + 1).coerceAtMost(frames)
+        val trimmed = pcm.copy(data = pcm.data.copyOfRange(start * frameBytes, end * frameBytes))
+        return join(listOf(write(trimmed)), gapMs = 0) ?: bytes
+    }
+
+    private fun write(pcm: Pcm): ByteArray {
+        val frameBytes = pcm.channels * pcm.bitsPerSample / 8
+        return ByteBuffer.allocate(HEADER_BYTES + pcm.data.size).order(ByteOrder.LITTLE_ENDIAN).apply {
+            put("RIFF".toByteArray()).putInt(36 + pcm.data.size).put("WAVE".toByteArray())
+            put("fmt ".toByteArray()).putInt(16).putShort(PCM_FORMAT.toShort()).putShort(pcm.channels.toShort())
+                .putInt(pcm.sampleRate).putInt(pcm.sampleRate * frameBytes).putShort(frameBytes.toShort())
+                .putShort(pcm.bitsPerSample.toShort())
+            put("data".toByteArray()).putInt(pcm.data.size).put(pcm.data)
+        }.array()
+    }
+
     private fun parse(bytes: ByteArray): Pcm? {
         if (bytes.size < 12 || String(bytes, 0, 4) != "RIFF" || String(bytes, 8, 4) != "WAVE") return null
         val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)

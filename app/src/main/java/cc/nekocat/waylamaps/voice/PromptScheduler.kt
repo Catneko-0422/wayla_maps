@@ -9,6 +9,9 @@ data class Prompt(
     val args: Map<String, Any> = emptyMap(),
     val priority: Priority,
     val text: String? = null,
+    /** A clip said after the phrase, such as a road name, with its text for the caption. */
+    val tailClip: String? = null,
+    val tailText: String? = null,
 )
 
 /** Plays one prompt at a time for [PromptScheduler]. */

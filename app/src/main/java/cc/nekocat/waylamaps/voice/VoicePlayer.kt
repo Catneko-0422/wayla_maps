@@ -154,18 +154,23 @@ class VoicePlayer @Inject constructor(
         }
 
         audioFocus.acquire()
-        announce(prompt, resolved.text)
-        if (resolved.fragmentIds.all { character.hasVoice(language, it) }) {
-            Log.i(TAG, "Playing ${prompt.phraseId} from ${character.id} audio: ${resolved.fragmentIds}")
-            audioPrompt = prompt to resolved.text
-            val uris = resolved.fragmentIds.map { character.voiceUri(language, it) }
+        val recorded = resolved.fragmentIds.all { character.hasVoice(language, it) }
+        // The road name joins the recorded sentence, or the phone's voice when it reads the phone's
+        // language; otherwise it is left out.
+        val tail = prompt.tailText?.takeIf { (recorded && prompt.tailClip != null) || (!recorded && language == phoneLanguage) }
+        val text = listOfNotNull(resolved.text, tail).joinToString(catalog.joiner(language))
+        announce(prompt, text)
+        if (recorded) {
+            Log.i(TAG, "Playing ${prompt.phraseId} from ${character.id} audio: ${resolved.fragmentIds} ${tail.orEmpty()}")
+            audioPrompt = prompt to text
+            val uris = resolved.fragmentIds.map { character.voiceUri(language, it) } + listOfNotNull(prompt.tailClip)
             val joined = if (uris.size > 1) joinClips(uris) else null
             player.setMediaItems(if (joined != null) listOf(MediaItem.fromUri(joined)) else uris.map(MediaItem::fromUri))
             player.prepare()
             player.play()
         } else {
-            Log.i(TAG, "Playing ${prompt.phraseId} with TTS: ${resolved.text}")
-            speakWithTts(prompt, resolved.text, language)
+            Log.i(TAG, "Playing ${prompt.phraseId} with TTS: $text")
+            speakWithTts(prompt, text, language)
         }
     }
 

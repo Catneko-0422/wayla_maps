@@ -42,4 +42,19 @@ class WavJoinerTest {
     fun refusesWhatIsNotWav() {
         assertNull(WavJoiner.join(listOf(byteArrayOf(1, 2, 3)), gapMs = 0))
     }
+
+    @Test
+    fun trimsSilenceButKeepsAMargin() {
+        // 1 kHz: a 2 ms margin is 2 samples.
+        val clip = wav(shortArrayOf(0, 0, 0, 0, 0, 9000, 0, -9000, 0, 0, 0, 0, 0))
+        val trimmed = WavJoiner.trimSilence(clip, keepMs = 2)
+
+        assertArrayEquals(shortArrayOf(0, 0, 9000, 0, -9000, 0, 0), samplesOf(trimmed))
+    }
+
+    @Test
+    fun silentClipIsLeftAlone() {
+        val clip = wav(shortArrayOf(0, 0, 0))
+        assertArrayEquals(clip, WavJoiner.trimSilence(clip))
+    }
 }

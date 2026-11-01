@@ -28,6 +28,8 @@ data class TurnUpdate(
     val nextRoundaboutExit: Int? = null,
     /** From this maneuver to the next one. */
     val nextStepGapM: Int? = null,
+    /** The roads of this step and every later one, for making their names ahead of time. */
+    val roads: List<String> = emptyList(),
 )
 
 /** Latest turn-by-turn data, fed by [NavInfoReceiverService] and read by the ride service. */

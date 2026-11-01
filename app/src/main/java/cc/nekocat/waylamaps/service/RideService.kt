@@ -1,6 +1,12 @@
 package cc.nekocat.waylamaps.service
 
 import android.Manifest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import cc.nekocat.waylamaps.voice.Prompt
+import cc.nekocat.waylamaps.voice.RoadNameCache
+import cc.nekocat.waylamaps.character.CharacterRepository
+import android.net.Uri
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -88,6 +94,8 @@ class RideService : LifecycleService() {
     @Inject lateinit var turnByTurn: TurnByTurnFeed
     @Inject lateinit var travelMode: TravelModePreference
     @Inject lateinit var ridePreferences: RidePreferences
+    @Inject lateinit var characters: CharacterRepository
+    @Inject lateinit var roadNames: RoadNameCache
 
     private val detector = CameraAheadDetector()
     private val routeMatcher = RouteCameraMatcher()
@@ -172,15 +180,25 @@ class RideService : LifecycleService() {
         lifecycleScope.launch {
             turnByTurn.updates.filterNotNull().collect { update ->
                 Log.d(TAG, "Turn feed $update")
-                turnPlanner.next(update, speedMps)?.let { speakTurn(it) }
+                turnPlanner.next(update, speedMps)?.let { speakTurn(it, update.roadName) }
             }
+        }
+        lifecycleScope.launch {
+            // The whole route's road names, made in the background while riding; a new route
+            // (reroute, another character) starts over with what is not cached yet.
+            combine(turnByTurn.updates.map { it?.roads.orEmpty() }.distinctUntilChanged(), characters.selected, ::Pair)
+                .collectLatest { (roads, character) ->
+                    val voice = character.manifest.roadNames ?: return@collectLatest
+                    roadNames.prefetch(voice, roads)
+                }
         }
         lifecycleScope.launch {
             // Off the route: said as the new route is worked out, so a missed turn is not met with silence.
             navigation.reroutes.collect { voicePlayer.speak("rerouting") }
         }
         lifecycleScope.launch {
-            var previous = navigation.state.value
+            // The service usually starts because guidance did, so that start counts as one.
+            var previous: GuidanceState = GuidanceState.Idle
             navigation.state.collect { state ->
                 if (state !is GuidanceState.Guiding) turnPlanner.reset()
                 if (state is GuidanceState.Arrived && previous is GuidanceState.Guiding) voicePlayer.speak("arrived")
@@ -378,13 +396,24 @@ class RideService : LifecycleService() {
 
     private val limitSlots by lazy { phraseCatalog.slots["limit"].orEmpty() }
 
-    private fun speakTurn(prompt: TurnPrompt) {
+    private fun speakTurn(prompt: TurnPrompt, road: String?) {
         Log.i(TAG, "Turn prompt $prompt at ${speedMps?.let { (it * 3.6).roundToInt() }} km/h")
         when (prompt) {
             is TurnPrompt.Ahead -> {
                 val args = mapOf("distance" to prompt.distanceM, "maneuver" to prompt.maneuverFragment)
                 if (prompt.then == null) {
-                    voicePlayer.speak("turn_ahead", args)
+                    // "…, turn right, 中山路": the road the turn leads onto, when its clip is ready.
+                    val voice = characters.selected.value.manifest.roadNames
+                    val clip = voice?.let { v -> road?.let { roadNames.clip(v, it) } }
+                    voicePlayer.speak(
+                        Prompt(
+                            "turn_ahead",
+                            args,
+                            Priority.TURN,
+                            tailClip = clip?.let { Uri.fromFile(it).toString() },
+                            tailText = road?.takeIf { it.isNotBlank() },
+                        ),
+                    )
                 } else {
                     voicePlayer.speak("turn_ahead_then", args + ("next" to prompt.then))
                 }

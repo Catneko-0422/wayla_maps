@@ -20,6 +20,8 @@ data class CharacterManifest(
      * phrase texts. Null speaks the phone's language.
      */
     val voiceLanguage: String? = null,
+    /** How this character says road names, which no pack can record ahead; null leaves them out. */
+    val roadNames: RoadNameVoice? = null,
 ) {
     companion object {
         const val FILE_NAME = "character.json"
@@ -39,6 +41,13 @@ data class CharacterManifest(
         }
     }
 }
+
+/**
+ * A speech server voice for road names, e.g. "miapla" reading Chinese: Taiwan's road names are
+ * Chinese even when the character speaks Japanese.
+ */
+@Serializable
+data class RoadNameVoice(val voice: String, val language: String = "zh")
 
 /** A glTF binary model and the morph targets (shape keys) used for expressions. */
 @Serializable
