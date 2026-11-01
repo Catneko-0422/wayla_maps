@@ -57,4 +57,12 @@ class WavJoinerTest {
         val clip = wav(shortArrayOf(0, 0, 0))
         assertArrayEquals(clip, WavJoiner.trimSilence(clip))
     }
+
+    @Test
+    fun slowsDownWithoutLosingTheClip() {
+        val second = ShortArray(16_000) { (8000 * kotlin.math.sin(it * 2 * Math.PI * 440 / 16_000)).toInt().toShort() }
+        val slower = WavJoiner.changeSpeed(wav(second, rate = 16_000), speed = 0.8f)
+
+        assertEquals(1.25, WavJoiner.durationSeconds(slower)!!, 0.03)
+    }
 }

@@ -37,12 +37,17 @@ class RoadNameCache @Inject constructor(
             if (name.isEmpty() || name.length > MAX_NAME_LENGTH) continue
             val target = file(voice, name)
             if (target.exists()) continue
-            val audio = synthesizers.synthesize(name, voice) ?: break
+            val audio = makeClip(name, voice) ?: break
             withContext(Dispatchers.IO) {
                 try {
+                    if (audio.isEmpty()) {
+                        Log.w(TAG, "Giving up on $name")
+                        return@withContext
+                    }
                     target.parentFile?.mkdirs()
                     val temporary = File(target.parentFile, "${target.name}.tmp")
-                    temporary.writeBytes(WavJoiner.trimSilence(audio))
+                    // Slower than the voice's natural pace: a name heard once through wind noise.
+                    temporary.writeBytes(WavJoiner.changeSpeed(WavJoiner.trimSilence(audio), ROAD_NAME_SPEED))
                     temporary.renameTo(target)
                     Log.i(TAG, "Road name ready: $name")
                 } catch (e: IOException) {
@@ -52,9 +57,24 @@ class RoadNameCache @Inject constructor(
         }
     }
 
+    /**
+     * A clip of a believable length. The model sometimes runs on and says its reference line
+     * instead (another character's voice): such a clip is made again, and dropped if it keeps
+     * happening ([EMPTY]). Null only when no synthesizer could be reached.
+     */
+    private suspend fun makeClip(name: String, voice: RoadNameVoice): ByteArray? {
+        repeat(ATTEMPTS) {
+            val audio = synthesizers.synthesize(name, voice) ?: return null
+            val seconds = WavJoiner.durationSeconds(audio)
+            if (seconds != null && seconds <= MAX_SECONDS_PER_CHAR * name.length + MAX_SECONDS_SLACK) return audio
+            Log.i(TAG, "Discarding a ${seconds}s clip for $name")
+        }
+        return EMPTY
+    }
+
     private fun file(voice: RoadNameVoice, name: String): File {
         val digest = MessageDigest.getInstance("SHA-1").digest(name.toByteArray()).joinToString("") { "%02x".format(it) }
-        return File(root, "${voice.voice}_${voice.language}/$digest.wav")
+        return File(root, "v$CACHE_VERSION/${voice.voice}_${voice.language}/$digest.wav")
     }
 
     private companion object {
@@ -62,6 +82,17 @@ class RoadNameCache @Inject constructor(
 
         /** Longer "names" are whole instructions, not road names. */
         const val MAX_NAME_LENGTH = 24
+        const val ATTEMPTS = 3
+        const val MAX_SECONDS_PER_CHAR = 0.45
+        const val MAX_SECONDS_SLACK = 0.6
+
+        /** Raised when clips made before must not be used any more. */
+        const val CACHE_VERSION = 3
+
+        const val ROAD_NAME_SPEED = 0.8f
+
+        /** A name that kept going wrong: nothing is stored, and a later ride tries again. */
+        val EMPTY = ByteArray(0)
     }
 }
 

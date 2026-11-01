@@ -1,5 +1,10 @@
 package cc.nekocat.waylamaps.voice
 
+import androidx.annotation.OptIn
+import androidx.media3.common.C
+import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.audio.SonicAudioProcessor
+import androidx.media3.common.util.UnstableApi
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -54,6 +59,43 @@ object WavJoiner {
         val end = (last + keep + 1).coerceAtMost(frames)
         val trimmed = pcm.copy(data = pcm.data.copyOfRange(start * frameBytes, end * frameBytes))
         return join(listOf(write(trimmed)), gapMs = 0) ?: bytes
+    }
+
+    /**
+     * Plays 16-bit PCM at [speed] (below 1 is slower) without changing its pitch, using Media3's
+     * Sonic time stretcher. Unchanged if not 16-bit PCM WAV.
+     */
+    @OptIn(UnstableApi::class)
+    fun changeSpeed(bytes: ByteArray, speed: Float): ByteArray {
+        val pcm = parse(bytes) ?: return bytes
+        if (pcm.bitsPerSample != 16 || speed == 1f) return bytes
+        val sonic = SonicAudioProcessor().apply { setSpeed(speed) }
+        sonic.configure(AudioProcessor.AudioFormat(pcm.sampleRate, pcm.channels, C.ENCODING_PCM_16BIT))
+        sonic.flush(AudioProcessor.StreamMetadata.DEFAULT)
+        val input = ByteBuffer.allocateDirect(pcm.data.size).order(ByteOrder.nativeOrder())
+        input.put(pcm.data).flip()
+        val out = java.io.ByteArrayOutputStream()
+        fun drain() {
+            val chunk = sonic.output
+            val array = ByteArray(chunk.remaining())
+            chunk.get(array)
+            out.write(array)
+        }
+        while (input.hasRemaining()) {
+            sonic.queueInput(input)
+            drain()
+        }
+        sonic.queueEndOfStream()
+        while (!sonic.isEnded) drain()
+        sonic.reset()
+        return write(pcm.copy(data = out.toByteArray()))
+    }
+
+    /** How long a PCM WAV clip plays, or null if it is not one. */
+    fun durationSeconds(bytes: ByteArray): Double? {
+        val pcm = parse(bytes) ?: return null
+        val frameBytes = pcm.channels * pcm.bitsPerSample / 8
+        return pcm.data.size.toDouble() / frameBytes / pcm.sampleRate
     }
 
     /** A mono 16-bit PCM WAV file of [samples]. */
