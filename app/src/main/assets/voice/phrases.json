@@ -503,12 +503,12 @@
     "maneuver_turn_left": {
       "zh-TW": "左轉",
       "en": "Turn left",
-      "ja": "左折"
+      "ja": "左方向です"
     },
     "maneuver_turn_right": {
       "zh-TW": "右轉",
       "en": "Turn right",
-      "ja": "右折"
+      "ja": "右方向です"
     },
     "maneuver_keep_left": {
       "zh-TW": "靠左",
@@ -523,7 +523,7 @@
     "maneuver_u_turn": {
       "zh-TW": "迴轉",
       "en": "Make a U-turn",
-      "ja": "Uターン"
+      "ja": "Uターンです"
     },
     "maneuver_straight": {
       "zh-TW": "直行",
